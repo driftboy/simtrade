@@ -1,0 +1,339 @@
+<h2>评分系统设计</h2>
+<p class="subtitle">过程评分算法与规则配置</p>
+
+<div class="section">
+  <h3>🎯 评分维度</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">五大评分维度</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px;">
+      <div style="text-align: center;">
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+          <div style="font-size: 24px;">💰</div>
+          <div style="font-weight: bold; margin-top: 5px;">盈利能力</div>
+          <div style="font-size: 11px; color: #666;">Profit</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px;">利润率、成本控制</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+          <div style="font-size: 24px;">📋</div>
+          <div style="font-weight: bold; margin-top: 5px;">单证准确</div>
+          <div style="font-size: 11px; color: #666;">Accuracy</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px;">单证正确率</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+          <div style="font-size: 24px;">⚡</div>
+          <div style="font-weight: bold; margin-top: 5px;">完成时效</div>
+          <div style="font-size: 11px; color: #666;">Efficiency</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px;">按时完成</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
+          <div style="font-size: 24px;">🔄</div>
+          <div style="font-weight: bold; margin-top: 5px;">业务量</div>
+          <div style="font-size: 11px; color: #666;">Volume</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px;">交易笔数</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="background: #fce4ec; padding: 15px; border-radius: 8px;">
+          <div style="font-size: 24px;">✨</div>
+          <div style="font-weight: bold; margin-top: 5px;">综合表现</div>
+          <div style="font-size: 11px; color: #666;">Overall</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px;">操作规范</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📐 评分公式</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">总分计算公式</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>总分 = 盈利能力×W1 + 单证准确×W2 + 完成时效×W3 + 业务量×W4 + 综合表现×W5</strong>
+    </div>
+    <div style="margin-top: 15px;">
+      <div style="margin-bottom: 10px;">
+        <strong>1. 盈利能力 (Profit Score)</strong><br>
+        = Σ(每笔交易利润 / 每笔交易金额) × 100 / 交易笔数
+      </div>
+      <div style="margin-bottom: 10px;">
+        <strong>2. 单证准确 (Accuracy Score)</strong><br>
+        = 100 - Σ(单证错误数 × 错误权重) / 单证总数
+      </div>
+      <div style="margin-bottom: 10px;">
+        <strong>3. 完成时效 (Efficiency Score)</strong><br>
+        = Σ(基准分 - 超时天数×扣分) / 交易笔数
+      </div>
+      <div style="margin-bottom: 10px;">
+        <strong>4. 业务量 (Volume Score)</strong><br>
+        = MIN(完成交易笔数 / 目标笔数 × 100, 上限分)
+      </div>
+      <div style="margin-bottom: 10px;">
+        <strong>5. 综合表现 (Overall Score)</strong><br>
+        = 规范操作加分 - 违规操作扣分
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>⚙️ 评分规则配置 (ScoringRule)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">教师可配置参数</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <tr style="background: #f5f5f5;">
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">参数</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">默认值</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">说明</th>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">profit_weight</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">30%</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">盈利能力权重</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">accuracy_weight</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">25%</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">单证准确权重</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">efficiency_weight</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">20%</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">完成时效权重</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">volume_weight</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">15%</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">业务量权重</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">overall_weight</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">10%</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">综合表现权重</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">doc_error_penalty</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">5分/个</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">单证错误扣分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">overdue_penalty</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">2分/天</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">超时扣分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">target_transactions</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">3笔</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">目标交易笔数</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">time_limit_days</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">30天</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">完成时限</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📊 单证错误检测</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">自动校验规则</div>
+  <div class="mockup-body" style="padding: 15px; font-size: 11px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="background: #f5f5f5;">
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">校验项</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">规则</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">扣分</th>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">日期逻辑</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">发票日期 ≤ 提单日期 ≤ 保险日期</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">10分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">金额一致</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">发票金额 = 汇票金额 = 保险金额×1.1</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">15分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">数量一致</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">发票数量 = 装箱单数量 = 提单数量</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">10分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">单证齐全</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">L/C 要求的单证全部提交</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">每缺一种 20分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">必填字段</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">所有必填字段不能为空</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">每空一项 2分</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">背书签字</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">需要背书/签字的单证已签字</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">每漏一项 5分</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🏆 排行榜</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">多维度排名</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 11px;">
+      <div class="placeholder" style="padding: 12px; background: #e8f5e9;">
+        <div style="font-weight: bold;">🥇 总分榜</div>
+        <div style="color: #666;">按总分排序</div>
+      </div>
+      <div class="placeholder" style="padding: 12px; background: #e3f2fd;">
+        <div style="font-weight: bold;">💰 利润榜</div>
+        <div style="color: #666;">按总利润排序</div>
+      </div>
+      <div class="placeholder" style="padding: 12px; background: #fff3e0;">
+        <div style="font-weight: bold;">⚡ 效率榜</div>
+        <div style="color: #666;">按完成速度排序</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📈 成绩分布分析</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">教师端统计</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 11px;">
+      <div>
+        <div style="margin-bottom: 10px;">
+          <strong>分数段分布</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">90-100</span>
+            <div style="flex: 1; background: #e8f5e9; height: 20px; border-radius: 4px;">
+              <div style="background: #4caf50; width: 15%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>15%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">80-89</span>
+            <div style="flex: 1; background: #e8f5e9; height: 20px; border-radius: 4px;">
+              <div style="background: #8bc34a; width: 35%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>35%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">70-79</span>
+            <div style="flex: 1; background: #e8f5e9; height: 20px; border-radius: 4px;">
+              <div style="background: #cddc39; width: 30%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>30%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">60-69</span>
+            <div style="flex: 1; background: #e8f5e9; height: 20px; border-radius: 4px;">
+              <div style="background: #ffeb3b; width: 15%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>15%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">&lt;60</span>
+            <div style="flex: 1; background: #e8f5e9; height: 20px; border-radius: 4px;">
+              <div style="background: #ff9800; width: 5%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>5%</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="margin-bottom: 10px;">
+          <strong>各维度平均分</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">盈利</span>
+            <div style="flex: 1; background: #eee; height: 15px; border-radius: 4px;">
+              <div style="background: #2196f3; width: 75%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>75分</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">单证</span>
+            <div style="flex: 1; background: #eee; height: 15px; border-radius: 4px;">
+              <div style="background: #4caf50; width: 82%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>82分</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">时效</span>
+            <div style="flex: 1; background: #eee; height: 15px; border-radius: 4px;">
+              <div style="background: #ff9800; width: 68%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>68分</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">业务量</span>
+            <div style="flex: 1; background: #eee; height: 15px; border-radius: 4px;">
+              <div style="background: #9c27b0; width: 90%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>90分</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 60px;">综合</span>
+            <div style="flex: 1; background: #eee; height: 15px; border-radius: 4px;">
+              <div style="background: #f44336; width: 85%; height: 100%; border-radius: 4px;"></div>
+            </div>
+            <span>85分</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>✅ 评分系统设计完成</h3>
+  <p><strong>5 维度评分 + 教师可配置 + 自动校验</strong></p>
+  <ul style="margin-top: 10px;">
+    <li>盈利能力、单证准确、完成时效、业务量、综合表现</li>
+    <li>权重、扣分规则、目标可由教师配置</li>
+    <li>自动校验单证错误（日期、金额、数量等）</li>
+    <li>多维度排行榜和成绩分析</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="continue" onclick="toggleSelect(this)">
+    <div class="letter">继续</div>
+    <div class="content">
+      <h3>继续设计</h3>
+      <p>设计总结</p>
+    </div>
+  </div>
+</div>

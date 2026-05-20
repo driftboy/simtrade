@@ -1,0 +1,190 @@
+<h2>状态机完整性审查</h2>
+<p class="subtitle">还有哪些需要状态机？</p>
+
+<div class="section">
+  <h3>✅ 已设计的状态机 (5个)</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+  <div class="placeholder" style="padding: 10px; background: #e8f5e9;">Transaction (交易)</div>
+  <div class="placeholder" style="padding: 10px; background: #e8f5e9;">Document (单证)</div>
+  <div class="placeholder" style="padding: 10px; background: #e8f5e9;">LetterOfCredit (信用证)</div>
+  <div class="placeholder" style="padding: 10px; background: #e8f5e9;">ProductionOrder (生产单)</div>
+  <div class="placeholder" style="padding: 10px; background: #e8f5e9;">Payment (付款)</div>
+</div>
+
+<div class="section">
+  <h3>❓ 可能遗漏的状态机</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">需要评估的业务实体</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <tr style="background: #f5f5f5;">
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">业务实体</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">是否需要状态机</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">原因</th>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Contract (合同)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">合同有独立审批、签字、生效流程</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Inquiry (询盘)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">可简化</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">可合并到 Transaction 状态中</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Course (课程)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">课程有筹备/进行/结束/归档流程</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Score (成绩)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">成绩有计算/审核/发布/确认流程</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>News (新闻)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">简单</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">只需 草稿/已发布 两个状态</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Message (消息)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">简单</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">只需 已读/未读 标识</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;"><strong>User (用户账号)</strong></td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">标准</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">Django 自带 is_active，无需额外设计</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🆕 建议补充的 3 个状态机</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">1. Contract (合同) 状态机</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">草稿</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">待签字</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">双方已签字</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已生效</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">履行完毕</span>
+    </div>
+    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+      合同需要双方签字，签字后生效，是外贸业务的核心单据
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">2. Course (课程) 状态机</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">筹备中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">报名中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">进行中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已结束</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已归档</span>
+    </div>
+    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+      课程状态控制学生能否进入系统、提交作业等
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">3. Score (成绩) 状态机</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">计算中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">待审核</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已发布</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已确认</span>
+    </div>
+    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+      成绩需要教师审核后发布，学生确认后最终归档
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>🔗 状态机联动关系</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">状态间的自动触发</div>
+  <div class="mockup-body" style="padding: 15px; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>合同 → 信用证</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      Contract.已生效 → 自动创建 LetterOfCredit.草稿
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>信用证 → 交易履约</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      LetterOfCredit.已通知 → Transaction.履约中
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>交易 → 课程状态</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      全部交易完成 → Course.可结束
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      <strong>课程结束 → 成绩计算</strong>
+    </div>
+    <div style="padding-left: 15px;">
+      Course.已结束 → 触发 Score.计算中
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>✅ 补充后完整状态机</h3>
+  <p><strong>共 8 个状态机</strong></p>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;">
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">Transaction</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">Contract 🆕</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">Document</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">LetterOfCredit</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">ProductionOrder</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">Payment</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">Course 🆕</div>
+    <div class="placeholder" style="padding: 8px; background: #e8f5e9;">Score 🆕</div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="confirm" onclick="toggleSelect(this)">
+    <div class="letter">确定</div>
+    <div class="content">
+      <h3>补充这 3 个状态机</h3>
+      <p>状态机设计完整</p>
+    </div>
+  </div>
+</div>

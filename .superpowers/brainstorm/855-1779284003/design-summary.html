@@ -1,0 +1,234 @@
+<h2>SimTrade 设计总结</h2>
+<p class="subtitle">完整设计方案总览</p>
+
+<div class="section">
+  <h3>📋 设计清单</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">已完成的设计模块</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 11px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>系统架构与模块划分</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>技术栈选型 (Django + Bootstrap3)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>角色系统 (10角色可配置)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>数据模型 (26表)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>状态机设计 (8个)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>业务流程设计</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>单证系统 (15种单证)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: #e8f5e9; padding: 8px 15px; border-radius: 4px;">✅</span>
+        <span>评分系统 (5维度)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🏗️ 系统架构图</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">完整系统架构</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 10px; font-size: 11px;">
+      <!-- 展示层 -->
+      <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 10px;">展示层 (Bootstrap 3 + jQuery)</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div class="placeholder" style="padding: 10px;">学生工作台</div>
+          <div class="placeholder" style="padding: 10px;">教师管理台</div>
+          <div class="placeholder" style="padding: 10px;">系统管理台</div>
+        </div>
+      </div>
+
+      <!-- 业务层 -->
+      <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 10px;">业务层 (Django Apps - 8个)</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+          <div class="placeholder" style="padding: 8px;">用户管理</div>
+          <div class="placeholder" style="padding: 8px;">角色模拟</div>
+          <div class="placeholder" style="padding: 8px;">交易管理</div>
+          <div class="placeholder" style="padding: 8px;">单证中心</div>
+          <div class="placeholder" style="padding: 8px;">财务结算</div>
+          <div class="placeholder" style="padding: 8px;">评分系统</div>
+          <div class="placeholder" style="padding: 8px;">教学管理</div>
+          <div class="placeholder" style="padding: 8px;">系统配置</div>
+        </div>
+      </div>
+
+      <!-- 数据层 -->
+      <div style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 10px;">数据层 (26表 + 状态历史)</div>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; font-size: 10px;">
+          <div>用户权限(5)</div>
+          <div>交易单证(6)</div>
+          <div>财务生产(4)</div>
+          <div>教学评分(4)</div>
+          <div>系统配置(5)</div>
+          <div>消息新闻(2)</div>
+          <div>状态历史(1)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>👥 角色系统</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #e3f2fd;">
+    <div style="font-size: 24px;">🏢</div>
+    <div><strong>出口商</strong></div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #f3e5f5;">
+    <div style="font-size: 24px;">🏬</div>
+    <div><strong>进口商</strong></div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #fff3e0;">
+    <div style="font-size: 24px;">🏭</div>
+    <div><strong>工厂</strong></div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #e8f5e9;">
+    <div style="font-size: 24px;">🏦</div>
+    <div><strong>银行</strong></div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #ffebee;">
+    <div style="font-size: 24px;">🔧</div>
+    <div><strong>辅助角色(可配置)</strong></div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>💾 数据模型 (26表)</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 10px;">
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px;">User</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px;">Role</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px;">UserRole</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px;">Class</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px;">Company</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">Product</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">Catalog</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">Transaction</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">Contract</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">LetterOfCredit</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">Document</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">DocumentTemplate</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px;">DocumentDependency</div>
+  <div style="background: #e8f5e9; padding: 6px; border-radius: 4px;">ProductionOrder</div>
+  <div style="background: #e8f5e9; padding: 6px; border-radius: 4px;">TransactionCost</div>
+  <div style="background: #e8f5e9; padding: 6px; border-radius: 4px;">Payment</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px;">Course</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px;">ActivityLog</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px;">ScoringRule</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px;">Score</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px;">ExchangeRate</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px;">ShippingRate</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px;">InsuranceRate</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px;">Country</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px;">Port</div>
+  <div style="background: #e0f2f1; padding: 6px; border-radius: 4px;">Message</div>
+  <div style="background: #e0f2f1; padding: 6px; border-radius: 4px;">News</div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>⚙️ 状态机 (8个)</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 11px;">
+  <div class="placeholder" style="padding: 8px;">Transaction (交易)</div>
+  <div class="placeholder" style="padding: 8px;">Contract (合同)</div>
+  <div class="placeholder" style="padding: 8px;">Document (单证)</div>
+  <div class="placeholder" style="padding: 8px;">LetterOfCredit (信用证)</div>
+  <div class="placeholder" style="padding: 8px;">ProductionOrder (生产单)</div>
+  <div class="placeholder" style="padding: 8px;">Payment (付款)</div>
+  <div class="placeholder" style="padding: 8px;">Course (课程)</div>
+  <div class="placeholder" style="padding: 8px;">Score (成绩)</div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>📋 单证列表 (15种)</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; font-size: 10px;">
+  <div class="placeholder" style="padding: 6px;">商业发票</div>
+  <div class="placeholder" style="padding: 6px;">装箱单</div>
+  <div class="placeholder" style="padding: 6px;">汇票</div>
+  <div class="placeholder" style="padding: 6px;">外销合同</div>
+  <div class="placeholder" style="padding: 6px;">信用证</div>
+  <div class="placeholder" style="padding: 6px;">海关发票</div>
+  <div class="placeholder" style="padding: 6px;">海运提单</div>
+  <div class="placeholder" style="padding: 6px;">保险单</div>
+  <div class="placeholder" style="padding: 6px;">投保单</div>
+  <div class="placeholder" style="padding: 6px;">出口报关单</div>
+  <div class="placeholder" style="padding: 6px;">进口报关单</div>
+  <div class="placeholder" style="padding: 6px;">报检单</div>
+  <div class="placeholder" style="padding: 6px;">检验证书</div>
+  <div class="placeholder" style="padding: 6px;">产地证</div>
+  <div class="placeholder" style="padding: 6px;">受益人证明</div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>✅ 设计完成</h3>
+  <p><strong>SimTrade 外贸模拟实训平台 — 完整设计方案</strong></p>
+  <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+    <div>
+      <strong>技术栈</strong>
+      <ul style="margin-top: 5px;">
+        <li>后端：Django + Python</li>
+        <li>前端：Bootstrap 3 + jQuery</li>
+        <li>数据库：PostgreSQL/MySQL</li>
+        <li>兼容：IE8+ 主流浏览器</li>
+      </ul>
+    </div>
+    <div>
+      <strong>核心特性</strong>
+      <ul style="margin-top: 5px;">
+        <li>10种贸易角色，教师可配置</li>
+        <li>26个数据表，8个状态机</li>
+        <li>15种外贸单证</li>
+        <li>5维度评分系统</li>
+        <li>支持100人同时在线</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>📝 下一步</h3>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="write-plan" onclick="toggleSelect(this)">
+    <div class="letter">确定</div>
+    <div class="content">
+      <h3>编写实现计划</h3>
+      <p>将设计方案转为实现计划</p>
+    </div>
+  </div>
+</div>

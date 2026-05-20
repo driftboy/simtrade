@@ -1,0 +1,191 @@
+<h2>工作流状态机设计</h2>
+<p class="subtitle">核心业务状态流转</p>
+
+<div class="section">
+  <h3>1. 交易状态机 (Transaction)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">交易完整生命周期</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">草稿</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">询盘中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">还盘中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #f3e5f5; padding: 8px 12px; border-radius: 4px;">待签约</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">已签约</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff9c4; padding: 8px 12px; border-radius: 4px;">履约中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已完成</span>
+    </div>
+    <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px;">
+      <span style="color: #999;">|</span>
+      <span style="background: #ffebee; padding: 8px 12px; border-radius: 4px;">已取消</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. 单证状态机 (Document)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">单证制作与流转</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">草稿</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">待审核</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">已审核</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已提交</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #a5d6a7; padding: 8px 12px; border-radius: 4px;">已接收</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已归档</span>
+    </div>
+    <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px;">
+      <span style="color: #999;">|</span>
+      <span style="background: #ffebee; padding: 8px 12px; border-radius: 4px;">审核不通过</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">草稿(修改)</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. 信用证状态机 (LetterOfCredit)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">L/C 开立与流转</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">草稿</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">待开证</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">已开证</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已通知</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #a5d6a7; padding: 8px 12px; border-radius: 4px;">待议付</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已议付</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #4caf50; padding: 8px 12px; border-radius: 4px; color: white;">已付款</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>4. 生产订单状态机 (ProductionOrder)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">工厂生产流程</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">待确认</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">已确认</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff9c4; padding: 8px 12px; border-radius: 4px;">生产中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已完成</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已发货</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>5. 付款状态机 (Payment)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">资金结算流程</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">待支付</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">处理中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">已支付</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已收款</span>
+    </div>
+    <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px;">
+      <span style="color: #999;">|</span>
+      <span style="background: #ffebee; padding: 8px 12px; border-radius: 4px;">已取消</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>💾 数据库实现</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">状态机数据结构</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>方案一：状态字段 + 状态历史</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 15px;">
+      # 每个业务表添加 status 字段<br>
+      transaction.status = CharField(choices=STATUS_CHOICES)<br>
+      <br>
+      # 状态历史表（追踪流转）<br>
+      <strong>TransactionStatusHistory</strong><br>
+      id, transaction_id → Transaction<br>
+      from_status, to_status, changed_by → User<br>
+      change_reason, created_at
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>方案二：工作流引擎表（更灵活）</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 15px;">
+      # 工作流定义<br>
+      <strong>WorkflowDefinition</strong><br>
+      id, entity_type (Transaction/Document/...)<br>
+      current_state, next_states (JSON), transitions (JSON)<br>
+      <br>
+      # 状态转换规则<br>
+      <strong>WorkflowTransition</strong><br>
+      id, workflow_id → WorkflowDefinition<br>
+      from_state, to_state, action, required_role<br>
+      condition (Python表达式), auto_transition (bool)
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>✅ 状态机设计完成</h3>
+  <p><strong>覆盖 5 大核心业务流程</strong></p>
+  <ul style="margin-top: 10px;">
+    <li>交易状态机 — 8 个状态</li>
+    <li>单证状态机 — 7 个状态（含审核不通过回退）</li>
+    <li>信用证状态机 — 8 个状态</li>
+    <li>生产订单状态机 — 5 个状态</li>
+    <li>付款状态机 — 4 个状态</li>
+  </ul>
+  <p style="margin-top: 10px;">建议采用方案一（状态字段 + 历史表），简单清晰，满足教学需求。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="continue" onclick="toggleSelect(this)">
+    <div class="letter">继续</div>
+    <div class="content">
+      <h3>继续设计</h3>
+      <p>查看其他部分</p>
+    </div>
+  </div>
+</div>

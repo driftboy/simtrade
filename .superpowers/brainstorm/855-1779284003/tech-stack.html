@@ -1,0 +1,56 @@
+<h2>技术栈方案</h2>
+<p class="subtitle">兼容 Win7 IE 浏览器 + Python 后端</p>
+
+<div class="section">
+  <p><strong>Windows 7 IE 浏览器兼容性约束：</strong></p>
+  <ul>
+    <li>Win7 自带 IE8/IE9，用户可能升级到 IE10/IE11</li>
+    <li>不支持现代前端框架（React/Vue/Angular 2+）</li>
+    <li>需要 ES5 语法 + polyfill</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="classic" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>经典服务端渲染</h3>
+      <p>Python 模板引擎（Jinja2/Django Templates）+ jQuery</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>IE 兼容性最好</li><li>开发简单直接</li><li>SEO 友好</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>交互体验较弱</li><li>服务器负载较高</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="hybrid" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>混合方案</h3>
+      <p>服务端渲染为主 + 局部 Vue 2.x（IE11 兼容）</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>平衡兼容性与体验</li><li>复杂交互用 Vue</li><li>渐进式增强</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>需要用户升级到 IE11</li><li>技术栈稍复杂</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="jquery" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>纯 jQuery + AJAX</h3>
+      <p>Django/Flask 提供 JSON API，前端完全用 jQuery</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>IE8+ 完美兼容</li><li>前后端分离清晰</li><li>体验接近 SPA</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>大量 DOM 操作代码</li><li>状态管理复杂</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p><strong>Python 后端框架：</strong></p>
+  <ul>
+    <li>Django — 全功能框架，内置管理后台，适合快速开发</li>
+    <li>Flask — 轻量灵活，组件自由选择</li>
+    <li>FastAPI — 现代异步，自动 API 文档，但较新</li>
+  </ul>
+</div>

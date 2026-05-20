@@ -1,0 +1,239 @@
+<h2>完整状态机设计 v2.0</h2>
+<p class="subtitle">8 个核心状态机 + 联动关系</p>
+
+<div class="section">
+  <h3>📊 状态机总览</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">1. Transaction (交易)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      草稿 → 询盘 → 还盘<br>
+      → 待签约 → 已签约<br>
+      → 履约中 → 已完成
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">2. Contract (合同)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      草稿 → 待签字<br>
+      → 双方已签字<br>
+      → 已生效 → 履行完毕
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">3. Document (单证)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      草稿 → 待审核 → 已审核<br>
+      → 已提交 → 已接收 → 已归档
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">4. LetterOfCredit (信用证)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      草稿 → 待开证 → 已开证<br>
+      → 已通知 → 待议付<br>
+      → 已议付 → 已付款
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">5. ProductionOrder (生产单)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      待确认 → 已确认<br>
+      → 生产中 → 已完成<br>
+      → 已发货
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">6. Payment (付款)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      待支付 → 处理中<br>
+      → 已支付 → 已收款
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">7. Course (课程)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      筹备中 → 报名中<br>
+      → 进行中 → 已结束<br>
+      → 已归档
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header" style="font-size: 10px;">8. Score (成绩)</div>
+    <div class="mockup-body" style="padding: 8px; font-size: 9px;">
+      计算中 → 待审核<br>
+      → 已发布 → 已确认
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🆕 新增的 3 个状态机详解</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Contract (合同) 状态机</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">草稿</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">待签字</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">双方已签字</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已生效</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">履行完毕</span>
+    </div>
+    <div style="margin-top: 15px; font-family: monospace; font-size: 11px;">
+      <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+        <strong>contract/status_choices.py</strong><br>
+        DRAFT = 'draft'           # 草稿<br>
+        PENDING_SIGN = 'pending'  # 待签字<br>
+        SIGNED = 'signed'         # 双方已签字<br>
+        EFFECTIVE = 'effective'   # 已生效<br>
+        FULFILLED = 'fulfilled'   # 履行完毕<br>
+        CANCELLED = 'cancelled'   # 已取消
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">Course (课程) 状态机</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">筹备中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">报名中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">进行中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #c8e6c9; padding: 8px 12px; border-radius: 4px;">已结束</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已归档</span>
+    </div>
+    <div style="margin-top: 15px; font-family: monospace; font-size: 11px;">
+      <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+        <strong>course/status_choices.py</strong><br>
+        PREPARING = 'preparing'  # 筹备中<br>
+        ENROLLING = 'enrolling'  # 报名中<br>
+        IN_PROGRESS = 'active'   # 进行中<br>
+        ENDED = 'ended'          # 已结束<br>
+        ARCHIVED = 'archived'    # 已归档
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">Score (成绩) 状态机</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; font-size: 11px;">
+      <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 4px;">计算中</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #fff3e0; padding: 8px 12px; border-radius: 4px;">待审核</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #e8f5e9; padding: 8px 12px; border-radius: 4px;">已发布</span>
+      <span style="color: #999;">→</span>
+      <span style="background: #81c784; padding: 8px 12px; border-radius: 4px; color: white;">已确认</span>
+    </div>
+    <div style="margin-top: 15px; font-family: monospace; font-size: 11px;">
+      <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+        <strong>score/status_choices.py</strong><br>
+        CALCULATING = 'calculating'  # 计算中<br>
+        PENDING_REVIEW = 'pending'   # 待审核<br>
+        PUBLISHED = 'published'      # 已发布<br>
+        CONFIRMED = 'confirmed'      # 已确认
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🔗 状态机联动关系</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">自动触发规则</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong># 合同生效 → 触发信用证流程</strong><br>
+      if contract.status == EFFECTIVE:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;if contract.payment_term == 'L/C':<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LetterOfCredit.objects.create(contract=contract)
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong># 信用证通知 → 交易履约</strong><br>
+      if lc.status == ADVISED:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;lc.transaction.status = IN_PROGRESS
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong># 所有单证归档 → 交易完成</strong><br>
+      if all_docs_archived(transaction):<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;transaction.status = COMPLETED
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong># 课程结束 → 触发成绩计算</strong><br>
+      if course.status == ENDED:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;for student in course.students:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Score.calculate(student, course)
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      <strong># 所有学生确认 → 课程归档</strong><br>
+      if all_scores_confirmed(course):<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;course.status = ARCHIVED
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>💾 数据库实现</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">统一状态历史表</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      <strong>StatusHistory (通用状态历史)</strong><br>
+      id<br>
+      entity_type (Transaction/Contract/Document/...)<br>
+      entity_id<br>
+      from_status, to_status<br>
+      changed_by → User<br>
+      change_reason, metadata (JSON)<br>
+      created_at
+    </div>
+    <div style="margin-top: 10px; font-size: 10px; color: #666;">
+      使用一张表记录所有实体的状态历史，通过 entity_type + entity_id 关联
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>✅ 状态机设计完成</h3>
+  <p><strong>共 8 个状态机，覆盖全部核心业务流程</strong></p>
+  <ul style="margin-top: 10px;">
+    <li>交易流程：Transaction → Contract → Document → Payment</li>
+    <li>信用证流程：LetterOfCredit 独立状态机</li>
+    <li>生产流程：ProductionOrder 状态机</li>
+    <li>教学流程：Course → Score</li>
+  </ul>
+  <p style="margin-top: 10px;">使用通用 StatusHistory 表记录所有状态流转历史。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="continue" onclick="toggleSelect(this)">
+    <div class="letter">继续</div>
+    <div class="content">
+      <h3>继续设计</h3>
+      <p>查看业务流程设计</p>
+    </div>
+  </div>
+</div>

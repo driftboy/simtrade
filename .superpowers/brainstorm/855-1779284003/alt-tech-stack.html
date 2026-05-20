@@ -1,0 +1,107 @@
+<h2>更多技术栈方案</h2>
+<p class="subtitle">Python 后端 + 兼容 IE 的前端方案</p>
+
+<div class="options">
+  <div class="option" data-choice="django" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Django + Jinja2 + jQuery</h3>
+      <p>经典 MVT 模式，服务端渲染</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>IE8+ 完美兼容</li><li>开发最快</li><li>内置管理后台</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>交互较传统</li><li>页面刷新切换</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="flask" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Flask + jQuery + API</h3>
+      <p>前后端分离，RESTful API</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>IE8+ 兼容</li><li>更灵活的架构</li><li>前端体验更好</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>开发量更大</li><li>需要自己搭管理后台</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="fastapi" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>FastAPI + jQuery + API</h3>
+      <p>现代异步后端 + 传统前端</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>性能最好</li><li>自动 API 文档</li><li>适合 100+ 并发</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>框架较新</li><li>学习曲线</li><li>生态较新</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="polymer" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Django + Bootstrap 3/4</h3>
+      <p>服务端渲染 + Bootstrap UI</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>IE8+ 支持（Bootstrap 3）</li><li>UI 组件丰富</li><li>样式统一</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>需要定制样式</li><li>可能显得"模板化"</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Python 后端框架对比</h3>
+  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+    <tr style="background: #f5f5f5;">
+      <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">框架</th>
+      <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">特点</th>
+      <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">适合场景</th>
+      <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">学习成本</th>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Django</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;">大而全，自带 ORM、Admin、Auth</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">快速开发企业应用</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">中等</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Flask</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;">微框架，灵活自由</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">需要精细控制的场景</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">低</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>FastAPI</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;">异步、自动文档、类型检查</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">高并发 API 服务</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">中等</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section" style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+  <p><strong>💡 我的推荐：Django + Bootstrap 3 + jQuery</strong></p>
+  <p>理由：</p>
+  <ul>
+    <li>Django Admin 让教师管理功能开箱即用</li>
+    <li>Bootstrap 3 支持 IE8（Win7 的自带浏览器）</li>
+    <li>100 并发对 Django 来说很轻松</li>
+    <li>开发效率最高，适合教育项目快速迭代</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="django-bootstrap" onclick="toggleSelect(this)">
+    <div class="letter">推荐</div>
+    <div class="content">
+      <h3>Django + Bootstrap 3 + jQuery</h3>
+      <p>采用我的推荐方案</p>
+    </div>
+  </div>
+  <div class="option" data-choice="other" onclick="toggleSelect(this)">
+    <div class="letter">其他</div>
+    <div class="content">
+      <h3>选择其他方案</h3>
+      <p>告诉我你的想法</p>
+    </div>
+  </div>
+</div>

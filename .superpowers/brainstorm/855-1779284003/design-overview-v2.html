@@ -1,0 +1,122 @@
+<h2>SimTrade 系统设计 - 完整角色</h2>
+<p class="subtitle">系统架构与完整角色列表</p>
+
+<div class="mockup">
+  <div class="mockup-header">系统架构</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+      <!-- 展示层 -->
+      <div style="background: #e3f2fd; padding: 12px; border-radius: 8px;">
+        <div class="label">展示层 (Bootstrap 3 + jQuery)</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <span class="mock-button">学生端</span>
+          <span class="mock-button">教师端</span>
+          <span class="mock-button">管理端</span>
+        </div>
+      </div>
+
+      <!-- 业务层 -->
+      <div style="background: #f3e5f5; padding: 12px; border-radius: 8px;">
+        <div class="label">业务层 (Django Apps)</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 11px;">
+          <div class="placeholder">用户管理</div>
+          <div class="placeholder">角色模拟</div>
+          <div class="placeholder">交易管理</div>
+          <div class="placeholder">单证中心</div>
+          <div class="placeholder">财务结算</div>
+          <div class="placeholder">评分系统</div>
+          <div class="placeholder">教学管理</div>
+          <div class="placeholder">系统配置</div>
+        </div>
+      </div>
+
+      <!-- 数据层 -->
+      <div style="background: #e8f5e9; padding: 12px; border-radius: 8px;">
+        <div class="label">数据层 (PostgreSQL/MySQL)</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px;">
+          <span class="mock-button">用户数据</span>
+          <span class="mock-button">交易数据</span>
+          <span class="mock-button">单证数据</span>
+          <span class="mock-button">评分数据</span>
+          <span class="mock-button">基础数据</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>完整贸易角色 (10 种)</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #e3f2fd;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🏢</div>
+    <div><strong>出口商</strong></div>
+    <div style="font-size: 10px; color: #666;">Exporter</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #f3e5f5;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🏬</div>
+    <div><strong>进口商</strong></div>
+    <div style="font-size: 10px; color: #666;">Importer</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #fff3e0;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🏭</div>
+    <div><strong>工厂</strong></div>
+    <div style="font-size: 10px; color: #666;">Factory</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #e8f5e9;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🏦</div>
+    <div><strong>银行</strong></div>
+    <div style="font-size: 10px; color: #666;">Bank</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #fce4ec;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🛃</div>
+    <div><strong>海关</strong></div>
+    <div style="font-size: 10px; color: #666;">Customs</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #e0f2f1;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🚢</div>
+    <div><strong>货运公司</strong></div>
+    <div style="font-size: 10px; color: #666;">Shipping</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #e1f5fe;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🛡️</div>
+    <div><strong>保险公司</strong></div>
+    <div style="font-size: 10px; color: #666;">Insurance</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #fff8e1;">
+    <div style="font-size: 24px; margin-bottom: 5px;">🔬</div>
+    <div><strong>商检机构</strong></div>
+    <div style="font-size: 10px; color: #666;">Inspection</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #f1f8e9;">
+    <div style="font-size: 24px; margin-bottom: 5px;">💱</div>
+    <div><strong>外汇局</strong></div>
+    <div style="font-size: 10px; color: #666;">Forex</div>
+  </div>
+  <div class="placeholder" style="padding: 12px; text-align: center; background: #efebe9;">
+    <div style="font-size: 24px; margin-bottom: 5px;">📊</div>
+    <div><strong>税务局</strong></div>
+    <div style="font-size: 10px; color: #666;">Tax</div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>工厂角色职责</h3>
+  <ul>
+    <li><strong>接收生产订单</strong> — 从出口商处接收购货合同</li>
+    <li><strong>安排生产</strong> — 组织生产、备货</li>
+    <li><strong>发货通知</strong> — 通知出口商提货</li>
+    <li><strong>开具发票</strong> — 向出口商开具增值税发票</li>
+  </ul>
+</div>
+
+<div class="section" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 15px;">
+  <p><strong>贸易关系：</strong></p>
+  <p>进口商 → 出口商 → 工厂 → 生产 → 供货 → 出口</p>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p><strong>现在角色完整了 (10 种)，继续吗？</strong></p>
+</div>

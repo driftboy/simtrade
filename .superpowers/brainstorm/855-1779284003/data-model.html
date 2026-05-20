@@ -1,0 +1,179 @@
+<h2>数据模型设计</h2>
+<p class="subtitle">核心数据结构</p>
+
+<div class="section">
+  <h3>用户与角色</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">用户 - 角色关系 (多对多)</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>User (用户)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, username, password, name, student_id, email</div>
+      <div>class_id → Class, is_active, created_at</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>Role (角色类型)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, code, name, is_playable, is_enabled_by_default</div>
+      <div>codes: EXPORTER, IMPORTER, FACTORY, BANK, CUSTOMS, SHIPPING...</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>UserRole (用户角色分配)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, user_id → User, role_id → Role, company_id → Company</div>
+      <div>course_id → Course, created_at</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>公司与商品</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">基础业务数据</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>Company (公司)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, name, country, city, address, role_type</div>
+      <div>capital, business_scope, owner_id → User</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>Product (商品)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, name, category, spec, unit, image_url</div>
+      <div>cost_price, reference_price, min_order_qty</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>Catalog (商品目录)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, company_id → Company, product_id → Product</div>
+      <div>price, stock, is_available</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>交易流程</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">交易核心数据</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>Transaction (交易)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, transaction_no, type, status, course_id → Course</div>
+      <div>buyer_id → Company, seller_id → Company</div>
+      <div>product_id → Product, quantity, unit_price, amount</div>
+      <div>trade_term, payment_term, shipment_term</div>
+      <div>created_at, updated_at</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>Inquiry (询盘)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, transaction_id → Transaction, from_id, to_id</div>
+      <div>message, status, created_at</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>Contract (合同)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, contract_no, transaction_id → Transaction</div>
+      <div>content, signed_at, status</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>LetterOfCredit (信用证)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, lc_no, contract_id → Contract, amount</div>
+      <div>issuing_bank_id, advising_bank_id</div>
+      <div>issue_date, expiry_date, status</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>单证系统</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">单证数据</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>Document (单证)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, doc_no, doc_type, transaction_id → Transaction</div>
+      <div>template_id → Template, content, status</div>
+      <div>created_by → User, verified_by, verified_at</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>DocumentTemplate (单证模板)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, doc_type, name, template_content, fields_config</div>
+      <div>is_enabled</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>教学管理</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">课程与评分</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>Course (课程/实习计划)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, name, code, teacher_id → User</div>
+      <div>start_date, end_date, settings (JSON)</div>
+      <div>role_settings (JSON) — 角色开关配置</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>ActivityLog (操作日志)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, user_id → User, course_id → Course</div>
+      <div>action, entity_type, entity_id, details (JSON)</div>
+      <div>ip_address, created_at</div>
+    </div>
+
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0;">
+      <strong>Score (成绩)</strong>
+div>
+    <div style="padding-left: 15px;">
+      <div>id, user_id → User, course_id → Course</div>
+      <div>total_score, detail_scores (JSON)</div>
+      <div>rank, updated_at</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p><strong>数据模型设计看起来如何？需要调整吗？</strong></p>
+</div>

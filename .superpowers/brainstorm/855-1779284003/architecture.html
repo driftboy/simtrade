@@ -1,0 +1,99 @@
+<h2>SimTrade 系统架构</h2>
+<p class="subtitle">全流程国际贸易模拟平台架构概览</p>
+
+<div class="mockup">
+  <div class="mockup-header">系统架构图</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+      <!-- 用户层 -->
+      <div style="background: #e3f2fd; padding: 12px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 8px;">用户层</div>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <span class="mock-button">学生端</span>
+          <span class="mock-button">教师端</span>
+          <span class="mock-button">管理员</span>
+        </div>
+      </div>
+
+      <!-- 业务层 -->
+      <div style="background: #f3e5f5; padding: 12px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 8px;">业务模拟层</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 12px;">
+          <div class="placeholder" style="padding: 8px;">🏢 出口商</div>
+          <div class="placeholder" style="padding: 8px;">🏬 进口商</div>
+          <div class="placeholder" style="padding: 8px;">🏦 银行</div>
+          <div class="placeholder" style="padding: 8px;">🛃 海关</div>
+          <div class="placeholder" style="padding: 8px;">🚢 货运公司</div>
+          <div class="placeholder" style="padding: 8px;">🛡️ 保险公司</div>
+          <div class="placeholder" style="padding: 8px;">🔬 商检机构</div>
+          <div class="placeholder" style="padding: 8px;">💱 外汇局</div>
+          <div class="placeholder" style="padding: 8px;">📊 税务局</div>
+        </div>
+      </div>
+
+      <!-- 流程层 -->
+      <div style="background: #fff3e0; padding: 12px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 8px;">业务流程</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px;">
+          <span class="mock-button">市场调研</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">询盘</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">发盘</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">还盘</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">签约</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">信用证</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">租船</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">报关</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">投保</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">制单</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">结汇</span>
+          <span style="color: #999;">→</span>
+          <span class="mock-button">核销</span>
+        </div>
+      </div>
+
+      <!-- 核心模块 -->
+      <div style="background: #e8f5e9; padding: 12px; border-radius: 8px;">
+        <div class="label" style="margin-bottom: 8px;">核心功能模块</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div class="placeholder" style="padding: 8px;">📝 交易管理</div>
+          <div class="placeholder" style="padding: 8px;">📋 单证制作</div>
+          <div class="placeholder" style="padding: 8px;">💰 财务结算</div>
+          <div class="placeholder" style="padding: 8px;">📊 评分系统</div>
+          <div class="placeholder" style="padding: 8px;">📚 知识库</div>
+          <div class="placeholder" style="padding: 8px;">⚙️ 系统管理</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p><strong>这是一个大型系统。我们有两种开发策略：</strong></p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="mvp" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>MVP 分阶段</h3>
+      <p>先实现最小可用版本（出口商+进口商+核心流程），逐步扩展</p>
+    </div>
+  </div>
+  <div class="option" data-choice="full" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>完整规划</h3>
+      <p>一次性设计完整架构，分模块实现</p>
+    </div>
+  </div>
+</div>

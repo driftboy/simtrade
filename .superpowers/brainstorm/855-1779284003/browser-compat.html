@@ -1,0 +1,99 @@
+<h2>浏览器兼容性说明</h2>
+<p class="subtitle">经典服务端渲染方案</p>
+
+<div class="mockup">
+  <div class="mockup-header">✅ 完全支持以下浏览器</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+      <div class="placeholder" style="padding: 15px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🌐</div>
+        <strong>Internet Explorer</strong>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">IE8 - IE11</div>
+        <div style="font-size: 11px; color: #999;">Win7 自带</div>
+      </div>
+      <div class="placeholder" style="padding: 15px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🔷</div>
+        <strong>Edge</strong>
+        <div style="font-size: 12px; #666; margin-top: 4px;">全版本</div>
+        <div style="font-size: 11px; color: #999;">Win10/11 自带</div>
+      </div>
+      <div class="placeholder" style="padding: 15px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🦊</div>
+        <strong>Firefox</strong>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">全版本</div>
+        <div style="font-size: 11px; color: #999;">开源</div>
+      </div>
+      <div class="placeholder" style="padding: 15px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🔄</div>
+        <strong>360 浏览器</strong>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">全版本</div>
+        <div style="font-size: 11px; color: #999;">国内主流</div>
+      </div>
+      <div class="placeholder" style="padding: 15px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🐼</div>
+        <strong>搜狗浏览器</strong>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">全版本</div>
+        <div style="font-size: 11px; color: #999;">国内主流</div>
+      </div>
+      <div class="placeholder" style="padding: 15px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 8px;">⚡</div>
+        <strong>Chrome</strong>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">全版本</div>
+        <div style="font-size: 11px; color: #999;">最多用户</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>为什么兼容性这么好？</h3>
+  <p><strong>服务端渲染（SSR）</strong>输出的是标准 HTML，这是所有浏览器都能理解的基础语言。</p>
+  <p><strong>jQuery</strong>处理了浏览器之间的差异，让你写一次代码就能在所有浏览器运行。</p>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ 优点</h4>
+    <ul>
+      <li><strong>零门槛</strong> — 所有浏览器原生支持，无需任何配置</li>
+      <li><strong>学校机房友好</strong> — 无论什么配置、什么系统都能用</li>
+      <li><strong>维护简单</strong> — 不需要处理打包工具、babel 转译等</li>
+      <li><strong>性能可预测</strong> — 服务器压力大但客户端轻量</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>⚠️ 权衡</h4>
+    <ul>
+      <li>页面切换会刷新（传统 Web 方式）</li>
+      <li>复杂交互需要较多 JavaScript 代码</li>
+      <li>用户体验不如现代 SPA 应用流畅</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+  <p><strong>💡 推荐：Django + Jinja2 + jQuery</strong></p>
+  <p>这是经过时间考验的组合，非常适合教育实训系统：</p>
+  <ul>
+    <li>Django 内置管理后台 — 教师管理非常方便</li>
+    <li>Django ORM — 快速处理业务逻辑</li>
+    <li>丰富的第三方库 — 用户认证、权限、报表等都有现成方案</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="confirm" onclick="toggleSelect(this)">
+    <div class="letter">确定</div>
+    <div class="content">
+      <h3>使用 Django + Jinja2 + jQuery</h3>
+      <p>确认这个技术栈</p>
+    </div>
+  </div>
+  <div class="option" data-choice="discuss" onclick="toggleSelect(this)">
+    <div class="letter">讨论</div>
+    <div class="content">
+      <h3>还有其他想法</h3>
+      <p>想讨论其他方案</p>
+    </div>
+  </div>
+</div>

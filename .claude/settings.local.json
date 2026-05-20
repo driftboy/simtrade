@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash f:/vsworkspace/simtrade/.claude/skills/brainstorming/scripts/start-server.sh --project-dir f:/vsworkspace/simtrade)"
+    ]
+  }
+}

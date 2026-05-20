@@ -1,0 +1,147 @@
+<h2>外贸角色核实</h2>
+<p class="subtitle">SIMTRADE 角色对比</p>
+
+<div class="section">
+  <h3>📋 SIMTRADE 世格软件的角色</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">SIMTRADE 原版角色（5个学生角色 + 1个管理角色）</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+      <div class="placeholder" style="padding: 12px; text-align: center;">
+        <div style="font-size: 24px;">🏢</div>
+        <div><strong>出口商</strong></div>
+      </div>
+      <div class="placeholder" style="padding: 12px; text-align: center;">
+        <div style="font-size: 24px;">🏬</div>
+        <div><strong>进口商</strong></div>
+      </div>
+      <div class="placeholder" style="padding: 12px; text-align: center;">
+        <div style="font-size: 24px;">🏭</div>
+        <div><strong>工厂/供应商</strong></div>
+      </div>
+      <div class="placeholder" style="padding: 12px; text-align: center;">
+        <div style="font-size: 24px;">🏦</div>
+        <div><strong>出口地银行</strong></div>
+      </div>
+      <div class="placeholder" style="padding: 12px; text-align: center;">
+        <div style="font-size: 24px;">🏦</div>
+        <div><strong>进口地银行</strong></div>
+      </div>
+      <div class="placeholder" style="padding: 12px; text-align: center; background: #e8f5e9;">
+        <div style="font-size: 24px;">👨‍🏫</div>
+        <div><strong>管理员/老师</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>❓ 其他参与方的处理方式</h3>
+  <p>外贸流程中还有其他参与方，SIMTRADE 如何处理？</p>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">辅助角色处理方式选择</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <tr style="background: #f5f5f5;">
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">参与方</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">职责</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">处理方式</th>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">🛃 海关</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">报关、征税、放行</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">系统自动审核</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">🚢 货运公司</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">订舱、运输、签发提单</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">系统自动处理</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">🛡️ 保险公司</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">承保、签发保单</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">系统自动出单</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">🔬 商检机构</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">检验、签发证书</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">系统自动审核</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">💱 外汇局</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">核销管理</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">系统自动核销</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">📊 税务局</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">退税审核</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">系统自动退税</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>你的选择</h3>
+  <p><strong>对于这些辅助参与方，你希望如何处理？</strong></p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="auto" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>系统自动处理</h3>
+      <p>参考 SIMTRADE，辅助角色由系统自动处理，学生只扮演 5 个核心角色</p>
+      <div class="pros">
+        <h4>优点</h4>
+        <ul>
+          <li>简化流程，聚焦核心业务</li>
+          <li>学生角色分配简单</li>
+          <li>开发工作量较小</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="playable" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>可分配角色</h3>
+      <p>所有参与方都可作为学生角色分配，更全面模拟</p>
+      <div class="pros">
+        <h4>优点</h4>
+        <ul>
+          <li>覆盖完整贸易链条</li>
+          <li>学生体验更多角色</li>
+          <li>适合大规模班级</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="configurable" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>教师可配置</h3>
+      <p>默认系统自动处理，教师可选择开启某角色为可分配</p>
+      <div class="pros">
+        <h4>优点</h4>
+        <ul>
+          <li>灵活性最高</li>
+          <li>适应不同教学需求</li>
+          <li>渐进式使用</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p><strong>数据来源：</strong></p>
+  <ul>
+    <li>世格软件官网 - <a href="https://www.simtrade.net/" target="_blank">simtrade.net</a></li>
+    <li>福州市商务局 - <a href="https://swj.fuzhou.gov.cn/" target="_blank">外贸百科</a></li>
+  </ul>
+</div>

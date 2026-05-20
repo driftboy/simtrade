@@ -1,0 +1,153 @@
+<h2>SimTrade 系统设计 - 概览</h2>
+<p class="subtitle">完整架构与模块划分</p>
+
+<div class="mockup">
+  <div class="mockup-header">系统架构</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+      <!-- 展示层 -->
+      <div style="background: #e3f2fd; padding: 12px; border-radius: 8px;">
+        <div class="label">展示层 (Bootstrap 3 + jQuery)</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <span class="mock-button">学生端</span>
+          <span class="mock-button">教师端</span>
+          <span class="mock-button">管理端</span>
+        </div>
+      </div>
+
+      <!-- 业务层 -->
+      <div style="background: #f3e5f5; padding: 12px; border-radius: 8px;">
+        <div class="label">业务层 (Django Apps)</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 11px;">
+          <div class="placeholder">用户管理</div>
+          <div class="placeholder">角色模拟</div>
+          <div class="placeholder">交易管理</div>
+          <div class="placeholder">单证中心</div>
+          <div class="placeholder">财务结算</div>
+          <div class="placeholder">评分系统</div>
+          <div class="placeholder">教学管理</div>
+          <div class="placeholder">系统配置</div>
+        </div>
+      </div>
+
+      <!-- 数据层 -->
+      <div style="background: #e8f5e9; padding: 12px; border-radius: 8px;">
+        <div class="label">数据层 (PostgreSQL/MySQL)</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px;">
+          <span class="mock-button">用户数据</span>
+          <span class="mock-button">交易数据</span>
+          <span class="mock-button">单证数据</span>
+          <span class="mock-button">评分数据</span>
+          <span class="mock-button">基础数据</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>核心模块划分</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+  <div class="mockup">
+    <div class="mockup-header">1. 用户管理模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>用户注册/登录</li>
+        <li>角色分配（学生/教师/管理员）</li>
+        <li>班级管理</li>
+        <li>权限控制</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">2. 角色模拟模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>9 种贸易角色切换</li>
+        <li>角色工作台</li>
+        <li>角色间消息通知</li>
+        <li>业务流程控制</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">3. 交易管理模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>市场/商品浏览</li>
+        <li>询盘/发盘/还盘</li>
+        <li>合同签订</li>
+        <li>履约管理</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">4. 单证中心模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>15 种单证制作</li>
+        <li>单证模板管理</li>
+        <li>单证审核流转</li>
+        <li>单证归档</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">5. 财务结算模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>信用证管理</li>
+        <li>收款/付款</li>
+        <li>费用计算</li>
+        <li>账务查询</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">6. 评分系统模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>操作记录追踪</li>
+        <li>自动评分算法</li>
+        <li>成绩统计分析</li>
+        <li>排行榜</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">7. 教学管理模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>实习计划创建</li>
+        <li>学生进度监控</li>
+        <li>新闻/公告发布</li>
+        <li>参数调整</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">8. 系统配置模块</div>
+    <div class="mockup-body" style="padding: 12px; font-size: 12px;">
+      <ul>
+        <li>商品库管理</li>
+        <li>汇率/费率设置</li>
+        <li>国家/港口数据</li>
+        <li>系统日志</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p><strong>这个架构设计是否符合你的预期？</strong></p>
+  <p>需要调整或补充吗？</p>
+</div>

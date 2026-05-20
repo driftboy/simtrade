@@ -1,0 +1,87 @@
+<h2>世格 SIMTRADE 单证系统参考</h2>
+<p class="subtitle">基于公开资料整理</p>
+
+<div class="mockup">
+  <div class="mockup-header">📋 SIMTRADE 包含的单证</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 12px;">
+      <div class="placeholder" style="padding: 10px;">📄 商业发票</div>
+      <div class="placeholder" style="padding: 10px;">📦 装箱单</div>
+      <div class="placeholder" style="padding: 10px;">📝 汇票</div>
+      <div class="placeholder" style="padding: 10px;">🛃 报关单 (出口/进口)</div>
+      <div class="placeholder" style="padding: 10px;">🏷️ 产地证</div>
+      <div class="placeholder" style="padding: 10px;">🔬 报检单 (出境/入境)</div>
+      <div class="placeholder" style="padding: 10px;">🚢 海运提单 (B/L)</div>
+      <div class="placeholder" style="padding: 10px;">🛡️ 保险单</div>
+      <div class="placeholder" style="padding: 10px;">✅ 检验证书</div>
+      <div class="placeholder" style="padding: 10px;">📃 受益人证明</div>
+      <div class="placeholder" style="padding: 10px;">📊 核销单</div>
+      <div class="placeholder" style="padding: 10px;">📮 装船通知</div>
+      <div class="placeholder" style="padding: 10px;">📋 外销合同</div>
+      <div class="placeholder" style="padding: 10px;">🏦 信用证 (L/C)</div>
+      <div class="placeholder" style="padding: 10px;">💼 投保单</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>单证生成方式（参考 SIMTRADE）</h3>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ SIMTRADE 的方式</h4>
+    <ul>
+      <li><strong>单证中心</strong> — 集中式管理所有单证</li>
+      <li><strong>模板填充</strong> — 提供标准模板，学生填写关键信息</li>
+      <li><strong>自动关联</strong> — 合同数据自动带入单证</li>
+      <li><strong>日期校验</strong> — 自动检查单证日期逻辑（如发票日期≤提单日期）</li>
+      <li><strong>制单顺序</strong> — 引导学生按正确顺序制单</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>📝 制单顺序参考</h3>
+  <ol style="line-height: 1.8;">
+    <li><strong>外销合同</strong> — 交易双方签订</li>
+    <li><strong>信用证</strong> — 进口商申请，银行开立</li>
+    <li><strong>商业发票</strong> — 出口商首先制作</li>
+    <li><strong>装箱单</strong> — 与发票同日</li>
+    <li><strong>报检单</strong> — 申请检验</li>
+    <li><strong>检验证书</strong> — 商检机构签发</li>
+    <li><strong>投保单</strong> — 申请保险</li>
+    <li><strong>保险单</strong> — 保险公司签发</li>
+    <li><strong>订舱/配舱回单</strong> — 货运公司确认</li>
+    <li><strong>报关单</strong> — 向海关申报</li>
+    <li><strong>海运提单</strong> — 船公司签发</li>
+    <li><strong>汇票</strong> — 收款凭证</li>
+    <li><strong>受益人证明</strong> — 补充证明文件</li>
+    <li><strong>装船通知</strong> — 通知进口商</li>
+  </ol>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="like-simtrade" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>参考 SIMTRADE</h3>
+      <p>采用类似 SIMTRADE 的单证系统</p>
+    </div>
+  </div>
+  <div class="option" data-choice="simplify" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>简化版本</h3>
+      <p>只保留核心单证，简化流程</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p><strong>数据来源：</strong></p>
+  <ul>
+    <li>世格软件官网 - <a href="https://www.simtrade.net/" target="_blank">simtrade.net</a></li>
+    <li>SIMTRADE 帮助文档 - <a href="https://www.simtrade.net/soft/help/Doc/M19help.htm" target="_blank">商业发票 Help</a></li>
+  </ul>
+</div>

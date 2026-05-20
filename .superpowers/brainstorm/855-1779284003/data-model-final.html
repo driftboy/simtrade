@@ -1,0 +1,177 @@
+<h2>最终数据模型 v3.0</h2>
+<p class="subtitle">完整版 — 90 分</p>
+
+<div class="section">
+  <h3>📦 数据结构总览 (26 表)</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 10px;">
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px; text-align: center;">User</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px; text-align: center;">Role</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px; text-align: center;">UserRole</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px; text-align: center;">Class</div>
+  <div style="background: #e3f2fd; padding: 6px; border-radius: 4px; text-align: center;">Company</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">Product</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">Catalog</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">Transaction</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">Contract</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">LetterOfCredit</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">Document</div>
+  <div style="background: #fff3e0; padding: 6px; border-radius: 4px; text-align: center; font-weight: bold;">DocumentTemplate 🆕</div>
+  <div style="background: #f3e5f5; padding: 6px; border-radius: 4px; text-align: center;">DocumentDependency</div>
+  <div style="background: #e8f5e9; padding: 6px; border-radius: 4px; text-align: center;">ProductionOrder 🆕</div>
+  <div style="background: #e8f5e9; padding: 6px; border-radius: 4px; text-align: center;">TransactionCost</div>
+  <div style="background: #e8f5e9; padding: 6px; border-radius: 4px; text-align: center;">Payment</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px; text-align: center;">Course</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px; text-align: center;">ActivityLog</div>
+  <div style="background: #fff3e0; padding: 6px; border-radius: 4px; text-align: center; font-weight: bold;">ScoringRule 🆕</div>
+  <div style="background: #ffebee; padding: 6px; border-radius: 4px; text-align: center;">Score</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px; text-align: center;">ExchangeRate</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px; text-align: center;">ShippingRate</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px; text-align: center;">InsuranceRate</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px; text-align: center;">Country</div>
+  <div style="background: #fff9c4; padding: 6px; border-radius: 4px; text-align: center;">Port</div>
+  <div style="background: #e0f2f1; padding: 6px; border-radius: 4px; text-align: center;">Message</div>
+  <div style="background: #e0f2f1; padding: 6px; border-radius: 4px; text-align: center;">News 🆕</div>
+</div>
+
+<div style="text-align: center; margin: 15px 0; font-size: 12px; color: #666;">
+  <strong>用户权限(5)</strong> | <strong>交易单证(6)</strong> | <strong>财务生产(4)</strong> | <strong>教学评分(4)</strong> | <strong>系统配置(5)</strong> | <strong>消息新闻(2)</strong>
+</div>
+
+<div class="section">
+  <h3>🆕 新增 4 个数据结构</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">1. DocumentTemplate (单证模板)</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      id, doc_type (发票/提单/信用证...)<br>
+      name, description<br>
+      template_content (HTML 模板)<br>
+      fields_config (JSON: 字段定义/校验规则/默认值)<br>
+      is_system (系统模板 vs 自定义)<br>
+      created_by → User, course_id → Course<br>
+      is_enabled, version, created_at, updated_at
+    </div>
+    <div style="margin-top: 10px; font-size: 10px; color: #666;">
+      <strong>用途：</strong>教师可以自定义单证格式，调整字段要求，适应不同教学需求
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">2. ProductionOrder (工厂生产单)</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      id, order_no, transaction_id → Transaction<br>
+      factory_id → Company, exporter_id → Company<br>
+      product_id → Product, quantity, unit_price, amount<br>
+      delivery_date, production_status (待生产/生产中/已发货)<br>
+      actual_delivery_date, notes, created_at, updated_at
+    </div>
+    <div style="margin-top: 10px; font-size: 10px; color: #666;">
+      <strong>用途：</strong>工厂角色接收出口商订单，安排生产、发货，完成供货流程
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">3. ScoringRule (评分规则配置)</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      id, course_id → Course<br>
+      rule_type (交易完成/单证准确/时效性/成本控制...)<br>
+      weight (权重), max_score<br>
+      config (JSON: 具体评分逻辑)<br>
+      is_enabled, sort_order, created_at, updated_at
+    </div>
+    <div style="margin-top: 10px; font-size: 10px; color: #666;">
+      <strong>示例 config：</strong>{"on_time_bonus": 10, "error_penalty": 5, "days_limit": 30}
+    </div>
+    <div style="font-size: 10px; color: #666;">
+      <strong>用途：</strong>教师可自定义评分权重和规则，灵活调整考核重点
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 15px;">
+  <div class="mockup-header">4. News (新闻公告)</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+      id, course_id → Course<br>
+      title, content, publish_type (新闻/公告/通知)<br>
+      priority (普通/重要/紧急), is_top<br>
+      published_by → User, published_at<br>
+      status (草稿/已发布/已撤回)<br>
+      view_count, created_at, updated_at
+    </div>
+    <div style="margin-top: 10px; font-size: 10px; color: #666;">
+      <strong>用途：</strong>教师发布市场动态、政策变化、操作指南等，辅助教学
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>📊 完整数据关系图</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">核心数据流</div>
+  <div class="mockup-body" style="padding: 15px; font-size: 11px; line-height: 1.8;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+      <span class="mock-button">Course</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">User</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">UserRole</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">Company</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+      <span class="mock-button">Company</span>
+      <span style="color: #999;">↔</span>
+      <span class="mock-button">Transaction</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">Contract</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">Document</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+      <span class="mock-button">Transaction</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">ProductionOrder</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">TransactionCost</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">Payment</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+      <span class="mock-button">User</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">ActivityLog</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">ScoringRule</span>
+      <span style="color: #999;">→</span>
+      <span class="mock-button">Score</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>✅ 数据模型设计完成</h3>
+  <p><strong>评分：90 分</strong></p>
+  <p>共 26 个核心数据表，覆盖用户、交易、单证、财务、生产、评分、配置、消息等全部业务场景。</p>
+  <p>可作为一期开发的数据基础。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="continue" onclick="toggleSelect(this)">
+    <div class="letter">继续</div>
+    <div class="content">
+      <h3>继续设计</h3>
+      <p>查看业务流程设计</p>
+    </div>
+  </div>
+</div>

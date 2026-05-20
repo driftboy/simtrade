@@ -1,0 +1,152 @@
+<h2>第二次深度评估</h2>
+<p class="subtitle">外贸老师的全面审查</p>
+
+<div class="section">
+  <h3>📋 当前数据结构清单</h3>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 11px;">
+  <div class="placeholder" style="padding: 8px;">User</div>
+  <div class="placeholder" style="padding: 8px;">Role</div>
+  <div class="placeholder" style="padding: 8px;">UserRole</div>
+  <div class="placeholder" style="padding: 8px;">Class</div>
+  <div class="placeholder" style="padding: 8px;">Company</div>
+  <div class="placeholder" style="padding: 8px;">Product</div>
+  <div class="placeholder" style="padding: 8px;">Catalog</div>
+  <div class="placeholder" style="padding: 8px;">Transaction</div>
+  <div class="placeholder" style="padding: 8px;">Contract</div>
+  <div class="placeholder" style="padding: 8px;">LetterOfCredit</div>
+  <div class="placeholder" style="padding: 8px;">Document</div>
+  <div class="placeholder" style="padding: 8px;">DocumentDependency</div>
+  <div class="placeholder" style="padding: 8px;">TransactionCost</div>
+  <div class="placeholder" style="padding: 8px;">Payment</div>
+  <div class="placeholder" style="padding: 8px;">Course</div>
+  <div class="placeholder" style="padding: 8px;">ActivityLog</div>
+  <div class="placeholder" style="padding: 8px;">Score</div>
+  <div class="placeholder" style="padding: 8px;">ExchangeRate</div>
+  <div class="placeholder" style="padding: 8px;">ShippingRate</div>
+  <div class="placeholder" style="padding: 8px;">InsuranceRate</div>
+  <div class="placeholder" style="padding: 8px;">Country</div>
+  <div class="placeholder" style="padding: 8px;">Port</div>
+  <div class="placeholder" style="padding: 8px;">Message</div>
+</div>
+
+<div style="text-align: center; margin: 20px 0; color: #666;">
+  <strong>共 22 个核心数据表</strong>
+</div>
+
+<div class="section">
+  <h3>🔍 可能遗漏的部分</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">需要评估的扩展项</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <tr style="background: #f5f5f5;">
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">扩展项</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">是否必要</th>
+        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">原因</th>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">1. DocumentTemplate (单证模板)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议补充</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">教师自定义单证格式</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">2. ProductionOrder (工厂生产单)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议补充</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">工厂角色需要生产流程</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">3. ScoringRule (评分规则配置)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议补充</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">教师自定义评分权重</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">4. News (新闻公告)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #e65100;">⚠️ 建议补充</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">SIMTRADE 有此功能</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">5. Attachment (文件附件)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">✅ 可选</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">单证上传扫描件（初期可不做）</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">6. Exam (理论考试)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">✅ 可选</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">理论+实操结合（二期功能）</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">7. Certificate (实训证书)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">✅ 可选</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">完成实训后颁发（二期功能）</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">8. Workflow (工作流引擎)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">✅ 可选</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">复杂流程配置（初期状态字段足够）</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">9. Inventory (库存管理)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">✅ 可选</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">Catalog.stock 已覆盖</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">10. SystemLog (系统日志)</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: #43a047;">✅ 可选</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">ActivityLog 已覆盖操作日志</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📊 评估结论</h3>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ 当前状态：85 分</h4>
+    <p>核心业务完整，可支持一期开发</p>
+    <ul>
+      <li>用户/角色/交易/单证 ✓</li>
+      <li>财务/评分/配置 ✓</li>
+      <li>消息/地理 ✓</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>🔧 建议补充（+5分）</h4>
+    <p>4 个高优先级扩展：</p>
+    <ul>
+      <li>DocumentTemplate</li>
+      <li>ProductionOrder</li>
+      <li>ScoringRule</li>
+      <li>News</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <p><strong>💡 最终建议</strong></p>
+  <p>当前数据模型已足够支撑 MVP 开发。建议补充 4 个高优先级扩展后达到 90 分，可作为一期功能交付。</p>
+  <p>其余 6 个可选项目可根据实际需求在后续迭代中添加。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="add-high" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>补充 4 个高优先级扩展</h3>
+      <p>达到 90 分，一期交付</p>
+    </div>
+  </div>
+  <div class="option" data-choice="accept-current" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>当前即可开始</h3>
+      <p>85 分足够 MVP 开发</p>
+    </div>
+  </div>
+</div>

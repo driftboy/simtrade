@@ -1,0 +1,130 @@
+<h2>外贸老师的评估</h2>
+<p class="subtitle">从教学和业务角度评估数据模型</p>
+
+<div class="section">
+  <h3>✅ 优点</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">设计合理的地方</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <ul style="line-height: 1.8;">
+      <li><strong>用户-角色分离</strong> — 一个学生可以扮演多个角色，符合实训需求</li>
+      <li><strong>操作日志</strong> — ActivityLog 支持过程评分，这是关键</li>
+      <li><strong>课程维度</strong> — 所有数据都关联到 Course，便于教学管理</li>
+      <li><strong>单证模板化</strong> — 教师可以自定义单证模板</li>
+      <li><strong>角色配置</strong> — Course.role_settings 支持教师灵活配置</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section">
+  <h3>⚠️ 需要补充的</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">缺失但重要的数据结构</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>1. 财务/费用相关</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      <div style="color: #666;">// 学生需要计算成本、利润，体验盈亏</div>
+      <strong>TransactionCost</strong> (交易费用)
+      <div style="padding-left: 15px;">
+        id, transaction_id → Transaction<br>
+        cost_type (货款/运费/保费/报关费/银行费/其他)<br>
+        amount, currency, paid_at
+      </div>
+    </div>
+
+    <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>2. 系统基础数据</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      <div style="color: #666;">// 汇率、费率由教师调整，模拟市场变化</div>
+      <strong>ExchangeRate</strong> (汇率)
+      <div style="padding-left: 15px;">from_currency, to_currency, rate, effective_date</div>
+
+      <strong>ShippingRate</strong> (运费率)
+      <div style="padding-left: 15px;">from_port, to_port, rate_per_unit</div>
+
+      <strong>InsuranceRate</strong> (保险费率)
+      <div style="padding-left: 15px;">coverage_type, rate_premium</div>
+    </div>
+
+    <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>3. 地理数据</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      <strong>Country</strong> (国家)
+      <div style="padding-left: 15px;">code, name, currency, calling_code</div>
+
+      <strong>Port</strong> (港口)
+      <div style="padding-left: 15px;">code, name, country_id → Country</div>
+    </div>
+
+    <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+      <strong>4. 消息通知</strong>
+    </div>
+    <div style="padding-left: 15px; margin-bottom: 10px;">
+      <div style="color: #666;">// 角色间需要消息流转（如"信用证已开立"）</div>
+      <strong>Message</strong> (消息)
+      <div style="padding-left: 15px;">
+        id, from_user_id, to_user_id, course_id<br>
+        type (系统/交易/单证), title, content<br>
+        is_read, created_at
+      </div>
+    </div>
+
+    <div style="background: #fff3e0; padding: 10px; border-radius: 4px;">
+      <strong>5. 单证关联</strong>
+    </div>
+    <div style="padding-left: 15px;">
+      <div style="color: #666;">// 单证之间有依赖关系，如提单依赖报关单</div>
+      <strong>DocumentDependency</strong> (单证依赖)
+      <div style="padding-left: 15px;">
+        id, doc_id → Document, depends_on_doc_id<br>
+        dependency_type (前置/同步/后置)
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📊 总体评价</h3>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ 可以打 75 分</h4>
+    <ul>
+      <li>核心业务流程覆盖完整</li>
+      <li>教学管理功能基本到位</li>
+      <li>扩展性良好</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>❌ 缺失部分</h4>
+    <ul>
+      <li>缺少财务核算数据</li>
+      <li>缺少基础配置数据</li>
+      <li>缺少消息系统</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <p><strong>💡 补充后可达到 90 分</strong></p>
+  <p>建议添加上述 5 个数据结构，系统会更加完整。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="update" onclick="toggleSelect(this)">
+    <div class="letter">确定</div>
+    <div class="content">
+      <h3>补充这 5 个数据结构</h3>
+      <p>更新数据模型设计</p>
+    </div>
+  </div>
+</div>
