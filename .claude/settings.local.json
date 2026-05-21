@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bash f:/vsworkspace/simtrade/.claude/skills/brainstorming/scripts/start-server.sh --project-dir f:/vsworkspace/simtrade)"
+      "Bash(bash f:/vsworkspace/simtrade/.claude/skills/brainstorming/scripts/start-server.sh --project-dir f:/vsworkspace/simtrade)",
+      "Bash(bash f:/vsworkspace/simtrade/.claude/skills/brainstorming/scripts/stop-server.sh \"f:/vsworkspace/simtrade/.superpowers/brainstorm/855-1779284003\")"
     ]
   }
 }

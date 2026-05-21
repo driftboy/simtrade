@@ -1,0 +1,200 @@
+<h2>SimTrade 设计审查报告</h2>
+<p class="subtitle">整体评估与优化建议</p>
+
+<div class="section">
+  <h3>📊 综合评分</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">各维度评分 (满分100)</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">架构完整性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 85%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">85</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">数据模型</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 90%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">90</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">业务逻辑</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 88%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">88</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">技术可行性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 92%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">92</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">安全性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #ff9800; width: 65%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">65</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">性能</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #ffeb3b; width: 75%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">75</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">可扩展性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #ffeb3b; width: 70%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">70</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">用户体验</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #ffeb3b; width: 70%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">70</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 20px; text-align: center;">
+      <span style="font-size: 24px; font-weight: bold; color: #2196f3;">综合评分: 79/100</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🔴 高优先级问题 (必须解决)</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">需要补充的设计</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <tr style="background: #ffebee;">
+        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">问题</th>
+        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">影响</th>
+        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">建议</th>
+      </tr>
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">缺少权限系统设计</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">安全风险</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">补充 RBAC 权限设计</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">单证模板字段配置不明确</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">功能不完整</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">明确字段配置 JSON 结构</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">缺少 API 设计</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">前后端协作困难</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">补充 REST API 规范</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">缺少数据字典</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">开发混乱</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">补充所有枚举值定义</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🟡 中优先级问题</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">建议优化项</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <ul style="line-height: 2;">
+      <li>未考虑缓存策略 → 补充 Redis 缓存设计</li>
+      <li>未明确错误处理机制 → 补充错误码体系</li>
+      <li>未考虑并发冲突 → 补充乐观锁设计</li>
+      <li>缺少通知规则配置 → 通知规则应可配置</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section">
+  <h3>✅ 主要优点</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">设计亮点</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <ul style="line-height: 2;">
+      <li><strong>数据模型完整</strong> — 26 表覆盖全部业务场景</li>
+      <li><strong>状态机设计合理</strong> — 8 个状态机逻辑清晰</li>
+      <li><strong>业务流程准确</strong> — 符合外贸实际操作</li>
+      <li><strong>角色配置灵活</strong> — 教师可按需开启角色</li>
+      <li><strong>评分系统完善</strong> — 5 维度 + 可配置权重</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📋 建议的补充优先级</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Phase 分期</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <div style="margin-bottom: 15px;">
+      <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">
+        <strong>Phase 1 (必须)</strong>
+      </div>
+      <ul style="line-height: 1.8;">
+        <li>权限系统设计 (RBAC)</li>
+        <li>单证模板字段配置</li>
+        <li>数据字典 (枚举值)</li>
+        <li>错误码设计</li>
+      </ul>
+    </div>
+    <div style="margin-bottom: 15px;">
+      <div style="background: #fff3e0; padding: 10px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">
+        <strong>Phase 2 (建议)</strong>
+      </div>
+      <ul style="line-height: 1.8;">
+        <li>REST API 设计</li>
+        <li>缓存策略</li>
+        <li>通知系统设计</li>
+        <li>安全加固方案</li>
+      </ul>
+    </div>
+    <div>
+      <div style="background: #e3f2fd; padding: 10px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">
+        <strong>Phase 3 (可选)</strong>
+      </div>
+      <ul style="line-height: 1.8;">
+        <li>监控设计</li>
+        <li>测试策略</li>
+        <li>性能优化方案</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>📝 结论</h3>
+  <p>当前设计整体结构完整，核心业务流程清晰，技术选型可行。</p>
+  <p style="margin-top: 10px;">建议在实现计划中优先处理 Phase 1 的补充内容。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="update" onclick="toggleSelect(this)">
+    <div class="letter">更新设计</div>
+    <div class="content">
+      <h3>补充 Phase 1 内容</h3>
+      <p>更新设计文档</p>
+    </div>
+  </div>
+  <div class="option" data-choice="accept" onclick="toggleSelect(this)">
+    <div class="letter">接受现状</div>
+    <div class="content">
+      <h3>保持当前设计</h3>
+      <p>进入实现计划阶段</p>
+    </div>
+  </div>
+</div>
