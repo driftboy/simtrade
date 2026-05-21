@@ -54,10 +54,14 @@ class TestAuthAPI:
         })
 
         assert response.status_code == status.HTTP_200_OK
-        assert 'user' in response.data
-        assert response.data['user']['username'] == 'testuser'
-        assert response.data['user']['email'] == 'test@example.com'
-        assert 'roles' in response.data
+        # 标准响应格式
+        assert response.data['code'] == 0
+        assert response.data['message'] == '登录成功'
+        assert 'data' in response.data
+        assert 'user' in response.data['data']
+        assert response.data['data']['user']['username'] == 'testuser'
+        assert response.data['data']['user']['email'] == 'test@example.com'
+        assert 'roles' in response.data['data']
 
     def test_login_invalid_username(self, db):
         """Test login with invalid username."""
@@ -94,7 +98,9 @@ class TestAuthAPI:
         response = self.client.post('/api/v1/auth/logout/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert 'message' in response.data
+        # 标准响应格式
+        assert response.data['code'] == 0
+        assert response.data['message'] == '登出成功'
 
     def test_current_user_authenticated(self, db):
         """Test getting current user when authenticated."""
@@ -104,9 +110,13 @@ class TestAuthAPI:
         response = self.client.get('/api/v1/auth/me/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['username'] == 'testuser'
-        assert response.data['email'] == 'test@example.com'
-        assert response.data['user_type'] == 'student'
+        # 标准响应格式
+        assert response.data['code'] == 0
+        assert response.data['message'] == 'success'
+        assert 'data' in response.data
+        assert response.data['data']['username'] == 'testuser'
+        assert response.data['data']['email'] == 'test@example.com'
+        assert response.data['data']['user_type'] == 'student'
 
     def test_current_user_unauthenticated(self, db):
         """Test getting current user when not authenticated."""
@@ -124,10 +134,11 @@ class TestAuthAPI:
         response = self.client.get('/api/v1/auth/me/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert 'roles' in response.data
-        assert len(response.data['roles']) > 0
-        assert response.data['roles'][0]['code'] == 'student'
-        assert response.data['roles'][0]['name'] == 'Student'
+        assert 'data' in response.data
+        assert 'roles' in response.data['data']
+        assert len(response.data['data']['roles']) > 0
+        assert response.data['data']['roles'][0]['code'] == 'student'
+        assert response.data['data']['roles'][0]['name'] == 'Student'
 
     def test_superuser_has_all_roles(self, db):
         """Test that superuser response indicates admin status."""
@@ -142,8 +153,9 @@ class TestAuthAPI:
         response = self.client.get('/api/v1/auth/me/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['username'] == 'admin'
-        assert response.data['is_superuser'] is True
+        assert 'data' in response.data
+        assert response.data['data']['username'] == 'admin'
+        assert response.data['data']['is_superuser'] is True
 
     def test_login_inactive_user(self, db):
         """Test login with inactive user."""

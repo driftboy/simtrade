@@ -55,11 +55,15 @@ class LoginView(APIView):
             login(request, user)
 
             return Response({
-                'user': UserSerializer(user).data,
-                'roles': RoleSerializer(
-                    [ur.role for ur in user.user_roles.all()],
-                    many=True
-                ).data
+                'code': 0,
+                'message': '登录成功',
+                'data': {
+                    'user': UserSerializer(user).data,
+                    'roles': RoleSerializer(
+                        [ur.role for ur in user.user_roles.all()],
+                        many=True
+                    ).data
+                }
             }, status=status.HTTP_200_OK)
 
         # Check if the error is due to missing fields (400) or invalid credentials (401)
@@ -94,7 +98,8 @@ class LogoutView(APIView):
         """
         logout(request)
         return Response({
-            'message': 'Successfully logged out'
+            'code': 0,
+            'message': '登出成功'
         }, status=status.HTTP_200_OK)
 
 
@@ -118,4 +123,8 @@ class CurrentUserView(APIView):
             401: User not authenticated
         """
         serializer = UserSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({
+            'code': 0,
+            'message': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
