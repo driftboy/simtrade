@@ -253,4 +253,4 @@ class RolePermission(models.Model):
         ordering = ['role', 'permission']
 
     def __str__(self):
-        return f'{self.role.name} - {self.permission.name}'
+        return f'{self.role.name} - {self.permission.get_full_code()}'
