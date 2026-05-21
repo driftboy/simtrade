@@ -1,6 +1,7 @@
 import pytest
 from django.test import TestCase
-from apps.documents.models import DocumentTemplate, TemplateField, DocumentDependency
+from django.contrib.auth import get_user_model
+from apps.documents.models import DocumentTemplate, TemplateField, DocumentDependency, Document
 
 
 class DocumentTemplateTest(TestCase):
@@ -62,3 +63,33 @@ class DocumentDependencyTest(TestCase):
             depends_on='packing_list'
         )
         # 后续实现循环检测方法
+
+
+class DocumentTest(TestCase):
+    def test_create_document(self):
+        template = DocumentTemplate.objects.create(
+            code='commercial_invoice',
+            name='商业发票',
+            content='<html>...</html>'
+        )
+        user = get_user_model().objects.create_user(username='test', password='pass')
+        doc = Document.objects.create(
+            template=template,
+            created_by=user,
+            data={'invoice_no': 'INV001'}
+        )
+        self.assertEqual(doc.status, 'draft')
+        self.assertEqual(doc.data['invoice_no'], 'INV001')
+
+    def test_document_status_transition(self):
+        template = DocumentTemplate.objects.create(
+            code='commercial_invoice',
+            name='商业发票',
+            content='<html>...</html>'
+        )
+        user = get_user_model().objects.create_user(username='test', password='pass')
+        doc = Document.objects.create(template=template, created_by=user)
+
+        doc.status = 'pending_review'
+        doc.save()
+        self.assertEqual(doc.get_status_display(), '待审核')

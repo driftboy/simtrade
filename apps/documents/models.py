@@ -121,3 +121,67 @@ class DocumentDependency(models.Model):
 
     def __str__(self):
         return f"{self.document_type} 依赖 {self.depends_on}"
+
+
+class Document(models.Model):
+    """单证记录"""
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', '草稿'
+        PENDING_REVIEW = 'pending_review', '待审核'
+        APPROVED = 'approved', '已审核'
+        REJECTED = 'rejected', '审核不通过'
+        SUBMITTED = 'submitted', '已提交'
+        RECEIVED = 'received', '已接收'
+        ARCHIVED = 'archived', '已归档'
+
+    template = models.ForeignKey(
+        DocumentTemplate,
+        on_delete=models.PROTECT,
+        related_name='documents'
+    )
+    transaction_id = models.IntegerField('交易ID', null=True, blank=True)
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT
+    )
+    data = models.TextField('单证数据', default=dict)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_documents'
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_documents'
+    )
+    auto_validation_result = models.TextField(
+        '自动校验结果',
+        null=True,
+        blank=True
+    )
+    manual_review_status = models.CharField(
+        '人工审核状态',
+        max_length=20,
+        blank=True
+    )
+    manual_review_comment = models.TextField('审核意见', blank=True)
+    submitted_at = models.DateTimeField('提交时间', null=True, blank=True)
+    reviewed_at = models.DateTimeField('审核时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'documents'
+        verbose_name = '单证'
+        verbose_name_plural = '单证'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.template.name} - {self.get_status_display()}"
