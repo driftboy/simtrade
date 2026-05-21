@@ -1,0 +1,25 @@
+# Django 核心
+Django==3.2.20
+djangorestframework==3.14.0
+django-cors-headers==4.0.0
+python-decouple==3.8
+
+# 数据库
+psycopg2-binary==2.9.7
+
+# 前端兼容 IE8+
+django-compressor==4.4
+
+# 测试
+pytest==7.4.0
+pytest-django==4.5.2
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==19.0.0
+
+# 代码质量
+flake8==6.1.0
+black==23.7.0
+
+# 其他
+Pillow==10.0.0
