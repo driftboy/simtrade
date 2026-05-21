@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'compressor',
     'apps.users',
     'apps.core',
+    'apps.documents',
 ]
 
 MIDDLEWARE = [
