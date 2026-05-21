@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - SimTrade{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 col-md-offset-4">
+        <div class="panel panel-default login-panel">
+            <div class="panel-heading">
+                <h3 class="panel-title text-center">用户登录</h3>
+            </div>
+            <div class="panel-body">
+                <form id="login-form" method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+
+                    <div id="login-alert" class="alert alert-danger" style="display: none;"></div>
+
+                    <div class="form-group">
+                        <label for="id_username" class="control-label">用户名</label>
+                        <input type="text" class="form-control" name="username" id="id_username" placeholder="请输入用户名" required autofocus>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_password" class="control-label">密码</label>
+                        <input type="password" class="form-control" name="password" id="id_password" placeholder="请输入密码" required>
+                    </div>
+
+                    {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
+
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" name="remember"> 记住我
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block" id="login-btn" data-loading-text="登录中...">
+                            登录
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center">
+                    <p>还没有账号？ <a href="/register/">立即注册</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 获取CSRF token
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+
+    // AJAX登录
+    $('#login-form').on('submit', function(e) {
+        e.preventDefault();
+
+        var $form = $(this);
+        var $btn = $('#login-btn');
+        var $alert = $('#login-alert');
+
+        // 隐藏之前的错误信息
+        $alert.hide();
+
+        // 设置按钮加载状态
+        $btn.button('loading');
+
+        // 获取表单数据
+        var formData = {
+            username: $('#id_username').val(),
+            password: $('#id_password').val(),
+            remember: $('input[name="remember"]').is(':checked')
+        };
+
+        // 获取next参数
+        var nextUrl = $('input[name="next"]').val();
+        if (nextUrl) {
+            formData.next = nextUrl;
+        }
+
+        // 发送AJAX请求
+        $.ajax({
+            url: $form.attr('action'),
+            type: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(response) {
+                if (response.success) {
+                    // 登录成功，跳转
+                    if (response.redirect_url) {
+                        window.location.href = response.redirect_url;
+                    } else {
+                        window.location.href = '/';
+                    }
+                } else {
+                    // 显示错误信息
+                    $alert.text(response.message || '登录失败，请检查用户名和密码').show();
+                    $btn.button('reset');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = '登录失败，请稍后重试';
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMsg = response.message;
+                    } else if (response.error) {
+                        errorMsg = response.error;
+                    }
+                } catch (e) {}
+
+                $alert.text(errorMsg).show();
+                $btn.button('reset');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
