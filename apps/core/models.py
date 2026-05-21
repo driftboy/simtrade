@@ -23,8 +23,7 @@ class Country(models.Model):
 
     code = models.CharField(
         max_length=2,
-        unique=True,
-        db_index=True,
+        primary_key=True,
         help_text='ISO 3166-1 alpha-2 country code'
     )
     name = models.CharField(
@@ -123,8 +122,7 @@ class Currency(models.Model):
 
     code = models.CharField(
         max_length=3,
-        unique=True,
-        db_index=True,
+        primary_key=True,
         help_text='ISO 4217 currency code'
     )
     name = models.CharField(
