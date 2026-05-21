@@ -16,7 +16,8 @@ class User(AbstractUser):
         TEACHER = 'teacher', 'Teacher'
         ADMIN = 'admin', 'Administrator'
 
-    username = models.CharField(max_length=150, unique=True)
+    # Note: username and is_active are inherited from AbstractUser
+    # Override email to make it unique as per spec
     email = models.EmailField(unique=True, max_length=255)
     user_type = models.CharField(
         max_length=20,
@@ -26,7 +27,6 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True, null=True)
     student_id = models.CharField(max_length=50, blank=True, null=True)
     avatar = models.URLField(blank=True, null=True)
-    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -52,8 +52,7 @@ class User(AbstractUser):
         if self.is_superuser:
             return True
         return self.user_roles.filter(
-            role__code=role_code,
-            role__is_active=True
+            role__code=role_code
         ).exists()
 
     def has_permission(self, permission_code: str) -> bool:
@@ -61,7 +60,7 @@ class User(AbstractUser):
         Check if user has a specific permission through their roles.
 
         Args:
-            permission_code: The code of the permission to check (e.g., 'trade:create')
+            permission_code: The code of the permission to check (e.g., 'transaction.create.self')
 
         Returns:
             True if user has the permission, False otherwise
@@ -69,10 +68,18 @@ class User(AbstractUser):
         if self.is_superuser:
             return True
 
+        # Parse permission code
+        parts = permission_code.split('.')
+        if len(parts) != 3:
+            return False
+
+        resource, action, scope = parts
+
         return RolePermission.objects.filter(
             role__role_users__user=self,
-            permission__code=permission_code,
-            role__is_active=True
+            permission__resource=resource,
+            permission__action=action,
+            permission__scope=scope
         ).exists()
 
 
@@ -81,12 +88,10 @@ class Role(models.Model):
     Role model for RBAC system.
     Roles are assigned to users and have permissions associated with them.
     """
-    name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'roles'
@@ -97,19 +102,29 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
-    def add_permission(self, permission_code: str) -> bool:
+    def add_permission(self, resource: str, action: str, scope: str) -> bool:
         """
         Add a permission to this role.
 
         Args:
-            permission_code: The code of the permission to add
+            resource: The resource type (e.g., 'transaction', 'document')
+            action: The action (e.g., 'create', 'read', 'update', 'delete')
+            scope: The scope (e.g., 'self', 'class', 'all')
 
         Returns:
             True if permission was added, False if already exists
         """
-        permission = Permission.objects.filter(code=permission_code).first()
+        permission = Permission.objects.filter(
+            resource=resource,
+            action=action,
+            scope=scope
+        ).first()
         if not permission:
-            return False
+            permission = Permission.objects.create(
+                resource=resource,
+                action=action,
+                scope=scope
+            )
 
         role_perm, created = RolePermission.objects.get_or_create(
             role=self,
@@ -117,19 +132,23 @@ class Role(models.Model):
         )
         return created
 
-    def remove_permission(self, permission_code: str) -> bool:
+    def remove_permission(self, resource: str, action: str, scope: str) -> bool:
         """
         Remove a permission from this role.
 
         Args:
-            permission_code: The code of the permission to remove
+            resource: The resource type
+            action: The action
+            scope: The scope
 
         Returns:
             True if permission was removed, False if didn't exist
         """
         return RolePermission.objects.filter(
             role=self,
-            permission__code=permission_code
+            permission__resource=resource,
+            permission__action=action,
+            permission__scope=scope
         ).delete()[0] > 0
 
 
@@ -137,30 +156,50 @@ class Permission(models.Model):
     """
     Permission model for RBAC system.
     Permissions are granular actions that can be performed in the system.
+    Each permission is composed of resource, action, and scope.
     """
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    class Resource(models.TextChoices):
+        TRANSACTION = 'transaction', 'Transaction'
+        DOCUMENT = 'document', 'Document'
+        COURSE = 'course', 'Course'
+        USER = 'user', 'User'
+        SCORE = 'score', 'Score'
+        SYSTEM_CONFIG = 'system_config', 'System Config'
+
+    class Action(models.TextChoices):
+        CREATE = 'create', 'Create'
+        READ = 'read', 'Read'
+        UPDATE = 'update', 'Update'
+        DELETE = 'delete', 'Delete'
+        APPROVE = 'approve', 'Approve'
+
+    class Scope(models.TextChoices):
+        SELF = 'self', 'Self'
+        CLASS = 'class', 'Class'
+        ALL = 'all', 'All'
+
+    resource = models.CharField(max_length=50, choices=Resource.choices)
+    action = models.CharField(max_length=50, choices=Action.choices)
+    scope = models.CharField(max_length=50, choices=Scope.choices)
 
     class Meta:
         db_table = 'permissions'
         verbose_name = 'Permission'
         verbose_name_plural = 'Permissions'
-        ordering = ['code']
+        unique_together = ['resource', 'action', 'scope']
+        ordering = ['resource', 'action', 'scope']
 
     def __str__(self):
-        return self.name
+        return f'{self.get_resource_display()} - {self.get_action_display()} ({self.get_scope_display()})'
 
     def get_full_code(self) -> str:
         """
-        Get the full permission code.
+        Get the full permission code in format: resource.action.scope
 
         Returns:
-            The permission code string
+            The permission code string (e.g., 'transaction.create.self')
         """
-        return self.code
+        return f'{self.resource}.{self.action}.{self.scope}'
 
 
 class UserRole(models.Model):
@@ -178,13 +217,6 @@ class UserRole(models.Model):
         related_name='role_users'
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
-    assigned_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='assigned_roles'
-    )
 
     class Meta:
         db_table = 'user_roles'

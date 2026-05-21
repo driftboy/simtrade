@@ -25,7 +25,7 @@ class TestUserModel:
         assert user.email == 'test@example.com'
         assert user.check_password('testpass123')
         assert user.user_type == 'student'  # Default user type
-        assert user.is_active is True
+        assert user.is_active is True  # Inherited from AbstractUser
 
     def test_create_user_with_all_fields(self, db):
         """Test creating a user with all optional fields."""
@@ -85,34 +85,45 @@ class TestRoleModel:
     def test_create_role(self, db):
         """Test creating a role."""
         role = Role.objects.create(
-            name='Teacher',
             code='teacher',
+            name='Teacher',
             description='Teacher role with trading permissions'
         )
-        assert role.name == 'Teacher'
         assert role.code == 'teacher'
+        assert role.name == 'Teacher'
         assert role.description == 'Teacher role with trading permissions'
         assert str(role) == 'Teacher'
 
     def test_role_code_unique(self, db):
         """Test that role code is unique."""
         Role.objects.create(
-            name='Teacher',
-            code='teacher'
+            code='teacher',
+            name='Teacher'
         )
         with pytest.raises(IntegrityError):
             Role.objects.create(
-                name='Instructor',
-                code='teacher'  # Duplicate code
+                code='teacher',  # Duplicate code
+                name='Instructor'
             )
 
     def test_role_str_representation(self, db):
         """Test string representation of Role."""
         role = Role.objects.create(
-            name='Administrator',
-            code='admin'
+            code='admin',
+            name='Administrator'
         )
         assert str(role) == 'Administrator'
+
+    def test_role_ordering(self, db):
+        """Test that roles are ordered by name."""
+        Role.objects.create(code='teacher', name='Teacher')
+        Role.objects.create(code='admin', name='Administrator')
+        Role.objects.create(code='student', name='Student')
+
+        roles = list(Role.objects.all())
+        assert roles[0].name == 'Administrator'
+        assert roles[1].name == 'Student'
+        assert roles[2].name == 'Teacher'
 
 
 class TestPermissionModel:
@@ -121,41 +132,88 @@ class TestPermissionModel:
     def test_create_permission(self, db):
         """Test creating a permission."""
         permission = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create',
-            description='Allow creating new trades'
+            resource='transaction',
+            action='create',
+            scope='self'
         )
-        assert permission.name == 'Create Trade'
-        assert permission.code == 'trade:create'
-        assert permission.description == 'Allow creating new trades'
+        assert permission.resource == 'transaction'
+        assert permission.action == 'create'
+        assert permission.scope == 'self'
 
     def test_get_full_code(self, db):
         """Test get_full_code method."""
         permission = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
+            resource='transaction',
+            action='create',
+            scope='self'
         )
-        assert permission.get_full_code() == 'trade:create'
+        assert permission.get_full_code() == 'transaction.create.self'
 
-    def test_permission_code_unique(self, db):
-        """Test that permission code is unique."""
+    def test_permission_unique_constraint(self, db):
+        """Test that resource+action+scope combination is unique."""
         Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
+            resource='transaction',
+            action='create',
+            scope='self'
         )
         with pytest.raises(IntegrityError):
             Permission.objects.create(
-                name='New Trade',
-                code='trade:create'  # Duplicate code
+                resource='transaction',
+                action='create',
+                scope='self'  # Duplicate combination
             )
+
+    def test_permission_different_scope_allowed(self, db):
+        """Test that same resource+action with different scope is allowed."""
+        Permission.objects.create(
+            resource='transaction',
+            action='create',
+            scope='self'
+        )
+        # This should not raise - different scope
+        Permission.objects.create(
+            resource='transaction',
+            action='create',
+            scope='class'
+        )
 
     def test_permission_str_representation(self, db):
         """Test string representation of Permission."""
         permission = Permission.objects.create(
-            name='Delete Trade',
-            code='trade:delete'
+            resource='transaction',
+            action='delete',
+            scope='all'
         )
-        assert str(permission) == 'Delete Trade'
+        assert 'Transaction' in str(permission)
+        assert 'Delete' in str(permission)
+        assert 'All' in str(permission)
+
+    def test_permission_choices(self, db):
+        """Test that permission resource, action, scope accept valid choices."""
+        # Valid resource
+        perm = Permission(resource='transaction', action='create', scope='self')
+        perm.full_clean()  # Should not raise
+
+        # Valid action
+        perm = Permission(resource='document', action='approve', scope='class')
+        perm.full_clean()  # Should not raise
+
+        # Valid scope
+        perm = Permission(resource='user', action='read', scope='all')
+        perm.full_clean()  # Should not raise
+
+    def test_permission_ordering(self, db):
+        """Test that permissions are ordered by resource, action, scope."""
+        Permission.objects.create(resource='transaction', action='update', scope='self')
+        Permission.objects.create(resource='document', action='create', scope='all')
+        Permission.objects.create(resource='transaction', action='create', scope='self')
+
+        permissions = list(Permission.objects.all())
+        # document comes before transaction alphabetically
+        assert permissions[0].resource == 'document'
+        assert permissions[1].resource == 'transaction'
+        assert permissions[1].action == 'create'
+        assert permissions[2].action == 'update'
 
 
 class TestUserRole:
@@ -169,8 +227,8 @@ class TestUserRole:
             password='testpass123'
         )
         role = Role.objects.create(
-            name='Teacher',
-            code='teacher'
+            code='teacher',
+            name='Teacher'
         )
         user_role = UserRole.objects.create(
             user=user,
@@ -178,6 +236,7 @@ class TestUserRole:
         )
         assert user_role.user == user
         assert user_role.role == role
+        assert user_role.assigned_at is not None
 
     def test_has_role_method(self, db):
         """Test has_role method on User model."""
@@ -187,12 +246,12 @@ class TestUserRole:
             password='testpass123'
         )
         teacher_role = Role.objects.create(
-            name='Teacher',
-            code='teacher'
+            code='teacher',
+            name='Teacher'
         )
         admin_role = Role.objects.create(
-            name='Admin',
-            code='admin'
+            code='admin',
+            name='Admin'
         )
 
         # User has no roles initially
@@ -215,11 +274,24 @@ class TestUserRole:
         assert user.has_role('teacher') is True
         assert user.has_role('admin') is True
 
+    def test_has_role_superuser(self, db):
+        """Test that superuser has all roles."""
+        user = User.objects.create_superuser(
+            username='admin',
+            email='admin@example.com',
+            password='adminpass123'
+        )
+
+        # Superuser should have any role without explicit assignment
+        assert user.has_role('teacher') is True
+        assert user.has_role('admin') is True
+        assert user.has_role('student') is True
+
     def test_multiple_users_same_role(self, db):
         """Test multiple users can have the same role."""
         role = Role.objects.create(
-            name='Student',
-            code='student'
+            code='student',
+            name='Student'
         )
         user1 = User.objects.create_user(
             username='user1',
@@ -246,8 +318,8 @@ class TestUserRole:
             password='testpass123'
         )
         role = Role.objects.create(
-            name='Teacher',
-            code='teacher'
+            code='teacher',
+            name='Teacher'
         )
         UserRole.objects.create(user=user, role=role)
 
@@ -261,12 +333,13 @@ class TestRolePermission:
     def test_assign_permission_to_role(self, db):
         """Test assigning a permission to a role."""
         role = Role.objects.create(
-            name='Teacher',
-            code='teacher'
+            code='teacher',
+            name='Teacher'
         )
         permission = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
+            resource='transaction',
+            action='create',
+            scope='class'
         )
         role_permission = RolePermission.objects.create(
             role=role,
@@ -274,52 +347,34 @@ class TestRolePermission:
         )
         assert role_permission.role == role
         assert role_permission.permission == permission
+        assert role_permission.assigned_at is not None
 
     def test_role_has_multiple_permissions(self, db):
         """Test that a role can have multiple permissions."""
         role = Role.objects.create(
-            name='Trader',
-            code='trader'
+            code='trader',
+            name='Trader'
         )
-        perm1 = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
-        )
-        perm2 = Permission.objects.create(
-            name='Delete Trade',
-            code='trade:delete'
-        )
-        perm3 = Permission.objects.create(
-            name='View Trades',
-            code='trade:view'
-        )
+        perm1 = Permission.objects.create(resource='transaction', action='create', scope='self')
+        perm2 = Permission.objects.create(resource='transaction', action='delete', scope='self')
+        perm3 = Permission.objects.create(resource='transaction', action='read', scope='self')
 
         RolePermission.objects.create(role=role, permission=perm1)
         RolePermission.objects.create(role=role, permission=perm2)
         RolePermission.objects.create(role=role, permission=perm3)
 
         # Get all permissions for the role
-        permission_codes = [
-            rp.permission.code
-            for rp in RolePermission.objects.filter(role=role)
-        ]
-        assert 'trade:create' in permission_codes
-        assert 'trade:delete' in permission_codes
-        assert 'trade:view' in permission_codes
+        permissions = RolePermission.objects.filter(role=role)
+        assert permissions.count() == 3
 
     def test_permission_for_multiple_roles(self, db):
         """Test that a permission can be assigned to multiple roles."""
-        role1 = Role.objects.create(
-            name='Teacher',
-            code='teacher'
-        )
-        role2 = Role.objects.create(
-            name='Admin',
-            code='admin'
-        )
+        role1 = Role.objects.create(code='teacher', name='Teacher')
+        role2 = Role.objects.create(code='admin', name='Admin')
         permission = Permission.objects.create(
-            name='View Users',
-            code='users:view'
+            resource='user',
+            action='read',
+            scope='class'
         )
 
         RolePermission.objects.create(role=role1, permission=permission)
@@ -330,18 +385,16 @@ class TestRolePermission:
 
         assert role1_perms.count() == 1
         assert role2_perms.count() == 1
-        assert role1_perms.first().permission.code == 'users:view'
-        assert role2_perms.first().permission.code == 'users:view'
+        assert role1_perms.first().permission.resource == 'user'
+        assert role2_perms.first().permission.resource == 'user'
 
     def test_role_permission_unique_constraint(self, db):
         """Test that role-permission combination is unique."""
-        role = Role.objects.create(
-            name='Teacher',
-            code='teacher'
-        )
+        role = Role.objects.create(code='teacher', name='Teacher')
         permission = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
+            resource='transaction',
+            action='create',
+            scope='self'
         )
         RolePermission.objects.create(role=role, permission=permission)
 
@@ -360,23 +413,24 @@ class TestUserPermission:
             password='testpass123'
         )
         role = Role.objects.create(
-            name='Trader',
-            code='trader'
+            code='trader',
+            name='Trader'
         )
         permission = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
+            resource='transaction',
+            action='create',
+            scope='self'
         )
 
         # User has no permissions initially
-        assert user.has_permission('trade:create') is False
+        assert user.has_permission(permission.get_full_code()) is False
 
         # Assign role with permission
         UserRole.objects.create(user=user, role=role)
         RolePermission.objects.create(role=role, permission=permission)
 
         # Now user should have permission
-        assert user.has_permission('trade:create') is True
+        assert user.has_permission(permission.get_full_code()) is True
 
     def test_has_permission_multiple_roles(self, db):
         """Test has_permission with user having multiple roles."""
@@ -385,31 +439,19 @@ class TestUserPermission:
             email='test@example.com',
             password='testpass123'
         )
-        role1 = Role.objects.create(
-            name='Trader',
-            code='trader'
-        )
-        role2 = Role.objects.create(
-            name='Viewer',
-            code='viewer'
-        )
-        perm1 = Permission.objects.create(
-            name='Create Trade',
-            code='trade:create'
-        )
-        perm2 = Permission.objects.create(
-            name='Delete Trade',
-            code='trade:delete'
-        )
+        role1 = Role.objects.create(code='trader', name='Trader')
+        role2 = Role.objects.create(code='viewer', name='Viewer')
+        perm1 = Permission.objects.create(resource='transaction', action='create', scope='self')
+        perm2 = Permission.objects.create(resource='transaction', action='delete', scope='self')
 
         UserRole.objects.create(user=user, role=role1)
         UserRole.objects.create(user=user, role=role2)
         RolePermission.objects.create(role=role1, permission=perm1)
         RolePermission.objects.create(role=role2, permission=perm2)
 
-        assert user.has_permission('trade:create') is True
-        assert user.has_permission('trade:delete') is True
-        assert user.has_permission('trade:view') is False
+        assert user.has_permission(perm1.get_full_code()) is True
+        assert user.has_permission(perm2.get_full_code()) is True
+        assert user.has_permission('transaction.read.self') is False
 
     def test_has_permission_superuser(self, db):
         """Test that superuser has all permissions."""
@@ -420,5 +462,55 @@ class TestUserPermission:
         )
 
         # Superuser should have any permission without explicit assignment
-        assert user.has_permission('any:permission') is True
-        assert user.has_permission('trade:create') is True
+        assert user.has_permission('any.permission') is True
+        assert user.has_permission('transaction.create.self') is True
+
+
+class TestRoleMethods:
+    """Test cases for Role model methods."""
+
+    def test_add_permission(self, db):
+        """Test add_permission method on Role."""
+        role = Role.objects.create(code='teacher', name='Teacher')
+
+        # Add permission
+        result = role.add_permission('transaction', 'create', 'class')
+        assert result is True  # Permission was added
+
+        # Check permission exists
+        perm = Permission.objects.get(resource='transaction', action='create', scope='class')
+        assert RolePermission.objects.filter(role=role, permission=perm).exists()
+
+    def test_add_permission_duplicate(self, db):
+        """Test adding duplicate permission returns False."""
+        role = Role.objects.create(code='teacher', name='Teacher')
+
+        # Add permission first time
+        result1 = role.add_permission('transaction', 'create', 'class')
+        assert result1 is True
+
+        # Try to add same permission again
+        result2 = role.add_permission('transaction', 'create', 'class')
+        assert result2 is False  # Already exists
+
+    def test_remove_permission(self, db):
+        """Test remove_permission method on Role."""
+        role = Role.objects.create(code='teacher', name='Teacher')
+
+        # Add permission
+        role.add_permission('transaction', 'create', 'class')
+        perm = Permission.objects.get(resource='transaction', action='create', scope='class')
+        assert RolePermission.objects.filter(role=role, permission=perm).exists()
+
+        # Remove permission
+        result = role.remove_permission('transaction', 'create', 'class')
+        assert result is True
+        assert not RolePermission.objects.filter(role=role, permission=perm).exists()
+
+    def test_remove_nonexistent_permission(self, db):
+        """Test removing non-existent permission returns False."""
+        role = Role.objects.create(code='teacher', name='Teacher')
+
+        # Try to remove permission that doesn't exist
+        result = role.remove_permission('transaction', 'delete', 'all')
+        assert result is False
