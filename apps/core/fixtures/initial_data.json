@@ -1,0 +1,376 @@
+[
+  {
+    "model": "core.country",
+    "pk": "CN",
+    "fields": {
+      "code": "CN",
+      "name": "中国",
+      "name_en": "China",
+      "phone_code": "86",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "US",
+    "fields": {
+      "code": "US",
+      "name": "美国",
+      "name_en": "United States",
+      "phone_code": "1",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "JP",
+    "fields": {
+      "code": "JP",
+      "name": "日本",
+      "name_en": "Japan",
+      "phone_code": "81",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "GB",
+    "fields": {
+      "code": "GB",
+      "name": "英国",
+      "name_en": "United Kingdom",
+      "phone_code": "44",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "DE",
+    "fields": {
+      "code": "DE",
+      "name": "德国",
+      "name_en": "Germany",
+      "phone_code": "49",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "FR",
+    "fields": {
+      "code": "FR",
+      "name": "法国",
+      "name_en": "France",
+      "phone_code": "33",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "KR",
+    "fields": {
+      "code": "KR",
+      "name": "韩国",
+      "name_en": "South Korea",
+      "phone_code": "82",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "SG",
+    "fields": {
+      "code": "SG",
+      "name": "新加坡",
+      "name_en": "Singapore",
+      "phone_code": "65",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.country",
+    "pk": "AU",
+    "fields": {
+      "code": "AU",
+      "name": "澳大利亚",
+      "name_en": "Australia",
+      "phone_code": "61",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 1,
+    "fields": {
+      "code": "CNSHA",
+      "name": "上海港",
+      "name_en": "Shanghai",
+      "country": "CN",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 2,
+    "fields": {
+      "code": "CNNGB",
+      "name": "宁波港",
+      "name_en": "Ningbo",
+      "country": "CN",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 3,
+    "fields": {
+      "code": "CNSZX",
+      "name": "深圳港",
+      "name_en": "Shenzhen",
+      "country": "CN",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 4,
+    "fields": {
+      "code": "CNQDG",
+      "name": "青岛港",
+      "name_en": "Qingdao",
+      "country": "CN",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 5,
+    "fields": {
+      "code": "CNTAO",
+      "name": "天津港",
+      "name_en": "Tianjin",
+      "country": "CN",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 6,
+    "fields": {
+      "code": "CNXMN",
+      "name": "厦门港",
+      "name_en": "Xiamen",
+      "country": "CN",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 7,
+    "fields": {
+      "code": "USLAX",
+      "name": "洛杉矶港",
+      "name_en": "Los Angeles",
+      "country": "US",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 8,
+    "fields": {
+      "code": "USNYC",
+      "name": "纽约港",
+      "name_en": "New York",
+      "country": "US",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 9,
+    "fields": {
+      "code": "JPTYO",
+      "name": "东京港",
+      "name_en": "Tokyo",
+      "country": "JP",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 10,
+    "fields": {
+      "code": "JPOSA",
+      "name": "大阪港",
+      "name_en": "Osaka",
+      "country": "JP",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 11,
+    "fields": {
+      "code": "GBSOU",
+      "name": "南安普顿港",
+      "name_en": "Southampton",
+      "country": "GB",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 12,
+    "fields": {
+      "code": "DEHAM",
+      "name": "汉堡港",
+      "name_en": "Hamburg",
+      "country": "DE",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 13,
+    "fields": {
+      "code": "FRMLE",
+      "name": "勒阿弗尔港",
+      "name_en": "Le Havre",
+      "country": "FR",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 14,
+    "fields": {
+      "code": "KRPUS",
+      "name": "釜山港",
+      "name_en": "Busan",
+      "country": "KR",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 15,
+    "fields": {
+      "code": "SGSIN",
+      "name": "新加坡港",
+      "name_en": "Singapore",
+      "country": "SG",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.port",
+    "pk": 16,
+    "fields": {
+      "code": "AUSYD",
+      "name": "悉尼港",
+      "name_en": "Sydney",
+      "country": "AU",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "CNY",
+    "fields": {
+      "code": "CNY",
+      "name": "人民币",
+      "name_en": "Chinese Yuan",
+      "symbol": "¥",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "USD",
+    "fields": {
+      "code": "USD",
+      "name": "美元",
+      "name_en": "US Dollar",
+      "symbol": "$",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "EUR",
+    "fields": {
+      "code": "EUR",
+      "name": "欧元",
+      "name_en": "Euro",
+      "symbol": "€",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "GBP",
+    "fields": {
+      "code": "GBP",
+      "name": "英镑",
+      "name_en": "British Pound",
+      "symbol": "£",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "JPY",
+    "fields": {
+      "code": "JPY",
+      "name": "日元",
+      "name_en": "Japanese Yen",
+      "symbol": "¥",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "KRW",
+    "fields": {
+      "code": "KRW",
+      "name": "韩元",
+      "name_en": "Korean Won",
+      "symbol": "₩",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "SGD",
+    "fields": {
+      "code": "SGD",
+      "name": "新加坡元",
+      "name_en": "Singapore Dollar",
+      "symbol": "S$",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "AUD",
+    "fields": {
+      "code": "AUD",
+      "name": "澳元",
+      "name_en": "Australian Dollar",
+      "symbol": "A$",
+      "is_active": true
+    }
+  },
+  {
+    "model": "core.currency",
+    "pk": "HKD",
+    "fields": {
+      "code": "HKD",
+      "name": "港币",
+      "name_en": "Hong Kong Dollar",
+      "symbol": "HK$",
+      "is_active": true
+    }
+  }
+]
