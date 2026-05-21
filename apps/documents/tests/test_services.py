@@ -1,5 +1,5 @@
 import pytest
-from apps.documents.services import DependencyService
+from apps.documents.services import DependencyService, DataFillService
 from apps.documents.models import DocumentTemplate, DocumentDependency, Document
 from apps.users.models import User
 
@@ -73,3 +73,49 @@ class TestDependencyService:
         assert 'commercial_invoice' in order
         assert order.index('commercial_invoice') < order.index('packing_list')
         assert order.index('packing_list') < order.index('bill_of_lading')
+
+
+class TestDataFillService:
+    """数据填充服务测试"""
+
+    def test_fill_from_transaction(self, db):
+        """测试从交易数据填充"""
+        # 模拟交易数据
+        transaction_data = {
+            'buyer_name': 'ABC Trading Co.',
+            'seller_name': 'XYZ Export Corp.',
+            'amount': 10000.00,
+            'quantity': 1000,
+            'product_name': 'Cotton T-Shirts',
+        }
+
+        service = DataFillService()
+        filled_data = service.fill_from_transaction('commercial_invoice', transaction_data)
+
+        assert filled_data['buyer_name'] == 'ABC Trading Co.'
+        assert filled_data['amount'] == 10000.00
+
+    def test_fill_from_existing_document(self, db):
+        """测试从已有单证继承数据"""
+        template = DocumentTemplate.objects.create(
+            code='commercial_invoice',
+            name='商业发票',
+            content='<html></html>'
+        )
+        user = User.objects.create_user(username='test', password='pass')
+
+        # 创建已存在的发票
+        existing_doc = Document.objects.create(
+            template=template,
+            created_by=user,
+            data='{"invoice_no": "INV001", "buyer_name": "ABC Trading", "amount": 5000.00}'
+        )
+
+        service = DataFillService()
+        filled_data = service.fill_from_document(
+            'packing_list',
+            existing_doc
+        )
+
+        assert filled_data['invoice_no'] == 'INV001'
+        assert filled_data['amount'] == 5000.00

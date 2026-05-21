@@ -104,3 +104,119 @@ class DependencyService:
                 })
 
         return available
+
+
+class DataFillService:
+    """单证数据智能填充服务"""
+
+    # 字段映射配置：从交易/已有单证到目标单证的映射
+    # 格式：'target_field': 'source_field'
+    FIELD_MAPPINGS = {
+        'packing_list': {
+            'invoice_no': 'invoice_no',
+            'buyer_name': 'buyer_name',
+            'seller_name': 'seller_name',
+            'invoice_quantity': 'quantity',
+            'amount': 'amount',
+        },
+        'bill_of_exchange': {
+            'invoice_no': 'invoice_no',
+            'buyer_name': 'payee_name',
+            'amount': 'amount',
+        },
+        'insurance_application': {
+            'invoice_no': 'invoice_no',
+            'buyer_name': 'applicant',
+            'amount': 'insured_amount',
+        },
+    }
+
+    def fill_from_transaction(self, document_type, transaction_data):
+        """
+        从交易数据填充单证
+
+        Args:
+            document_type: 单证类型
+            transaction_data: 交易数据字典
+
+        Returns:
+            填充后的单证数据字典
+        """
+        filled_data = {}
+
+        # 根据单证类型填充默认字段
+        if document_type == 'commercial_invoice':
+            filled_data = {
+                'buyer_name': transaction_data.get('buyer_name'),
+                'seller_name': transaction_data.get('seller_name'),
+                'amount': transaction_data.get('amount'),
+                'quantity': transaction_data.get('quantity'),
+                'product_name': transaction_data.get('product_name'),
+                'invoice_date': transaction_data.get('contract_date'),
+            }
+        elif document_type == 'packing_list':
+            filled_data = {
+                'buyer_name': transaction_data.get('buyer_name'),
+                'seller_name': transaction_data.get('seller_name'),
+                'quantity': transaction_data.get('quantity'),
+                'product_name': transaction_data.get('product_name'),
+            }
+
+        return filled_data
+
+    def fill_from_document(self, document_type, source_document):
+        """
+        从已有单证填充数据
+
+        Args:
+            document_type: 目标单证类型
+            source_document: 源单证实例
+
+        Returns:
+            填充后的单证数据字典
+        """
+        import json
+
+        mappings = self.FIELD_MAPPINGS.get(document_type, {})
+        filled_data = {}
+
+        # 解析源单证数据（可能是 JSON 字符串或字典）
+        if isinstance(source_document.data, str):
+            try:
+                source_data = json.loads(source_document.data)
+            except:
+                source_data = {}
+        else:
+            source_data = source_document.data
+
+        for target_field, source_field in mappings.items():
+            if source_field in source_data:
+                filled_data[target_field] = source_data[source_field]
+
+        return filled_data
+
+    def fill_defaults(self, document_type):
+        """
+        填充默认值
+
+        Args:
+            document_type: 单证类型
+
+        Returns:
+            包含默认值的字典
+        """
+        from datetime import date
+
+        defaults = {
+            'invoice_date': str(date.today()),
+            'currency': 'USD',
+        }
+
+        # 根据单证类型添加特定默认值
+        if document_type == 'commercial_invoice':
+            defaults.update({
+                'trade_term': 'FOB',
+                'payment_term': 'L/C',
+            })
+
+        return defaults
