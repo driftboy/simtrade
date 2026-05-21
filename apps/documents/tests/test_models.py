@@ -1,7 +1,7 @@
 import pytest
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from apps.documents.models import DocumentTemplate, TemplateField, DocumentDependency, Document
+from apps.documents.models import DocumentTemplate, TemplateField, DocumentDependency, Document, DocumentValidation
 
 
 class DocumentTemplateTest(TestCase):
@@ -93,3 +93,23 @@ class DocumentTest(TestCase):
         doc.status = 'pending_review'
         doc.save()
         self.assertEqual(doc.get_status_display(), '待审核')
+
+
+class DocumentValidationTest(TestCase):
+    def test_create_validation(self):
+        template = DocumentTemplate.objects.create(
+            code='commercial_invoice',
+            name='商业发票',
+            content='<html>...</html>'
+        )
+        user = get_user_model().objects.create_user(username='test', password='pass')
+        doc = Document.objects.create(template=template, created_by=user)
+
+        validation = DocumentValidation.objects.create(
+            document=doc,
+            rule='date_logic',
+            passed=True,
+            validation_type='auto'
+        )
+        self.assertEqual(validation.rule, 'date_logic')
+        self.assertTrue(validation.passed)

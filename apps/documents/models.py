@@ -185,3 +185,36 @@ class Document(models.Model):
 
     def __str__(self):
         return f"{self.template.name} - {self.get_status_display()}"
+
+
+class DocumentValidation(models.Model):
+    """单证校验记录"""
+
+    class ValidationType(models.TextChoices):
+        AUTO = 'auto', '自动校验'
+        MANUAL = 'manual', '人工审核'
+
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name='validations'
+    )
+    rule = models.CharField('校验规则', max_length=100)
+    passed = models.BooleanField('是否通过')
+    error_message = models.TextField('错误信息', blank=True)
+    score_deduction = models.IntegerField('扣分', default=0)
+    validation_type = models.CharField(
+        '校验类型',
+        max_length=10,
+        choices=ValidationType.choices
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        db_table = 'document_validations'
+        verbose_name = '单证校验'
+        verbose_name_plural = '单证校验'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.document} - {self.rule}"
