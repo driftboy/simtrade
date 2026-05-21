@@ -1,1 +1,1 @@
-# SimTrade Apps
+# Apps package
