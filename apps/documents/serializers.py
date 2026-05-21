@@ -57,8 +57,37 @@ class DocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'auto_validation_result']
 
 
+class DocumentDataField(serializers.Field):
+    """自定义字段处理单证数据 - 支持 dict 或 JSON 字符串"""
+
+    def to_internal_value(self, data):
+        """从 API 输入转换为内部值"""
+        if isinstance(data, dict):
+            # 将 dict 保持为 dict，由视图负责序列化为 JSON 字符串
+            return data
+        elif isinstance(data, str):
+            # 如果已经是字符串，尝试解析为 dict 验证
+            import json
+            try:
+                return json.loads(data) if data else {}
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    def to_representation(self, value):
+        """从内部值转换为 API 输出"""
+        import json
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return value
+        return value
+
+
 class DocumentCreateSerializer(serializers.ModelSerializer):
     """创建单证序列化器（简化版）"""
+    data = DocumentDataField(required=False)
 
     class Meta:
         model = Document
