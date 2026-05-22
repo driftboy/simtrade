@@ -344,3 +344,96 @@ class LetterOfCredit(models.Model):
 
     def __str__(self):
         return f"信用证 {self.lc_no}"
+
+
+class LcAmendment(models.Model):
+    """信用证修改记录"""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', '待处理'
+        APPROVED = 'approved', '已批准'
+        REJECTED = 'rejected', '已拒绝'
+
+    lc = models.ForeignKey(
+        LetterOfCredit,
+        on_delete=models.CASCADE,
+        related_name='amendments',
+        verbose_name='信用证'
+    )
+    amendment_no = models.CharField('修改编号', max_length=50)
+    initiated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='initiated_amendments',
+        verbose_name='发起人'
+    )
+    content = models.JSONField('修改内容')
+    reason = models.TextField('修改原因')
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    processed_at = models.DateTimeField('处理时间', null=True, blank=True)
+
+    class Meta:
+        db_table = 'lc_amendments'
+        verbose_name = '信用证修改记录'
+        verbose_name_plural = '信用证修改记录'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.lc.lc_no} - {self.amendment_no}"
+
+
+class BankOperation(models.Model):
+    """银行业务操作记录"""
+
+    OPERATION_TYPES = [
+        ('issue', '开证'),
+        ('advise', '通知'),
+        ('negotiate', '议付'),
+        ('pay', '付款'),
+        ('amend', '修改'),
+    ]
+
+    lc = models.ForeignKey(
+        LetterOfCredit,
+        on_delete=models.CASCADE,
+        related_name='bank_operations',
+        verbose_name='信用证'
+    )
+    operation_type = models.CharField(
+        '操作类型',
+        max_length=20,
+        choices=OPERATION_TYPES
+    )
+    processed_by = models.CharField(
+        '处理方',
+        max_length=20,
+        default='system'
+    )
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bank_operations',
+        verbose_name='操作员'
+    )
+    notes = models.TextField('备注', blank=True)
+    result = models.JSONField('处理结果', default=dict, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        db_table = 'bank_operations'
+        verbose_name = '银行业务操作'
+        verbose_name_plural = '银行业务操作'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.lc.lc_no} - {self.get_operation_type_display()}"

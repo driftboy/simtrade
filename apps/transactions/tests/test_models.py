@@ -2,7 +2,10 @@ import pytest
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from datetime import date, datetime
-from apps.transactions.models import Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog, ContractAmendment, LetterOfCredit
+from apps.transactions.models import (
+    Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog,
+    ContractAmendment, LetterOfCredit, LcAmendment, BankOperation
+)
 from apps.users.models import User
 
 
@@ -969,3 +972,389 @@ class LetterOfCreditModelTest(TestCase):
         lcs = list(LetterOfCredit.objects.all())
         assert lcs[0] == lc2
         assert lcs[1] == lc1
+
+
+class LcAmendmentModelTest(TestCase):
+    """测试信用证修改记录模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='lca_buyer', password='testpass', email='lca_buyer@test.com')
+        self.seller = User.objects.create_user(username='lca_seller', password='testpass', email='lca_seller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='SC001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Test Product',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+        self.lc = LetterOfCredit.objects.create(
+            lc_no='LC2026001',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+    def test_create_lc_amendment(self):
+        """测试创建信用证修改记录"""
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA001',
+            initiated_by=self.buyer,
+            content={'amount': 12000.00},
+            reason='增加金额'
+        )
+
+        assert amendment.amendment_no == 'LA001'
+        assert amendment.status == 'pending'
+        assert amendment.get_status_display() == '待处理'
+        assert amendment.content['amount'] == 12000.00
+        assert str(amendment) == 'LC2026001 - LA001'
+        assert self.lc.amendments.count() == 1
+
+    def test_lc_amendment_status_choices(self):
+        """测试修改状态枚举"""
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA002',
+            initiated_by=self.seller,
+            content={'expiry_date': '2027-01-31'},
+            reason='有效期延期'
+        )
+
+        # 测试 pending 状态
+        amendment.status = 'pending'
+        assert amendment.get_status_display() == '待处理'
+
+        # 测试 approved 状态
+        amendment.status = 'approved'
+        amendment.save()
+        assert amendment.get_status_display() == '已批准'
+
+        # 测试 rejected 状态
+        amendment.status = 'rejected'
+        amendment.save()
+        assert amendment.get_status_display() == '已拒绝'
+
+    def test_lc_amendment_jsonfield_content(self):
+        """测试 JSONField 修改内容存储"""
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA003',
+            initiated_by=self.buyer,
+            content={
+                'amount': 15000.00,
+                'port_of_discharge': 'Long Beach',
+                'documents_required': ['invoice', 'packing_list']
+            },
+            reason='多项修改'
+        )
+
+        assert amendment.content['amount'] == 15000.00
+        assert amendment.content['port_of_discharge'] == 'Long Beach'
+        assert len(amendment.content['documents_required']) == 2
+
+    def test_lc_amendment_without_initiated_by(self):
+        """测试无发起用户的修改记录"""
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA004',
+            initiated_by=None,
+            content={'issuing_bank': '工商银行'},
+            reason='开证行变更'
+        )
+
+        assert amendment.initiated_by is None
+        assert amendment.amendment_no == 'LA004'
+
+    def test_lc_amendment_processed_at(self):
+        """测试处理时间字段"""
+        import django.utils.timezone as timezone
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA005',
+            initiated_by=self.seller,
+            content={'amount': 11000.00},
+            reason='金额微调'
+        )
+
+        # 初始状态 processed_at 为空
+        assert amendment.processed_at is None
+
+        # 处理后设置时间
+        amendment.status = 'approved'
+        amendment.processed_at = timezone.now()
+        amendment.save()
+
+        assert amendment.processed_at is not None
+
+    def test_lc_amendment_ordering(self):
+        """测试修改记录按创建时间倒序排列"""
+        import django.utils.timezone as timezone
+        earlier_time = timezone.now() - timezone.timedelta(seconds=1)
+
+        amendment1 = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA006',
+            initiated_by=self.buyer,
+            content={'field': 'value1'},
+            reason='原因1'
+        )
+        # 强制设置更早的创建时间
+        amendment1.created_at = earlier_time
+        amendment1.save()
+
+        amendment2 = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA007',
+            initiated_by=self.seller,
+            content={'field': 'value2'},
+            reason='原因2'
+        )
+
+        amendments = list(self.lc.amendments.all())
+        assert amendments[0] == amendment2
+        assert amendments[1] == amendment1
+
+    def test_lc_amendment_relationships(self):
+        """测试修改记录与信用证的关系"""
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA008',
+            initiated_by=self.seller,
+            content={'test': 'data'},
+            reason='测试'
+        )
+
+        assert amendment.lc == self.lc
+        assert self.lc.amendments.filter(amendment_no='LA008').exists()
+
+    def test_lc_amendment_reason_field(self):
+        """测试修改原因字段"""
+        long_reason = '需要增加金额以适应价格上涨，同时调整目的港以满足新的物流需求'
+        amendment = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA009',
+            initiated_by=self.buyer,
+            content={'amount': 12000.00},
+            reason=long_reason
+        )
+
+        assert amendment.reason == long_reason
+
+
+class BankOperationModelTest(TestCase):
+    """测试银行业务操作记录模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='bo_buyer', password='testpass', email='bo_buyer@test.com')
+        self.seller = User.objects.create_user(username='bo_seller', password='testpass', email='bo_seller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='SC001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Test Product',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+        self.lc = LetterOfCredit.objects.create(
+            lc_no='LC2026001',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+    def test_create_bank_operation(self):
+        """测试创建银行业务操作记录"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='issue',
+            processed_by='system',
+            notes='自动开证'
+        )
+
+        assert operation.operation_type == 'issue'
+        assert operation.get_operation_type_display() == '开证'
+        assert operation.processed_by == 'system'
+        assert operation.notes == '自动开证'
+        assert str(operation) == 'LC2026001 - 开证'
+
+    def test_bank_operation_type_choices(self):
+        """测试操作类型枚举"""
+        operation_types = [
+            ('issue', '开证'),
+            ('advise', '通知'),
+            ('negotiate', '议付'),
+            ('pay', '付款'),
+            ('amend', '修改'),
+        ]
+
+        for op_type, display_name in operation_types:
+            operation = BankOperation.objects.create(
+                lc=self.lc,
+                operation_type=op_type,
+                processed_by='system'
+            )
+            assert operation.get_operation_type_display() == display_name
+
+    def test_bank_operation_with_operator(self):
+        """测试带操作员的业务记录"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='advise',
+            processed_by='bank',
+            operator=self.buyer,
+            notes='银行人工通知'
+        )
+
+        assert operation.operation_type == 'advise'
+        assert operation.operator == self.buyer
+        assert operation.notes == '银行人工通知'
+
+    def test_bank_operation_jsonfield_result(self):
+        """测试 JSONField 处理结果存储"""
+        result_data = {
+            'status': 'success',
+            'reference_no': 'BANK2026001',
+            'timestamp': '2026-05-22T10:30:00Z',
+            'fees': {'amount': 100.00, 'currency': 'USD'}
+        }
+
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='issue',
+            processed_by='system',
+            result=result_data
+        )
+
+        assert operation.result['status'] == 'success'
+        assert operation.result['reference_no'] == 'BANK2026001'
+        assert operation.result['fees']['amount'] == 100.00
+
+    def test_bank_operation_without_operator(self):
+        """测试无操作员的业务记录（系统操作）"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='issue',
+            processed_by='system'
+        )
+
+        assert operation.operator is None
+        assert operation.processed_by == 'system'
+
+    def test_bank_operation_empty_notes(self):
+        """测试空备注"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='negotiate',
+            processed_by='bank',
+            notes=''
+        )
+
+        assert operation.notes == ''
+
+    def test_bank_operation_ordering(self):
+        """测试业务记录按创建时间倒序排列"""
+        import django.utils.timezone as timezone
+        earlier_time = timezone.now() - timezone.timedelta(seconds=1)
+
+        operation1 = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='issue',
+            processed_by='system',
+            notes='第一次操作'
+        )
+        # 强制设置更早的创建时间
+        operation1.created_at = earlier_time
+        operation1.save()
+
+        operation2 = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='advise',
+            processed_by='bank',
+            notes='第二次操作'
+        )
+
+        operations = list(self.lc.bank_operations.all())
+        assert operations[0] == operation2
+        assert operations[1] == operation1
+
+    def test_bank_operation_relationships(self):
+        """测试业务记录与信用证的关系"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='pay',
+            processed_by='system',
+            notes='自动付款'
+        )
+
+        assert operation.lc == self.lc
+        assert self.lc.bank_operations.filter(operation_type='pay').exists()
+
+    def test_bank_operation_default_result(self):
+        """测试默认空结果字典"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='amend',
+            processed_by='system'
+        )
+
+        assert operation.result == {}
+        assert isinstance(operation.result, dict)
+
+    def test_bank_operation_processed_by_default(self):
+        """测试 processed_by 默认值"""
+        operation = BankOperation.objects.create(
+            lc=self.lc,
+            operation_type='issue'
+        )
+
+        assert operation.processed_by == 'system'
