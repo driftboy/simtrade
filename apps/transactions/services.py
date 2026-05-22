@@ -1,5 +1,6 @@
 from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
+from apps.notifications.services import NotificationService
 
 
 class TransactionService:
@@ -18,11 +19,18 @@ class TransactionService:
     @staticmethod
     def handle_message(transaction, message):
         """处理消息，更新交易状态"""
-        if message.message_type == 'offer':
-            # 发盘后进入还盘中
+        if message.message_type == 'inquiry':
+            # 询盘通知
+            NotificationService.send_inquiry_notification(transaction, message)
+        elif message.message_type == 'offer':
+            # 发盘通知
+            NotificationService.send_offer_notification(transaction, message)
             if transaction.status == 'inquiring':
                 transaction.status = 'negotiating'
                 transaction.save()
+        elif message.message_type == 'counter_offer':
+            # 还盘通知
+            NotificationService.send_counter_offer_notification(transaction, message)
         elif message.message_type == 'accept':
             # 接受后进入待签约
             transaction.status = 'pending_contract'
