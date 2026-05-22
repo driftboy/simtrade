@@ -385,6 +385,7 @@ class LcAmendment(models.Model):
         verbose_name = '信用证修改记录'
         verbose_name_plural = '信用证修改记录'
         ordering = ['-created_at']
+        unique_together = [['lc', 'amendment_no']]
 
     def __str__(self):
         return f"{self.lc.lc_no} - {self.amendment_no}"

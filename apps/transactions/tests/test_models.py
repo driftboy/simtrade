@@ -1166,6 +1166,87 @@ class LcAmendmentModelTest(TestCase):
 
         assert amendment.reason == long_reason
 
+    def test_lc_amendment_unique_together_constraint(self):
+        """测试信用证和修改编号的唯一约束"""
+        # 创建第一个修改记录
+        LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA099',
+            initiated_by=self.buyer,
+            content={'amount': 12000.00},
+            reason='增加金额'
+        )
+        # 尝试为同一信用证创建相同修改编号应失败
+        with pytest.raises(Exception):  # IntegrityError
+            LcAmendment.objects.create(
+                lc=self.lc,
+                amendment_no='LA099',
+                initiated_by=self.seller,
+                content={'amount': 13000.00},
+                reason='再次增加金额'
+            )
+
+    def test_lc_amendment_different_lcs_same_amendment_no(self):
+        """测试不同信用证可以有相同的修改编号"""
+        # 创建第二个交易和合同
+        transaction2 = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=2,
+            quantity=500,
+            unit_price=20.00,
+            status='pending_contract'
+        )
+        contract2 = Contract.objects.create(
+            contract_no='SC002',
+            transaction=transaction2,
+            trade_term='CIF',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shenzhen',
+            port_of_discharge='Rotterdam',
+            product_name='Test Product 2',
+            quantity=500,
+            unit='pcs',
+            unit_price=20.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+        lc2 = LetterOfCredit.objects.create(
+            lc_no='LC2026002',
+            contract=contract2,
+            transaction=transaction2,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shenzhen',
+            port_of_discharge='Rotterdam',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        # 两个信用证可以有相同的修改编号
+        amendment1 = LcAmendment.objects.create(
+            lc=self.lc,
+            amendment_no='LA100',
+            initiated_by=self.buyer,
+            content={'amount': 12000.00},
+            reason='增加金额'
+        )
+        amendment2 = LcAmendment.objects.create(
+            lc=lc2,
+            amendment_no='LA100',
+            initiated_by=self.seller,
+            content={'amount': 11000.00},
+            reason='减少金额'
+        )
+
+        assert amendment1.amendment_no == amendment2.amendment_no
+        assert amendment1.lc != amendment2.lc
+
 
 class BankOperationModelTest(TestCase):
     """测试银行业务操作记录模型"""
