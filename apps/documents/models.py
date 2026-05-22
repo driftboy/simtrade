@@ -94,3 +94,127 @@ class TemplateField(models.Model):
 
     def __str__(self):
         return f"{self.template.name} - {self.label}"
+
+
+class DocumentDependency(models.Model):
+    """单证依赖关系"""
+
+    class DependencyType(models.TextChoices):
+        SEQUENTIAL = 'sequential', '顺序依赖'
+        PARALLEL = 'parallel', '并行'
+
+    document_type = models.CharField('单证类型', max_length=50)
+    depends_on = models.CharField('依赖单证类型', max_length=50)
+    dependency_type = models.CharField(
+        '依赖类型',
+        max_length=20,
+        choices=DependencyType.choices,
+        default=DependencyType.SEQUENTIAL
+    )
+    is_required = models.BooleanField('是否必需', default=True)
+
+    class Meta:
+        db_table = 'document_dependencies'
+        verbose_name = '单证依赖'
+        verbose_name_plural = '单证依赖'
+        unique_together = [['document_type', 'depends_on']]
+
+    def __str__(self):
+        return f"{self.document_type} 依赖 {self.depends_on}"
+
+
+class Document(models.Model):
+    """单证记录"""
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', '草稿'
+        PENDING_REVIEW = 'pending_review', '待审核'
+        APPROVED = 'approved', '已审核'
+        REJECTED = 'rejected', '审核不通过'
+        SUBMITTED = 'submitted', '已提交'
+        RECEIVED = 'received', '已接收'
+        ARCHIVED = 'archived', '已归档'
+
+    template = models.ForeignKey(
+        DocumentTemplate,
+        on_delete=models.PROTECT,
+        related_name='documents'
+    )
+    transaction_id = models.IntegerField('交易ID', null=True, blank=True)
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT
+    )
+    data = models.TextField('单证数据', default=dict)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_documents'
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_documents'
+    )
+    auto_validation_result = models.TextField(
+        '自动校验结果',
+        null=True,
+        blank=True
+    )
+    manual_review_status = models.CharField(
+        '人工审核状态',
+        max_length=20,
+        blank=True
+    )
+    manual_review_comment = models.TextField('审核意见', blank=True)
+    submitted_at = models.DateTimeField('提交时间', null=True, blank=True)
+    reviewed_at = models.DateTimeField('审核时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'documents'
+        verbose_name = '单证'
+        verbose_name_plural = '单证'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.template.name} - {self.get_status_display()}"
+
+
+class DocumentValidation(models.Model):
+    """单证校验记录"""
+
+    class ValidationType(models.TextChoices):
+        AUTO = 'auto', '自动校验'
+        MANUAL = 'manual', '人工审核'
+
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name='validations'
+    )
+    rule = models.CharField('校验规则', max_length=100)
+    passed = models.BooleanField('是否通过')
+    error_message = models.TextField('错误信息', blank=True)
+    score_deduction = models.IntegerField('扣分', default=0)
+    validation_type = models.CharField(
+        '校验类型',
+        max_length=10,
+        choices=ValidationType.choices
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        db_table = 'document_validations'
+        verbose_name = '单证校验'
+        verbose_name_plural = '单证校验'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.document} - {self.rule}"

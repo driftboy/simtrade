@@ -1,0 +1,132 @@
+[
+  {
+    "model": "documents.documentdependency",
+    "pk": 1,
+    "fields": {
+      "document_type": "packing_list",
+      "depends_on": "commercial_invoice",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 2,
+    "fields": {
+      "document_type": "bill_of_exchange",
+      "depends_on": "commercial_invoice",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 3,
+    "fields": {
+      "document_type": "insurance_application",
+      "depends_on": "commercial_invoice",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 4,
+    "fields": {
+      "document_type": "inspection_application",
+      "depends_on": "commercial_invoice",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 5,
+    "fields": {
+      "document_type": "certificate_of_origin",
+      "depends_on": "commercial_invoice",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 6,
+    "fields": {
+      "document_type": "insurance_policy",
+      "depends_on": "insurance_application",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 7,
+    "fields": {
+      "document_type": "inspection_certificate",
+      "depends_on": "inspection_application",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 8,
+    "fields": {
+      "document_type": "export_declaration",
+      "depends_on": "inspection_certificate",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 9,
+    "fields": {
+      "document_type": "bill_of_lading",
+      "depends_on": "export_declaration",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 10,
+    "fields": {
+      "document_type": "import_declaration",
+      "depends_on": "bill_of_lading",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 11,
+    "fields": {
+      "document_type": "beneficiary_certificate",
+      "depends_on": "bill_of_lading",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 12,
+    "fields": {
+      "document_type": "shipping_advice",
+      "depends_on": "bill_of_lading",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  },
+  {
+    "model": "documents.documentdependency",
+    "pk": 13,
+    "fields": {
+      "document_type": "letter_of_credit",
+      "depends_on": "sales_contract",
+      "dependency_type": "sequential",
+      "is_required": true
+    }
+  }
+]
