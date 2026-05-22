@@ -15,16 +15,18 @@ class Transaction(models.Model):
         COMPLETED = 'completed', '已完成'
         CANCELLED = 'cancelled', '已取消'
 
-    # 暂时用 User，等 Company 模型实现后改为 Company
+    # 迁移过渡期：允许 NULL，之后改为非空
     buyer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'roles.Company',
         on_delete=models.PROTECT,
-        related_name='buying_transactions'
+        related_name='buying_transactions',
+        null=True
     )
     seller = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'roles.Company',
         on_delete=models.PROTECT,
-        related_name='selling_transactions'
+        related_name='selling_transactions',
+        null=True
     )
     product_id = models.IntegerField('商品ID')  # 外键待 Product 表确定后调整
     status = models.CharField(
@@ -302,12 +304,12 @@ class LetterOfCredit(models.Model):
     issuing_bank = models.CharField('开证行', max_length=200)
     advising_bank = models.CharField('通知行', max_length=200)
     applicant = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'roles.Company',
         on_delete=models.PROTECT,
         related_name='applied_letters_of_credit'
     )
     beneficiary = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'roles.Company',
         on_delete=models.PROTECT,
         related_name='beneficiary_letters_of_credit'
     )

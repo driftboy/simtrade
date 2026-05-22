@@ -9,12 +9,12 @@ class TransactionSerializer(serializers.ModelSerializer):
     """交易序列化器"""
 
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    buyer_username = serializers.CharField(source='buyer.username', read_only=True)
-    seller_username = serializers.CharField(source='seller.username', read_only=True)
+    buyer_name = serializers.CharField(source='buyer.name', read_only=True)
+    seller_name = serializers.CharField(source='seller.name', read_only=True)
 
     class Meta:
         model = Transaction
-        fields = ['id', 'buyer', 'buyer_username', 'seller', 'seller_username',
+        fields = ['id', 'buyer', 'buyer_name', 'seller', 'seller_name',
                   'product_id', 'status', 'status_display', 'quantity',
                   'unit_price', 'currency', 'trade_term', 'port_of_loading',
                   'port_of_discharge', 'notes', 'created_at', 'updated_at']
