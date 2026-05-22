@@ -10,8 +10,8 @@ class NotificationServiceTest(TestCase):
     """通知服务测试"""
 
     def setUp(self):
-        self.user1 = User.objects.create_user(username='user1', password='testpass')
-        self.user2 = User.objects.create_user(username='user2', password='testpass')
+        self.user1 = User.objects.create_user(username='user1', email='user1@example.com', password='testpass')
+        self.user2 = User.objects.create_user(username='user2', email='user2@example.com', password='testpass')
 
     def test_send_notification_structure(self):
         """测试通知结构正确"""
