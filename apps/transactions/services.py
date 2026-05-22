@@ -3,6 +3,7 @@ from apps.transactions.models import Transaction, InquiryMessage, TransactionLog
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
 from apps.notifications.services import NotificationService
+from apps.roles.services import RoleService
 
 
 class TransactionService:
@@ -142,6 +143,20 @@ class ContractService:
         if contract.status not in ['pending_sign', 'one_signed']:
             raise ValueError(f"合同状态不允许签字: {contract.status}")
 
+        # 获取用户当前激活的角色
+        current_role = RoleService.get_current_role(user)
+        if not current_role:
+            raise ValueError("用户没有激活的角色，无法签字")
+
+        # 验证角色是否有权签字（当前角色的公司必须是交易的一方）
+        buyer_id = contract.transaction.buyer_id
+        seller_id = contract.transaction.seller_id
+
+        if party == 'buyer' and current_role.company_id != buyer_id:
+            raise ValueError("用户当前角色不属于买方公司，无权代表买方签字")
+        elif party == 'seller' and current_role.company_id != seller_id:
+            raise ValueError("用户当前角色不属于卖方公司，无权代表卖方签字")
+
         signature, created = ContractSignature.objects.get_or_create(
             contract=contract,
             party=party,
@@ -248,7 +263,7 @@ class LetterOfCreditService:
 
         TransactionService.log_transaction(
             contract.transaction,
-            contract.transaction.buyer,
+            contract.transaction.created_by,
             'lc_created',
             {'lc_id': lc.id}
         )
@@ -299,7 +314,7 @@ class LetterOfCreditService:
 
         TransactionService.log_transaction(
             lc.transaction,
-            lc.beneficiary,
+            lc.transaction.created_by,
             'lc_issued',
             {'lc_id': lc.id}
         )
@@ -461,9 +476,11 @@ class StateTransitionService:
         if contract.payment_term and 'L/C' in contract.payment_term:
             LetterOfCreditService.create_from_contract(contract)
 
+        # 使用 transaction.created_by 而非 transaction.buyer
+        # 因为 log_transaction 需要 User 类型，而 buyer 现在是 Company
         TransactionService.log_transaction(
             transaction,
-            transaction.buyer,
+            transaction.created_by,
             'contract_became_effective',
             {'contract_id': contract.id}
         )
@@ -478,7 +495,7 @@ class StateTransitionService:
         """信用证开立联动"""
         TransactionService.log_transaction(
             lc.transaction,
-            lc.beneficiary,
+            lc.transaction.created_by,
             'lc_issued',
             {'lc_id': lc.id}
         )
@@ -488,7 +505,7 @@ class StateTransitionService:
         """信用证付款联动"""
         TransactionService.log_transaction(
             lc.transaction,
-            lc.applicant,
+            lc.transaction.created_by,
             'lc_paid',
             {'lc_id': lc.id, 'amount': str(lc.amount)}
         )
