@@ -1,0 +1,70 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}外销合同{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>外销合同</h1>
+    <h2>SALES CONTRACT</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>合同号 CONTRACT NO:</strong></td>
+        <td>{{ data.contract_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.contract_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>卖方 SELLER:</strong></td>
+        <td colspan="3">{{ data.seller_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>买方 BUYER:</strong></td>
+        <td colspan="3">{{ data.buyer_name|default:"" }}</td>
+    </tr>
+</table>
+
+<table class="print-table">
+    <thead>
+        <tr>
+            <th>商品名称<br>Description</th>
+            <th>规格<br>Specification</th>
+            <th>数量<br>Quantity</th>
+            <th>单价<br>Unit Price</th>
+            <th class="text-right">金额<br>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.items|default:"[]" %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.spec|default:"-" }}</td>
+            <td class="text-center">{{ item.quantity }} {{ item.unit|default:"PCS" }}</td>
+            <td class="text-right">{{ item.unit_price }}</td>
+            <td class="text-right">{{ item.amount }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4" class="text-right"><strong>总计 TOTAL:</strong></td>
+            <td class="text-right"><strong>{{ data.total_amount|default:"" }}</strong></td>
+        </tr>
+    </tfoot>
+</table>
+
+<p><strong>贸易术语 TRADE TERM:</strong> {{ data.trade_term|default:"FOB" }}</p>
+<p><strong>付款方式 PAYMENT:</strong> {{ data.payment_term|default:"L/C" }}</p>
+<p><strong>装运港 PORT OF LOADING:</strong> {{ data.port_of_loading|default:"" }}</p>
+<p><strong>目的港 PORT OF DISCHARGE:</strong> {{ data.port_of_discharge|default:"" }}</p>
+
+<div class="print-footer">
+    <div class="sign-box">
+        <span class="label">卖方签字 SELLER SIGNATURE:</span>
+    </div>
+    <div class="sign-box">
+        <span class="label">买方签字 BUYER SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

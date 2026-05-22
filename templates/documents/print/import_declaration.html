@@ -1,0 +1,73 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}进口报关单{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>进口货物报关单</h1>
+    <h2>IMPORT DECLARATION</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>预录入编号 PRE-ENTRY NO:</strong></td>
+        <td>{{ data.pre_entry_no|default:"" }}</td>
+        <td><strong>海关编号 CUSTOMS NO:</strong></td>
+        <td>{{ data.customs_no|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>进口口岸 PORT OF IMPORT:</strong></td>
+        <td>{{ data.port_of_import|default:"" }}</td>
+        <td>**进口日期 DATE OF IMPORT:**</td>
+        <td>{{ data.import_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>收货单位 CONSIGNEE:</strong></td>
+        <td colspan="3">{{ data.consignee_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>发货单位 SHIPPER:</strong></td>
+        <td colspan="3">{{ data.shipper_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>贸易方式 TRADE MODE:</strong></td>
+        <td>{{ data.trade_mode|default:"" }}</td>
+        <td><strong>征免性质 TAXATION TYPE:</strong></td>
+        <td>{{ data.taxation_type|default:"" }}</td>
+    </tr>
+</table>
+
+<table class="print-table">
+    <thead>
+        <tr>
+            <th>项号<br>No.</th>
+            <th>商品名称<br>Description</th>
+            <th>数量<br>Quantity</th>
+            <th>单价<br>Unit Price</th>
+            <th>总价<br>Total</th>
+            <th>币制<br>Currency</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.items|default:"[]" %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ item.name }}</td>
+            <td class="text-center">{{ item.quantity }} {{ item.unit|default:"PCS" }}</td>
+            <td class="text-right">{{ item.unit_price }}</td>
+            <td class="text-right">{{ item.total }}</td>
+            <td class="text-center">{{ item.currency|default:"USD" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">报关员签字 DECLARANT SIGNATURE:</span>
+    </div>
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">海关签章 CUSTOMS SEAL:</span>
+    </div>
+</div>
+{% endblock %}

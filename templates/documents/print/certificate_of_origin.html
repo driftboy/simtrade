@@ -1,0 +1,70 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}产地证{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>原产地证</h1>
+    <h2>CERTIFICATE OF ORIGIN</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>证书号 CERTIFICATE NO:</strong></td>
+        <td>{{ data.cert_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.cert_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>出口商 EXPORTER:</strong></td>
+        <td colspan="3">{{ data.exporter_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>进口商 IMPORTER:</strong></td>
+        <td colspan="3">{{ data.importer_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>运输方式 MEANS OF TRANSPORT:</strong></td>
+        <td>{{ data.transport_mode|default:"SEA" }}</td>
+        <td><strong>装运港 PORT OF LOADING:</strong></td>
+        <td>{{ data.port_of_loading|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>目的国 COUNTRY OF DESTINATION:</strong></td>
+        <td>{{ data.destination_country|default:"" }}</td>
+        <td><strong>目的港 PORT OF DISCHARGE:</strong></td>
+        <td>{{ data.port_of_discharge|default:"" }}</td>
+    </tr>
+</table>
+
+<table class="print-table">
+    <thead>
+        <tr>
+            <th>唛头<br>Marks</th>
+            <th>商品名称<br>Description</th>
+            <th>数量<br>Quantity</th>
+            <th>重量<br>Weight</th>
+            <th>发票号<br>Invoice No.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.items|default:"[]" %}
+        <tr>
+            <td>{{ item.marks|default:"-" }}</td>
+            <td>{{ item.name }}</td>
+            <td class="text-center">{{ item.quantity }} {{ item.unit|default:"PCS" }}</td>
+            <td class="text-right">{{ item.weight|default:"-" }}</td>
+            <td class="text-center">{{ data.invoice_no|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><strong>原产地标准 CRITERION:</strong> {{ data.criterion|default:"W" }}</p>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">签证机构签字 CERTIFYING AUTHORITY SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

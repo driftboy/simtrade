@@ -1,0 +1,51 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}报检单{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>出境货物报检单</h1>
+    <h2>INSPECTION APPLICATION</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>报检单号 APPLICATION NO:</strong></td>
+        <td>{{ data.app_no|default:"" }}</td>
+        <td><strong>报检日期 DATE:</strong></td>
+        <td>{{ data.app_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>发货人 SHIPPER:</strong></td>
+        <td colspan="3">{{ data.shipper_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>收货人 CONSIGNEE:</strong></td>
+        <td colspan="3">{{ data.consignee_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>货物名称 COMMODITY:</strong></td>
+        <td colspan="3">{{ data.commodity_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>H.S.编码:</strong></td>
+        <td>{{ data.hs_code|default:"" }}</td>
+        <td><strong>数量 QUANTITY:</strong></td>
+        <td>{{ data.quantity|default:"" }} {{ data.unit|default:"PCS" }}</td>
+    </tr>
+    <tr>
+        <td><strong>运输方式 TRANSPORT MODE:</strong></td>
+        <td>{{ data.transport_mode|default:"SEA" }}</td>
+        <td><strong>目的港 PORT OF DISCHARGE:</strong></td>
+        <td>{{ data.port_of_discharge|default:"" }}</td>
+    </tr>
+</table>
+
+<p><strong>报检项目 INSPECTION ITEMS:</strong> {{ data.inspection_items|default:"品质、数量、重量" }}</p>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">报检人签字 APPLICANT SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

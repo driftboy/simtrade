@@ -1,0 +1,49 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}信用证{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>信用证</h1>
+    <h2>LETTER OF CREDIT</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>信用证号 L/C NO:</strong></td>
+        <td>{{ data.lc_no|default:"" }}</td>
+        <td><strong>开证日期 ISSUE DATE:</strong></td>
+        <td>{{ data.issue_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>开证行 ISSUING BANK:</strong></td>
+        <td colspan="3">{{ data.issuing_bank|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>受益人 BENEFICIARY:</strong></td>
+        <td colspan="3">{{ data.beneficiary_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>申请人 APPLICANT:</strong></td>
+        <td colspan="3">{{ data.applicant_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>金额 AMOUNT:</strong></td>
+        <td>{{ data.currency|default:"USD" }} {{ data.amount|default:"" }}</td>
+        <td><strong>有效期 EXPIRY DATE:</strong></td>
+        <td>{{ data.expiry_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>装运条款 SHIPMENT TERMS:</strong> {{ data.shipment_terms|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>单据要求 DOCUMENTS REQUIRED:</strong> {{ data.documents_required|default:"" }}</td>
+    </tr>
+</table>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">开证行签字 ISSUING BANK SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

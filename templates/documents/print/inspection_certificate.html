@@ -1,0 +1,52 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}检验证书{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>检验证书</h1>
+    <h2>INSPECTION CERTIFICATE</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>证书号 CERTIFICATE NO:</strong></td>
+        <td>{{ data.cert_no|default:"" }}</td>
+        <td><strong>签发日期 DATE OF ISSUE:</strong></td>
+        <td>{{ data.issue_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>发货人 SHIPPER:</strong></td>
+        <td colspan="3">{{ data.shipper_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>收货人 CONSIGNEE:</strong></td>
+        <td colspan="3">{{ data.consignee_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>货物名称 COMMODITY:</strong></td>
+        <td colspan="3">{{ data.commodity_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>数量 QUANTITY:</strong></td>
+        <td>{{ data.quantity|default:"" }} {{ data.unit|default:"PCS" }}</td>
+        <td><strong>重量 WEIGHT:</strong></td>
+        <td>{{ data.weight|default:"" }} kg</td>
+    </tr>
+    <tr>
+        <td><strong>检验结果 INSPECTION RESULT:</strong></td>
+        <td colspan="3">{{ data.inspection_result|default:"合格" }}</td>
+    </tr>
+</table>
+
+<p><strong>检验结论 CONCLUSION:</strong> {{ data.conclusion|default:"上述货物经检验合格" }}</p>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">检验机构签字 INSPECTION AUTHORITY SIGNATURE:</span>
+    </div>
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">检验机构盖章 INSPECTION AUTHORITY SEAL:</span>
+    </div>
+</div>
+{% endblock %}

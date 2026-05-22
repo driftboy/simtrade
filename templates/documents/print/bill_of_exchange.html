@@ -1,0 +1,41 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}汇票{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>汇票</h1>
+    <h2>BILL OF EXCHANGE</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td colspan="2"><strong>汇票号码 NO:</strong> {{ data.bill_no|default:"" }}</td>
+        <td colspan="2"><strong>日期 DATE:</strong> {{ data.bill_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>付款人 DRAWEE:</strong> {{ data.drawee_bank|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>收款人 PAYEE:</strong> {{ data.payee_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>金额 AMOUNT:</strong> {{ data.currency|default:"USD" }} {{ data.amount|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>付款期限 TENOR:</strong> {{ data.tenor|default:"At sight" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>信用证号 L/C NO:</strong> {{ data.lc_no|default:"" }}</td>
+    </tr>
+    <tr>
+        <td colspan="4"><strong>出票条款 DRAWN CLAUSE:</strong> {{ data.drawn_clause|default:"" }}</td>
+    </tr>
+</table>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">出票人签字 DRAWER SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

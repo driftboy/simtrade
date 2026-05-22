@@ -1,0 +1,42 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}受益人证明{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>受益人证明</h1>
+    <h2>BENEFICIARY CERTIFICATE</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>证明号 CERTIFICATE NO:</strong></td>
+        <td>{{ data.cert_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.cert_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>致 TO:</strong></td>
+        <td colspan="3">{{ data.to_party|default:"To whom it may concern" }}</td>
+    </tr>
+    <tr>
+        <td><strong>信用证号 L/C NO:</strong></td>
+        <td>{{ data.lc_no|default:"" }}</td>
+        <td><strong>发票号 INVOICE NO:</strong></td>
+        <td>{{ data.invoice_no|default:"" }}</td>
+    </tr>
+</table>
+
+<div style="margin: 30px 0;">
+    <p><strong>证明内容 CERTIFICATE CONTENT:</strong></p>
+    <p style="line-height: 2;">
+        {{ data.content|default:"We hereby certify that the goods have been shipped in accordance with the terms and conditions of the above-mentioned Letter of Credit." }}
+    </p>
+</div>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">受益人签字 BENEFICIARY SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

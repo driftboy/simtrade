@@ -1,0 +1,66 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}装船通知{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>装船通知</h1>
+    <h2>SHIPPING ADVICE</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>通知号 ADVICE NO:</strong></td>
+        <td>{{ data.advice_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.advice_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>收货人 CONSIGNEE:</strong></td>
+        <td colspan="3">{{ data.consignee_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>船名 VESSEL:</strong></td>
+        <td>{{ data.vessel_name|default:"" }}</td>
+        <td><strong>航次 VOYAGE:</strong></td>
+        <td>{{ data.voyage_no|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>装运港 PORT OF LOADING:</strong></td>
+        <td>{{ data.port_of_loading|default:"" }}</td>
+        <td><strong>目的港 PORT OF DISCHARGE:</strong></td>
+        <td>{{ data.port_of_discharge|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>装运日期 SHIPMENT DATE:</strong></td>
+        <td colspan="3">{{ data.shipment_date|default:"" }}</td>
+    </tr>
+</table>
+
+<table class="print-table">
+    <thead>
+        <tr>
+            <th>商品名称<br>Description</th>
+            <th>数量<br>Quantity</th>
+            <th>重量<br>Weight</th>
+            <th>发票号<br>Invoice No.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.items|default:"[]" %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td class="text-center">{{ item.quantity }} {{ item.unit|default:"PCS" }}</td>
+            <td class="text-right">{{ item.weight|default:"-" }}</td>
+            <td class="text-center">{{ data.invoice_no|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">发货人签字 SHIPPER SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,207 @@
+{% extends "documents/base.html" %}
+
+{% block title %}创建单证 - SimTrade{% endblock %}
+
+{% block document_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="page-header">
+            <h2>创建单证</h2>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="typeSelection">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">选择单证类型</div>
+            <div class="panel-body">
+                <div id="templateList" class="row">
+                    <div class="text-center">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="editForm" style="display: none;">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <span id="formTitle">编辑单证</span>
+                <button type="button" class="btn btn-link pull-right" onclick="showTypeSelection()">
+                    <span class="glyphicon glyphicon-arrow-left"></span> 返回
+                </button>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label>关联交易（可选）</label>
+                    <input type="text" id="transactionInput" class="form-control" placeholder="输入交易号">
+                    <p class="help-block">选择交易可自动填充相关数据</p>
+                </div>
+
+                <button type="button" class="btn btn-info" onclick="alert('智能填充功能需要关联交易')">
+                    <span class="glyphicon glyphicon-flash"></span> 智能填充
+                </button>
+
+                <hr>
+
+                <form id="documentForm">
+                    <div id="formFields">
+                        <div class="form-group">
+                            <label>发票号码 <span class="text-danger">*</span></label>
+                            <input type="text" name="invoice_no" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>发票日期 <span class="text-danger">*</span></label>
+                            <input type="date" name="invoice_date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>卖方名称 <span class="text-danger">*</span></label>
+                            <input type="text" name="seller_name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>买方名称 <span class="text-danger">*</span></label>
+                            <input type="text" name="buyer_name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>总金额 <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="total_amount" class="form-control" required>
+                        </div>
+                    </div>
+                </form>
+
+                <div id="validationResult" style="display: none;"></div>
+            </div>
+            <div class="panel-footer">
+                <button type="button" class="btn btn-default" onclick="saveDraft()">保存草稿</button>
+                <button type="button" class="btn btn-info" onclick="runValidation()">自动校验</button>
+                <button type="button" class="btn btn-primary" onclick="previewDocument()">预览</button>
+                <button type="button" class="btn btn-success" onclick="submitDocument()">提交审核</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var currentTemplate = null;
+var currentDocumentId = null;
+
+$(document).ready(function() {
+    'use strict';
+    loadTemplates();
+});
+
+function loadTemplates() {
+    $.ajax({
+        url: '/api/v1/documents/templates/',
+        method: 'GET',
+        success: function(response) {
+            var html = '';
+            response.data.forEach(function(tmpl) {
+                html += `
+                    <div class="col-md-3">
+                        <div class="template-card" onclick="selectTemplate('${tmpl.code}', '${tmpl.name}')">
+                            <h4>${tmpl.name}</h4>
+                            <p class="text-muted">${tmpl.code}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            $('#templateList').html(html || '<div class="alert alert-info">暂无可创建的单证类型</div>');
+        }
+    });
+}
+
+function selectTemplate(code, name) {
+    currentTemplate = {code: code, name: name};
+    $('#typeSelection').hide();
+    $('#editForm').show();
+    $('#formTitle').text('创建 - ' + name);
+}
+
+function showTypeSelection() {
+    $('#editForm').hide();
+    $('#typeSelection').show();
+}
+
+function saveDraft() {
+    var formData = $('#documentForm').serializeObject();
+    $.ajax({
+        url: '/api/v1/documents/documents/',
+        method: 'POST',
+        data: JSON.stringify({
+            template: currentTemplate.code,
+            data: formData
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': $.cookie('csrftoken')
+        },
+        success: function(response) {
+            currentDocumentId = response.data.id;
+            alert('草稿保存成功');
+        },
+        error: function(xhr) {
+            alert('保存失败: ' + (xhr.responseJSON?.message || '未知错误'));
+        }
+    });
+}
+
+function previewDocument() {
+    if (!currentDocumentId) {
+        alert('请先保存单证');
+        return;
+    }
+    window.location.href = '/documents/' + currentDocumentId + '/preview/';
+}
+
+function submitDocument() {
+    if (!currentDocumentId) {
+        alert('请先保存单证');
+        return;
+    }
+    $.ajax({
+        url: '/api/v1/documents/' + currentDocumentId + '/submit/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $.cookie('csrftoken')
+        },
+        success: function(response) {
+            alert('提交成功，等待审核');
+            window.location.href = '/documents/';
+        },
+        error: function(xhr) {
+            var errors = xhr.responseJSON?.errors || ['提交失败'];
+            alert('错误: ' + errors.join('\n'));
+        }
+    });
+}
+
+function runValidation() {
+    if (!currentDocumentId) {
+        alert('请先保存单证');
+        return;
+    }
+    alert('校验功能将在后续版本完善');
+}
+
+$.fn.serializeObject = function() {
+    var o = {};
+    var a = this.serializeArray();
+    $.each(a, function() {
+        if (o[this.name] !== undefined) {
+            if (!o[this.name].push) {
+                o[this.name] = [o[this.name]];
+            }
+            o[this.name].push(this.value || '');
+        } else {
+            o[this.name] = this.value || '';
+        }
+    });
+    return o;
+};
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "documents/base.html" %}
+
+{% block title %}单证预览 - SimTrade{% endblock %}
+
+{% block document_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="page-header no-print">
+            <button type="button" class="btn btn-default" onclick="history.back()">
+                <span class="glyphicon glyphicon-arrow-left"></span> 返回
+            </button>
+            <div class="btn-group pull-right">
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <span class="glyphicon glyphicon-print"></span> 打印
+                </button>
+                {% if document.status == 'draft' %}
+                <a href="/documents/{{ document.id }}/edit/" class="btn btn-default">
+                    <span class="glyphicon glyphicon-edit"></span> 编辑
+                </a>
+                <button type="button" class="btn btn-success" onclick="submitForReview()">
+                    <span class="glyphicon glyphicon-check"></span> 提交审核
+                </button>
+                {% endif %}
+            </div>
+            <h2>单证预览</h2>
+        </div>
+    </div>
+</div>
+
+<div id="validationAlert" style="display: none;" class="alert no-print"></div>
+
+<div class="document-preview">
+    <div id="documentContent">
+        <div class="print-document commercial-invoice">
+            <h2 class="text-center">商业发票</h2>
+            <h3 class="text-center">COMMERCIAL INVOICE</h3>
+            <hr>
+            <table class="table table-bordered">
+                <tr>
+                    <td colspan="2">
+                        <strong>卖方 SELLER:</strong><br>
+                        {{ data.seller_name|default:"" }}
+                    </td>
+                    <td colspan="2">
+                        <strong>买方 BUYER:</strong><br>
+                        {{ data.buyer_name|default:"" }}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>发票号码 NO:</strong></td>
+                    <td>{{ data.invoice_no|default:"" }}</td>
+                    <td><strong>日期 DATE:</strong></td>
+                    <td>{{ data.invoice_date|default:"" }}</td>
+                </tr>
+            </table>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>商品名称</th>
+                        <th>数量</th>
+                        <th>单价</th>
+                        <th>金额</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ data.product_name|default:"-" }}</td>
+                        <td>{{ data.quantity|default:"-" }}</td>
+                        <td>{{ data.unit_price|default:"-" }}</td>
+                        <td>{{ data.amount|default:"-" }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>总计 TOTAL:</strong></td>
+                        <td class="text-right"><strong>{{ data.total_amount|default:"" }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var documentId = {{ document.id }};
+
+function submitForReview() {
+    $.ajax({
+        url: '/api/v1/documents/' + documentId + '/submit/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $.cookie('csrftoken')
+        },
+        success: function(response) {
+            alert('提交成功，等待审核');
+            location.reload();
+        },
+        error: function(xhr) {
+            var errors = xhr.responseJSON?.errors || ['提交失败'];
+            showValidationError(errors);
+        }
+    });
+}
+
+function showValidationError(errors) {
+    var alertHtml = '<div class="alert alert-danger"><strong>校验失败:</strong><ul>';
+    errors.forEach(function(err) {
+        alertHtml += '<li>' + err + '</li>';
+    });
+    alertHtml += '</ul></div>';
+    $('#validationAlert').html(alertHtml).show();
+}
+</script>
+
+<style>
+.document-preview {
+    background: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+}
+
+.print-document {
+    padding: 20px;
+}
+
+.print-document h2, .print-document h3 {
+    margin: 10px 0;
+}
+
+@media print {
+    .no-print { display: none !important; }
+    .document-preview {
+        border: none;
+        padding: 0;
+    }
+    @page { margin: 10mm; }
+}
+</style>
+{% endblock %}

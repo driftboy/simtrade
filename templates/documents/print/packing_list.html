@@ -1,0 +1,66 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}装箱单{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>装箱单</h1>
+    <h2>PACKING LIST</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td colspan="2">
+            <strong>卖方 SELLER:</strong><br>
+            {{ data.seller_name|default:"" }}
+        </td>
+        <td colspan="2">
+            <strong>买方 BUYER:</strong><br>
+            {{ data.buyer_name|default:"" }}
+        </td>
+    </tr>
+    <tr>
+        <td><strong>发票号 INVOICE NO:</strong></td>
+        <td>{{ data.invoice_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.invoice_date|default:"" }}</td>
+    </tr>
+</table>
+
+<table class="print-table">
+    <thead>
+        <tr>
+            <th>商品名称<br>Description</th>
+            <th>数量<br>Quantity</th>
+            <th>毛重<br>G.W.(kg)</th>
+            <th>净重<br>N.W.(kg)</th>
+            <th>体积<br>Measurement(m³)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.items|default:"[]" %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td class="text-center">{{ item.quantity }} {{ item.unit|default:"PCS" }}</td>
+            <td class="text-right">{{ item.gross_weight|default:"-" }}</td>
+            <td class="text-right">{{ item.net_weight|default:"-" }}</td>
+            <td class="text-right">{{ item.measurement|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td class="text-right" colspan="2"><strong>总计 TOTAL:</strong></td>
+            <td class="text-right">{{ data.total_gross_weight|default:"-" }}</td>
+            <td class="text-right">{{ data.total_net_weight|default:"-" }}</td>
+            <td class="text-right">{{ data.total_measurement|default:"-" }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">卖方签字 SELLER SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

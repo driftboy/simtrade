@@ -1,0 +1,137 @@
+/* 单证模块样式 */
+
+/* 单证卡片 */
+.document-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    transition: box-shadow 0.2s;
+}
+
+.document-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 状态徽章 */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-draft {
+    background-color: #f0f0f0;
+    color: #666;
+}
+
+.status-pending {
+    background-color: #fcf8e3;
+    color: #8a6d3b;
+}
+
+.status-approved {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+.status-rejected {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+/* 模板卡片 */
+.template-card {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 15px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.template-card:hover {
+    border-color: #337ab7;
+    background-color: #f9f9f9;
+}
+
+/* 打印文档样式 */
+.print-document {
+    padding: 20px;
+    background: white;
+}
+
+.commercial-invoice table,
+.packing-list table,
+.bill-of-lading table {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.commercial-invoice th,
+.commercial-invoice td {
+    border: 1px solid #333;
+    padding: 8px;
+}
+
+/* 打印样式 */
+@media print {
+    body {
+        font-size: 10pt;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .page-header,
+    .breadcrumb,
+    .panel,
+    .btn {
+        display: none !important;
+    }
+
+    .document-preview {
+        border: none;
+        padding: 0;
+    }
+
+    .print-document {
+        page-break-after: always;
+    }
+
+    @page {
+        margin: 10mm;
+    }
+}
+
+/* 表单样式 */
+#formFields .form-group {
+    margin-bottom: 15px;
+}
+
+#formFields label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* 校验结果样式 */
+#validationAlert {
+    margin-bottom: 20px;
+}
+
+.validation-error {
+    color: #a94442;
+}
+
+.validation-success {
+    color: #3c763d;
+}

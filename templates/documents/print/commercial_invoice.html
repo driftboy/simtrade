@@ -1,0 +1,79 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}商业发票{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>商业发票</h1>
+    <h2>COMMERCIAL INVOICE</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td colspan="2">
+            <strong>卖方 SELLER:</strong><br>
+            {{ data.seller_name|default:"" }}<br>
+            {{ data.seller_address|default:"" }}<br>
+            {{ data.seller_phone|default:"" }}
+        </td>
+        <td colspan="2">
+            <strong>买方 BUYER:</strong><br>
+            {{ data.buyer_name|default:"" }}<br>
+            {{ data.buyer_address|default:"" }}<br>
+            {{ data.buyer_phone|default:"" }}
+        </td>
+    </tr>
+    <tr>
+        <td><strong>发票号 NO:</strong></td>
+        <td>{{ data.invoice_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.invoice_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>信用证号 L/C NO:</strong></td>
+        <td>{{ data.lc_no|default:"N/A" }}</td>
+        <td><strong>合同号 S/C NO:</strong></td>
+        <td>{{ data.contract_no|default:"" }}</td>
+    </tr>
+</table>
+
+<table class="print-table">
+    <thead>
+        <tr>
+            <th>商品名称<br>Description</th>
+            <th>规格<br>Specification</th>
+            <th>数量<br>Quantity</th>
+            <th>单价<br>Unit Price</th>
+            <th class="text-right">金额<br>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.items|default:"[]" %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.spec|default:"-" }}</td>
+            <td class="text-center">{{ item.quantity }} {{ item.unit|default:"PCS" }}</td>
+            <td class="text-right">{{ item.unit_price }}</td>
+            <td class="text-right">{{ item.amount }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4" class="text-right"><strong>总计 TOTAL:</strong></td>
+            <td class="text-right"><strong>{{ data.total_amount|default:"" }}</strong></td>
+        </tr>
+    </tfoot>
+</table>
+
+<p><strong>币种 CURRENCY:</strong> {{ data.currency|default:"USD" }}</p>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">卖方签字 SELLER SIGNATURE:</span>
+    </div>
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">买方签字 BUYER SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}

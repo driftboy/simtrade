@@ -1,0 +1,49 @@
+{% extends "documents/print/base.html" %}
+
+{% block print_title %}投保单{% endblock %}
+
+{% block print_content %}
+<div class="print-header">
+    <h1>投保单</h1>
+    <h2>INSURANCE APPLICATION</h2>
+</div>
+
+<table class="print-table">
+    <tr>
+        <td><strong>投保单号 APPLICATION NO:</strong></td>
+        <td>{{ data.app_no|default:"" }}</td>
+        <td><strong>日期 DATE:</strong></td>
+        <td>{{ data.app_date|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>被保险人 ASSURED:</strong></td>
+        <td colspan="3">{{ data.assured_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>保险金额 INSURANCE AMOUNT:</strong></td>
+        <td>{{ data.currency|default:"USD" }} {{ data.amount|default:"" }}</td>
+        <td><strong>费率 RATE:</strong></td>
+        <td>{{ data.rate|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>期望险种 COVERAGE:</strong></td>
+        <td colspan="3">{{ data.coverage|default:"All Risks" }}</td>
+    </tr>
+    <tr>
+        <td><strong>运输工具 VESSEL:</strong></td>
+        <td colspan="3">{{ data.vessel_name|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>装运港 PORT OF LOADING:</strong></td>
+        <td>{{ data.port_of_loading|default:"" }}</td>
+        <td><strong>目的港 PORT OF DISCHARGE:</strong></td>
+        <td>{{ data.port_of_discharge|default:"" }}</td>
+    </tr>
+</table>
+
+<div class="print-footer">
+    <div class="sign-box" style="width: 100%;">
+        <span class="label">投保人签字 APPLICANT SIGNATURE:</span>
+    </div>
+</div>
+{% endblock %}
