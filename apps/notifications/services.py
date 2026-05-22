@@ -74,3 +74,18 @@ class NotificationService:
                 'url': f'/transactions/{transaction.id}/'
             }
         )
+
+    @staticmethod
+    def send_lc_created_notification(lc):
+        """发送信用证创建通知"""
+        NotificationService.send_notification(
+            [lc.applicant_id],
+            'lc_created',
+            {
+                'lc_id': lc.id,
+                'lc_no': lc.lc_no,
+                'amount': str(lc.amount),
+                'currency': lc.currency,
+                'url': f'/letters-of-credit/{lc.id}/'
+            }
+        )

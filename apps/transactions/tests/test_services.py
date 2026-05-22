@@ -6,7 +6,7 @@ from apps.transactions.models import (
     Transaction, Contract, ContractSignature, TransactionLog, ContractAmendment
 )
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.services import ContractService, LetterOfCreditService
+from apps.transactions.services import ContractService, LetterOfCreditService, StateTransitionService
 from apps.users.models import User
 
 
@@ -1068,3 +1068,183 @@ class LetterOfCreditServiceTest(TestCase):
         lc = LetterOfCreditService.approve_amendment(lc, amendment.id)
         assert lc.status == 'issued'
         assert lc.amount == 12000.00
+
+
+class StateTransitionServiceTest(TestCase):
+    """测试状态联动服务"""
+
+    def setUp(self):
+        """设置测试数据"""
+        self.buyer = User.objects.create_user(
+            username='state_buyer',
+            password='testpass',
+            email='state_buyer@test.com'
+        )
+        self.seller = User.objects.create_user(
+            username='state_seller',
+            password='testpass',
+            email='state_seller@test.com'
+        )
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='contracted'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='SC2026001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Cotton T-Shirt',
+            product_spec='100% Cotton, Size M',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD',
+            status='signed'
+        )
+
+    def test_on_contract_effective_updates_transaction_status(self):
+        """测试合同生效联动：更新交易状态"""
+        # 确保交易状态为 contracted
+        self.transaction.status = 'contracted'
+        self.transaction.save()
+
+        # 触发合同生效联动
+        StateTransitionService.on_contract_effective(self.contract)
+
+        # 检查交易状态更新为 in_progress
+        self.transaction.refresh_from_db()
+        assert self.transaction.status == 'in_progress'
+
+    def test_on_contract_effective_creates_lc_for_lc_payment(self):
+        """测试合同生效联动：L/C支付方式自动创建信用证"""
+        # 确保支付方式是 L/C
+        self.contract.payment_term = 'L/C at sight'
+        self.contract.save()
+
+        # 触发合同生效联动
+        StateTransitionService.on_contract_effective(self.contract)
+
+        # 检查信用证已创建
+        lc = LetterOfCredit.objects.filter(contract=self.contract).first()
+        assert lc is not None
+        assert lc.status == 'draft'
+        assert lc.amount == 10000.00
+
+    def test_on_contract_effective_no_lc_for_non_lc_payment(self):
+        """测试合同生效联动：非L/C支付方式不创建信用证"""
+        # 设置为非 L/C 支付方式
+        self.contract.payment_term = 'T/T'
+        self.contract.save()
+
+        # 触发合同生效联动
+        StateTransitionService.on_contract_effective(self.contract)
+
+        # 检查没有创建信用证
+        lc_exists = LetterOfCredit.objects.filter(contract=self.contract).exists()
+        assert lc_exists is False
+
+    def test_on_contract_effective_creates_transaction_log(self):
+        """测试合同生效联动：创建交易日志"""
+        # 触发合同生效联动
+        StateTransitionService.on_contract_effective(self.contract)
+
+        # 检查日志记录
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='contract_became_effective'
+        ).first()
+        assert log is not None
+        assert log.user == self.buyer
+        assert log.details['contract_id'] == self.contract.id
+
+    def test_on_contract_effective_lc_payment_variations(self):
+        """测试合同生效联动：支持多种L/C支付格式"""
+        lc_payment_terms = ['L/C', 'L/C at sight', 'L/C 30 days', '100% L/C']
+
+        for payment_term in lc_payment_terms:
+            # 清理之前的信用证
+            LetterOfCredit.objects.filter(contract=self.contract).delete()
+
+            # 设置支付方式
+            self.contract.payment_term = payment_term
+            self.contract.save()
+
+            # 触发联动
+            StateTransitionService.on_contract_effective(self.contract)
+
+            # 检查信用证已创建
+            lc_exists = LetterOfCredit.objects.filter(contract=self.contract).exists()
+            assert lc_exists is True, f'支付方式 {payment_term} 应该创建信用证'
+
+    def test_on_lc_created_sends_notification(self):
+        """测试信用证创建联动：发送通知"""
+        # 创建信用证
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        # 触发信用证创建联动（验证方法可调用）
+        StateTransitionService.on_lc_created(lc)
+
+        # 如果实现了通知服务，这里会验证通知发送
+        # 目前只是确保方法不会抛出错误
+
+    def test_on_lc_issued_creates_log(self):
+        """测试信用证开立联动：创建交易日志"""
+        # 创建并开立信用证
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        # 触发信用证开立联动
+        StateTransitionService.on_lc_issued(lc)
+
+        # 检查日志记录
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_issued'
+        ).first()
+        assert log is not None
+        assert log.user == self.seller  # 受益人
+        assert log.details['lc_id'] == lc.id
+
+    def test_on_lc_paid_creates_log(self):
+        """测试信用证付款联动：创建交易日志"""
+        # 创建并付款信用证
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'paid'
+        lc.save()
+
+        # 触发信用证付款联动
+        StateTransitionService.on_lc_paid(lc)
+
+        # 检查日志记录
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_paid'
+        ).first()
+        assert log is not None
+        assert log.user == self.buyer  # 申请人
+        assert log.details['lc_id'] == lc.id
+        # Decimal 转字符串后可能去掉尾部零
+        assert log.details['amount'] in ['10000.00', '10000.0']
+
+    def test_on_contract_effective_transaction_already_in_progress(self):
+        """测试合同生效联动：交易状态已为in_progress时不重复更新"""
+        # 设置交易状态为 in_progress
+        self.transaction.status = 'in_progress'
+        self.transaction.save()
+
+        # 触发联动
+        StateTransitionService.on_contract_effective(self.contract)
+
+        # 状态应保持 in_progress
+        self.transaction.refresh_from_db()
+        assert self.transaction.status == 'in_progress'

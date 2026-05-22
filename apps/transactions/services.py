@@ -177,8 +177,8 @@ class ContractService:
         contract.effective_at = timezone.now()
         contract.save()
 
-        # 触发状态联动（留待任务7实现）
-        # StateTransitionService.on_contract_effective(contract)
+        # 触发状态联动
+        StateTransitionService.on_contract_effective(contract)
 
         return contract
 
@@ -443,3 +443,52 @@ class LetterOfCreditService:
         """生成修改编号"""
         count = lc.amendments.count() + 1
         return f"{lc.lc_no}-A{count:02d}"
+
+
+class StateTransitionService:
+    """状态联动服务"""
+
+    @staticmethod
+    def on_contract_effective(contract):
+        """合同生效联动"""
+        # 更新交易状态
+        transaction = contract.transaction
+        if transaction.status == 'contracted':
+            transaction.status = 'in_progress'
+            transaction.save()
+
+        # 如果付款方式是信用证，自动创建信用证
+        if contract.payment_term and 'L/C' in contract.payment_term:
+            LetterOfCreditService.create_from_contract(contract)
+
+        TransactionService.log_transaction(
+            transaction,
+            transaction.buyer,
+            'contract_became_effective',
+            {'contract_id': contract.id}
+        )
+
+    @staticmethod
+    def on_lc_created(lc):
+        """信用证创建联动"""
+        NotificationService.send_lc_created_notification(lc)
+
+    @staticmethod
+    def on_lc_issued(lc):
+        """信用证开立联动"""
+        TransactionService.log_transaction(
+            lc.transaction,
+            lc.beneficiary,
+            'lc_issued',
+            {'lc_id': lc.id}
+        )
+
+    @staticmethod
+    def on_lc_paid(lc):
+        """信用证付款联动"""
+        TransactionService.log_transaction(
+            lc.transaction,
+            lc.applicant,
+            'lc_paid',
+            {'lc_id': lc.id, 'amount': str(lc.amount)}
+        )
