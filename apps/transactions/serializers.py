@@ -10,11 +10,16 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     buyer_name = serializers.CharField(source='buyer.name', read_only=True)
+    buyer_company_name = serializers.CharField(source='buyer.name', read_only=True)
+    buyer_company_code = serializers.CharField(source='buyer.code', read_only=True)
     seller_name = serializers.CharField(source='seller.name', read_only=True)
+    seller_company_name = serializers.CharField(source='seller.name', read_only=True)
+    seller_company_code = serializers.CharField(source='seller.code', read_only=True)
 
     class Meta:
         model = Transaction
-        fields = ['id', 'buyer', 'buyer_name', 'seller', 'seller_name',
+        fields = ['id', 'buyer', 'buyer_name', 'buyer_company_name', 'buyer_company_code',
+                  'seller', 'seller_name', 'seller_company_name', 'seller_company_code',
                   'product_id', 'status', 'status_display', 'quantity',
                   'unit_price', 'currency', 'trade_term', 'port_of_loading',
                   'port_of_discharge', 'notes', 'created_at', 'updated_at']
@@ -106,13 +111,16 @@ class BankOperationSerializer(serializers.ModelSerializer):
 class LetterOfCreditSerializer(serializers.ModelSerializer):
     """信用证序列化器"""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    applicant_company_name = serializers.CharField(source='applicant.name', read_only=True)
+    beneficiary_company_name = serializers.CharField(source='beneficiary.name', read_only=True)
     amendments = LcAmendmentSerializer(many=True, read_only=True)
     bank_operations = BankOperationSerializer(many=True, read_only=True)
 
     class Meta:
         model = LetterOfCredit
         fields = ['id', 'lc_no', 'contract', 'transaction', 'status', 'status_display',
-                  'issuing_bank', 'advising_bank', 'applicant', 'beneficiary',
+                  'issuing_bank', 'advising_bank', 'applicant', 'applicant_company_name',
+                  'beneficiary', 'beneficiary_company_name',
                   'amount', 'currency', 'issue_date', 'expiry_date',
                   'latest_shipment_date', 'port_of_loading', 'port_of_discharge',
                   'documents_required', 'issued_at', 'advised_at', 'submitted_at',
