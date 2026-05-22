@@ -9,6 +9,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -18,9 +19,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'compressor',
+    # Third party
+    'channels',
+    # Local apps
     'apps.users',
     'apps.core',
     'apps.documents',
+    'apps.products',
+    'apps.transactions',
+    'apps.notifications',
 ]
 
 MIDDLEWARE = [
@@ -112,3 +119,15 @@ AUTH_USER_MODEL = 'users.User'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Channels / WebSocket
+ASGI_APPLICATION = 'simtrade.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [config('REDIS_URL', default='redis://127.0.0.1:6379/1')],
+        },
+    },
+}
