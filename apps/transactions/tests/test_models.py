@@ -2,7 +2,7 @@ import pytest
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from datetime import date, datetime
-from apps.transactions.models import Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog, ContractAmendment
+from apps.transactions.models import Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog, ContractAmendment, LetterOfCredit
 from apps.users.models import User
 
 
@@ -658,3 +658,314 @@ class ContractAmendmentModelTest(TestCase):
 
         assert amendment1.amendment_no == amendment2.amendment_no
         assert amendment1.contract != amendment2.contract
+
+
+class LetterOfCreditModelTest(TestCase):
+    """测试信用证模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='lc_buyer', password='testpass', email='lc_buyer@test.com')
+        self.seller = User.objects.create_user(username='lc_seller', password='testpass', email='lc_seller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='SC001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Test Product',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+
+    def test_create_letter_of_credit(self):
+        """测试创建信用证"""
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026001',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        assert lc.lc_no == 'LC2026001'
+        assert lc.status == 'draft'
+        assert lc.get_status_display() == '草稿'
+        assert lc.amount == 10000.00
+        assert str(lc) == '信用证 LC2026001'
+
+    def test_letter_of_credit_status_choices(self):
+        """测试信用证状态枚举"""
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026002',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        # 测试所有状态
+        for status_code, display_name in LetterOfCredit.Status.choices:
+            lc.status = status_code
+            lc.save()
+            assert lc.get_status_display() == display_name
+
+    def test_letter_of_credit_unique_lc_no(self):
+        """测试信用证号唯一性"""
+        LetterOfCredit.objects.create(
+            lc_no='LC2026003',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        # 尝试创建相同信用证号应失败
+        with pytest.raises(Exception):  # IntegrityError
+            LetterOfCredit.objects.create(
+                lc_no='LC2026003',
+                contract=self.contract,
+                transaction=self.transaction,
+                applicant=self.buyer,
+                beneficiary=self.seller,
+                amount=10000.00,
+                currency='USD',
+                expiry_date=date(2026, 12, 31),
+                latest_shipment_date=date(2026, 11, 30),
+                port_of_loading='Shanghai',
+                port_of_discharge='Los Angeles',
+                issuing_bank='中国银行',
+                advising_bank='Bank of America'
+            )
+
+    def test_letter_of_credit_contract_one_to_one(self):
+        """测试合同与信用证一对一关系"""
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026004',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        assert self.contract.letter_of_credit == lc
+
+    def test_letter_of_credit_documents_required_jsonfield(self):
+        """测试单据要求 JSONField"""
+        documents = [
+            {'type': 'commercial_invoice', 'description': '商业发票', 'copies': 3},
+            {'type': 'bill_of_lading', 'description': '提单', 'copies': 2},
+            {'type': 'insurance_policy', 'description': '保险单', 'copies': 1}
+        ]
+
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026005',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America',
+            documents_required=documents
+        )
+
+        assert lc.documents_required == documents
+        assert len(lc.documents_required) == 3
+        assert lc.documents_required[0]['type'] == 'commercial_invoice'
+
+    def test_letter_of_credit_timestamps(self):
+        """测试信用证时间戳"""
+        import django.utils.timezone as timezone
+
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026006',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        # 初始状态时间戳为空
+        assert lc.issued_at is None
+        assert lc.advised_at is None
+        assert lc.submitted_at is None
+        assert lc.negotiated_at is None
+        assert lc.paid_at is None
+
+        # 设置开证时间
+        lc.status = 'issued'
+        lc.issued_at = timezone.now()
+        lc.issue_date = date(2026, 10, 1)
+        lc.save()
+
+        assert lc.issued_at is not None
+        assert lc.issue_date == date(2026, 10, 1)
+
+    def test_letter_of_credit_banks(self):
+        """测试开证行和通知行"""
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026007',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        assert lc.issuing_bank == '中国银行'
+        assert lc.advising_bank == 'Bank of America'
+
+    def test_letter_of_credit_applicant_beneficiary(self):
+        """测试申请人和受益人"""
+        lc = LetterOfCredit.objects.create(
+            lc_no='LC2026008',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        assert lc.applicant == self.buyer
+        assert lc.beneficiary == self.seller
+
+    def test_letter_of_credit_ordering(self):
+        """测试信用证按创建时间倒序排列"""
+        import django.utils.timezone as timezone
+        earlier_time = timezone.now() - timezone.timedelta(seconds=1)
+
+        # 创建第二个合同用于第二个信用证
+        transaction2 = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=2,
+            quantity=2000,
+            unit_price=15.00,
+            status='pending_contract'
+        )
+        contract2 = Contract.objects.create(
+            contract_no='SC002',
+            transaction=transaction2,
+            trade_term='CIF',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shenzhen',
+            port_of_discharge='Rotterdam',
+            product_name='Test Product 2',
+            quantity=2000,
+            unit='pcs',
+            unit_price=15.00,
+            total_amount=30000.00,
+            currency='USD'
+        )
+
+        lc1 = LetterOfCredit.objects.create(
+            lc_no='LC2026009',
+            contract=self.contract,
+            transaction=self.transaction,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=10000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+        # 强制设置更早的创建时间
+        lc1.created_at = earlier_time
+        lc1.save()
+
+        lc2 = LetterOfCredit.objects.create(
+            lc_no='LC2026010',
+            contract=contract2,
+            transaction=transaction2,
+            applicant=self.buyer,
+            beneficiary=self.seller,
+            amount=30000.00,
+            currency='USD',
+            expiry_date=date(2026, 12, 31),
+            latest_shipment_date=date(2026, 11, 30),
+            port_of_loading='Shenzhen',
+            port_of_discharge='Rotterdam',
+            issuing_bank='中国银行',
+            advising_bank='Bank of America'
+        )
+
+        lcs = list(LetterOfCredit.objects.all())
+        assert lcs[0] == lc2
+        assert lcs[1] == lc1

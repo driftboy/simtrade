@@ -265,3 +265,82 @@ class ContractAmendment(models.Model):
 
     def __str__(self):
         return f"{self.contract.contract_no} - {self.amendment_no}"
+
+
+class LetterOfCredit(models.Model):
+    """信用证"""
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', '草稿'
+        PENDING_ISSUE = 'pending_issue', '待开证'
+        ISSUED = 'issued', '已开证'
+        AMENDING = 'amending', '修改中'
+        SUBMITTED = 'submitted', '已交单'
+        NEGOTIATED = 'negotiated', '已议付'
+        PAID = 'paid', '已付款'
+        CANCELLED = 'cancelled', '已取消'
+
+    lc_no = models.CharField('信用证号', max_length=50, unique=True)
+    contract = models.OneToOneField(
+        Contract,
+        on_delete=models.PROTECT,
+        related_name='letter_of_credit'
+    )
+    transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.PROTECT,
+        related_name='letters_of_credit'
+    )
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT
+    )
+
+    # 信用证当事人
+    issuing_bank = models.CharField('开证行', max_length=200)
+    advising_bank = models.CharField('通知行', max_length=200)
+    applicant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='applied_letters_of_credit'
+    )
+    beneficiary = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='beneficiary_letters_of_credit'
+    )
+
+    # 金额与期限
+    amount = models.DecimalField('金额', max_digits=14, decimal_places=2)
+    currency = models.CharField('货币', max_length=10)
+    issue_date = models.DateField('开证日期', null=True, blank=True)
+    expiry_date = models.DateField('有效期')
+
+    # 装运条款
+    latest_shipment_date = models.DateField('最迟装运日期')
+    port_of_loading = models.CharField('装运港', max_length=100)
+    port_of_discharge = models.CharField('目的港', max_length=100)
+
+    # 单据要求
+    documents_required = models.JSONField('单据要求', default=list)
+
+    # 系统处理时间戳
+    issued_at = models.DateTimeField('开证时间', null=True, blank=True)
+    advised_at = models.DateTimeField('通知时间', null=True, blank=True)
+    submitted_at = models.DateTimeField('交单时间', null=True, blank=True)
+    negotiated_at = models.DateTimeField('议付时间', null=True, blank=True)
+    paid_at = models.DateTimeField('付款时间', null=True, blank=True)
+
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'letters_of_credit'
+        verbose_name = '信用证'
+        verbose_name_plural = '信用证'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"信用证 {self.lc_no}"
