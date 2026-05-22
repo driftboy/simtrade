@@ -11,6 +11,32 @@ from apps.transactions.serializers import (
     LcAmendmentSerializer, BankOperationSerializer
 )
 from apps.users.models import User
+from apps.roles.services import CompanyService
+from apps.core.models import Country
+
+
+def get_or_create_country():
+    """获取或创建默认国家"""
+    country, _ = Country.objects.get_or_create(
+        code='CN',
+        defaults={
+            'name': '中国',
+            'name_en': 'China',
+            'phone_code': '86'
+        }
+    )
+    return country
+
+
+def create_company_for_user(user, name_suffix=''):
+    """为用户创建公司"""
+    country = get_or_create_country()
+    return CompanyService.create_company(
+        user=user,
+        name=f'{user.username}{name_suffix}公司',
+        name_en=f'{user.username}{name_suffix} Company',
+        country_id=country.code
+    )
 
 
 class ContractSerializerTest(TestCase):
@@ -20,9 +46,11 @@ class ContractSerializerTest(TestCase):
         """每个测试方法前执行"""
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@test.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -106,9 +134,11 @@ class ContractSignatureSerializerTest(TestCase):
         """每个测试方法前执行"""
         self.buyer = User.objects.create_user(username='sig_buyer', password='testpass', email='sbuyer@test.com')
         self.seller = User.objects.create_user(username='sig_seller', password='testpass', email='sseller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列签字买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列签字卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -177,9 +207,11 @@ class ContractAmendmentSerializerTest(TestCase):
         """每个测试方法前执行"""
         self.buyer = User.objects.create_user(username='amend_buyer', password='testpass', email='abuyer@test.com')
         self.seller = User.objects.create_user(username='amend_seller', password='testpass', email='aseller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列修改买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列修改卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -270,9 +302,11 @@ class LetterOfCreditSerializerTest(TestCase):
         """每个测试方法前执行"""
         self.buyer = User.objects.create_user(username='lc_buyer', password='testpass', email='lc_buyer@test.com')
         self.seller = User.objects.create_user(username='lc_seller', password='testpass', email='lc_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列LC买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列LC卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -296,8 +330,8 @@ class LetterOfCreditSerializerTest(TestCase):
             lc_no='LC2026001',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -362,9 +396,11 @@ class LcAmendmentSerializerTest(TestCase):
         """每个测试方法前执行"""
         self.buyer = User.objects.create_user(username='lca_buyer', password='testpass', email='lca_buyer@test.com')
         self.seller = User.objects.create_user(username='lca_seller', password='testpass', email='lca_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列LCA买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列LCA卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -388,8 +424,8 @@ class LcAmendmentSerializerTest(TestCase):
             lc_no='LC2026002',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -442,9 +478,11 @@ class BankOperationSerializerTest(TestCase):
         """每个测试方法前执行"""
         self.buyer = User.objects.create_user(username='bo_buyer', password='testpass', email='bo_buyer@test.com')
         self.seller = User.objects.create_user(username='bo_seller', password='testpass', email='bo_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列BO买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列BO卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -468,8 +506,8 @@ class BankOperationSerializerTest(TestCase):
             lc_no='LC2026003',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),

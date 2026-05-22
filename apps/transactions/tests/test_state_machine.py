@@ -3,6 +3,32 @@ from django.test import TestCase
 from apps.transactions.models import Transaction, InquiryMessage
 from apps.users.models import User
 from apps.transactions.services import TransactionService
+from apps.roles.services import CompanyService
+from apps.core.models import Country
+
+
+def get_or_create_country():
+    """获取或创建默认国家"""
+    country, _ = Country.objects.get_or_create(
+        code='CN',
+        defaults={
+            'name': '中国',
+            'name_en': 'China',
+            'phone_code': '86'
+        }
+    )
+    return country
+
+
+def create_company_for_user(user, name_suffix=''):
+    """为用户创建公司"""
+    country = get_or_create_country()
+    return CompanyService.create_company(
+        user=user,
+        name=f'{user.username}{name_suffix}公司',
+        name_en=f'{user.username}{name_suffix} Company',
+        country_id=country.code
+    )
 
 
 class TransactionStateMachineTest(TestCase):
@@ -11,12 +37,14 @@ class TransactionStateMachineTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@example.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_状态机买方')
+        self.seller_company = create_company_for_user(self.seller, '_状态机卖方')
 
     def test_inquiring_to_negotiating(self):
         """测试从询盘到还盘的状态转换"""
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -37,8 +65,8 @@ class TransactionStateMachineTest(TestCase):
     def test_negotiating_to_pending_contract(self):
         """测试从还盘到待签约的状态转换"""
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -59,8 +87,8 @@ class TransactionStateMachineTest(TestCase):
     def test_cancel_transaction(self):
         """测试取消交易"""
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,

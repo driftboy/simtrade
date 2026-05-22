@@ -4,6 +4,32 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from apps.transactions.models import Transaction, InquiryMessage
 from apps.users.models import User
+from apps.roles.services import CompanyService
+from apps.core.models import Country
+
+
+def get_or_create_country():
+    """获取或创建默认国家"""
+    country, _ = Country.objects.get_or_create(
+        code='CN',
+        defaults={
+            'name': '中国',
+            'name_en': 'China',
+            'phone_code': '86'
+        }
+    )
+    return country
+
+
+def create_company_for_user(user, name_suffix=''):
+    """为用户创建公司"""
+    country = get_or_create_country()
+    return CompanyService.create_company(
+        user=user,
+        name=f'{user.username}{name_suffix}公司',
+        name_en=f'{user.username}{name_suffix} Company',
+        country_id=country.code
+    )
 
 
 class TransactionAPITest(TestCase):
@@ -12,6 +38,8 @@ class TransactionAPITest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@example.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_API买方')
+        self.seller_company = create_company_for_user(self.seller, '_API卖方')
         self.client = APIClient()
 
     def test_create_transaction(self):
@@ -34,8 +62,8 @@ class TransactionAPITest(TestCase):
         self.client.force_authenticate(user=self.buyer)
         # 先创建一个交易
         Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -49,8 +77,8 @@ class TransactionAPITest(TestCase):
         """测试获取交易详情"""
         self.client.force_authenticate(user=self.buyer)
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -65,8 +93,8 @@ class TransactionAPITest(TestCase):
         """测试发送磋商消息"""
         self.client.force_authenticate(user=self.buyer)
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -84,8 +112,8 @@ class TransactionAPITest(TestCase):
         """测试获取消息列表"""
         self.client.force_authenticate(user=self.buyer)
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -106,8 +134,8 @@ class TransactionAPITest(TestCase):
         """测试取消交易"""
         self.client.force_authenticate(user=self.buyer)
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,

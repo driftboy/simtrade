@@ -8,6 +8,32 @@ from apps.transactions.models import (
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
 from apps.transactions.services import ContractService, LetterOfCreditService, StateTransitionService
 from apps.users.models import User
+from apps.roles.services import CompanyService
+from apps.core.models import Country
+
+
+def get_or_create_country():
+    """获取或创建默认国家"""
+    country, _ = Country.objects.get_or_create(
+        code='CN',
+        defaults={
+            'name': '中国',
+            'name_en': 'China',
+            'phone_code': '86'
+        }
+    )
+    return country
+
+
+def create_company_for_user(user, name_suffix=''):
+    """为用户创建公司"""
+    country = get_or_create_country()
+    return CompanyService.create_company(
+        user=user,
+        name=f'{user.username}{name_suffix}公司',
+        name_en=f'{user.username}{name_suffix} Company',
+        country_id=country.code
+    )
 
 
 class ContractServiceTest(TestCase):
@@ -25,13 +51,16 @@ class ContractServiceTest(TestCase):
             password='testpass',
             email='cseller@test.com'
         )
+        self.buyer_company = create_company_for_user(self.buyer, '_服务买方')
+        self.seller_company = create_company_for_user(self.seller, '_服务卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
-            status='pending_contract'
+            status='pending_contract',
+            created_by=self.buyer  # 设置创建者为买家用户
         )
         self.contract = Contract.objects.create(
             contract_no='SC2026001',
@@ -501,13 +530,16 @@ class LetterOfCreditServiceTest(TestCase):
             password='testpass',
             email='lc_seller@test.com'
         )
+        self.buyer_company = create_company_for_user(self.buyer, '_服务LC买方')
+        self.seller_company = create_company_for_user(self.seller, '_服务LC卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
-            status='pending_contract'
+            status='pending_contract',
+            created_by=self.buyer  # 设置创建者为买家用户
         )
         self.contract = Contract.objects.create(
             contract_no='SC2026001',
@@ -536,8 +568,8 @@ class LetterOfCreditServiceTest(TestCase):
         assert lc.lc_no.startswith('LC2026')
         assert lc.amount == 10000.00
         assert lc.currency == 'USD'
-        assert lc.applicant == self.buyer
-        assert lc.beneficiary == self.seller
+        assert lc.applicant == self.buyer_company
+        assert lc.beneficiary == self.seller_company
         assert lc.port_of_loading == 'Shanghai'
         assert lc.port_of_discharge == 'Los Angeles'
 
@@ -645,7 +677,7 @@ class LetterOfCreditServiceTest(TestCase):
             action='lc_issued'
         ).first()
         assert log is not None
-        assert log.user == self.seller  # 受益人
+        assert log.user == self.buyer  # transaction.created_by 是买家
 
     def test_auto_issue_invalid_status(self):
         """测试自动开证时状态不正确"""
@@ -1085,13 +1117,16 @@ class StateTransitionServiceTest(TestCase):
             password='testpass',
             email='state_seller@test.com'
         )
+        self.buyer_company = create_company_for_user(self.buyer, '_服务状态买方')
+        self.seller_company = create_company_for_user(self.seller, '_服务状态卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
-            status='contracted'
+            status='contracted',
+            created_by=self.buyer  # 设置创建者为买家用户
         )
         self.contract = Contract.objects.create(
             contract_no='SC2026001',
@@ -1212,7 +1247,7 @@ class StateTransitionServiceTest(TestCase):
             action='lc_issued'
         ).first()
         assert log is not None
-        assert log.user == self.seller  # 受益人
+        assert log.user == self.buyer  # transaction.created_by 是买家
         assert log.details['lc_id'] == lc.id
 
     def test_on_lc_paid_creates_log(self):

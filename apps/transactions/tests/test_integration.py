@@ -7,6 +7,32 @@ from apps.transactions.models import (
 )
 from apps.users.models import User
 from apps.transactions.services import TransactionService, ContractService, LetterOfCreditService
+from apps.roles.services import CompanyService
+from apps.core.models import Country
+
+
+def get_or_create_country():
+    """获取或创建默认国家"""
+    country, _ = Country.objects.get_or_create(
+        code='CN',
+        defaults={
+            'name': '中国',
+            'name_en': 'China',
+            'phone_code': '86'
+        }
+    )
+    return country
+
+
+def create_company_for_user(user, name_suffix=''):
+    """为用户创建公司"""
+    country = get_or_create_country()
+    return CompanyService.create_company(
+        user=user,
+        name=f'{user.username}{name_suffix}公司',
+        name_en=f'{user.username}{name_suffix} Company',
+        country_id=country.code
+    )
 
 
 class TransactionIntegrationTest(TestCase):
@@ -15,13 +41,15 @@ class TransactionIntegrationTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@example.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_集成买方')
+        self.seller_company = create_company_for_user(self.seller, '_集成卖方')
 
     def test_complete_negotiation_flow(self):
         """测试完整磋商流程：询盘 -> 发盘 -> 还盘 -> 接受 -> 待签约"""
         # 1. 创建交易（询盘）
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -94,9 +122,11 @@ class ContractIntegrationTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@example.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_集成合同买方')
+        self.seller_company = create_company_for_user(self.seller, '_集成合同卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -183,9 +213,11 @@ class LetterOfCreditIntegrationTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@example.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_集成LC买方')
+        self.seller_company = create_company_for_user(self.seller, '_集成LC卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -214,8 +246,8 @@ class LetterOfCreditIntegrationTest(TestCase):
             status='draft',
             issuing_bank='中国银行',
             advising_bank='花旗银行',
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=11000.00,
             currency='USD',
             expiry_date=date(2026, 7, 31),
@@ -301,13 +333,15 @@ class CompleteWorkflowTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@example.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_集成完整买方')
+        self.seller_company = create_company_for_user(self.seller, '_集成完整卖方')
 
     def test_complete_trade_workflow(self):
         """测试完整贸易流程：询盘 -> 合同 -> 信用证 -> 结算"""
         # 1. 创建交易
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -349,8 +383,8 @@ class CompleteWorkflowTest(TestCase):
             status='draft',
             issuing_bank='中国银行',
             advising_bank='花旗银行',
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=11000.00,
             currency='USD',
             expiry_date=date(2026, 7, 31),

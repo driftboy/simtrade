@@ -7,6 +7,32 @@ from apps.transactions.models import (
     ContractAmendment, LetterOfCredit, LcAmendment, BankOperation
 )
 from apps.users.models import User
+from apps.roles.services import CompanyService
+from apps.core.models import Country
+
+
+def get_or_create_country():
+    """获取或创建默认国家"""
+    country, _ = Country.objects.get_or_create(
+        code='CN',
+        defaults={
+            'name': '中国',
+            'name_en': 'China',
+            'phone_code': '86'
+        }
+    )
+    return country
+
+
+def create_company_for_user(user, name_suffix=''):
+    """为用户创建公司"""
+    country = get_or_create_country()
+    return CompanyService.create_company(
+        user=user,
+        name=f'{user.username}{name_suffix}公司',
+        name_en=f'{user.username}{name_suffix} Company',
+        country_id=country.code
+    )
 
 
 class TransactionModelTest(TestCase):
@@ -15,12 +41,14 @@ class TransactionModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer', password='testpass', email='buyer@test.com')
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_买方')
+        self.seller_company = create_company_for_user(self.seller, '_卖方')
 
     def test_create_transaction(self):
         """测试创建交易"""
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,  # 假设存在商品
             quantity=1000,
             unit_price=10.00,
@@ -32,8 +60,8 @@ class TransactionModelTest(TestCase):
     def test_transaction_status_choices(self):
         """测试交易状态选择"""
         transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -50,9 +78,11 @@ class InquiryMessageTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='buyer2', password='testpass', email='buyer2@test.com')
         self.seller = User.objects.create_user(username='seller2', password='testpass', email='seller2@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_买方2')
+        self.seller_company = create_company_for_user(self.seller, '_卖方2')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00
@@ -77,9 +107,11 @@ class ContractModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='contract_buyer', password='testpass', email='cbuyer@test.com')
         self.seller = User.objects.create_user(username='contract_seller', password='testpass', email='cseller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_合同买方')
+        self.seller_company = create_company_for_user(self.seller, '_合同卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -218,9 +250,11 @@ class ContractSignatureModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='sig_buyer', password='testpass', email='sbuyer@test.com')
         self.seller = User.objects.create_user(username='sig_seller', password='testpass', email='sseller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_签字买方')
+        self.seller_company = create_company_for_user(self.seller, '_签字卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -299,9 +333,11 @@ class TransactionLogModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='log_buyer', password='testpass', email='lbuyer@test.com')
         self.seller = User.objects.create_user(username='log_seller', password='testpass', email='lseller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_日志买方')
+        self.seller_company = create_company_for_user(self.seller, '_日志卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -394,9 +430,11 @@ class ContractStatusExpansionTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='status_buyer', password='testpass', email='sbuyer2@test.com')
         self.seller = User.objects.create_user(username='status_seller', password='testpass', email='sseller2@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_状态买方')
+        self.seller_company = create_company_for_user(self.seller, '_状态卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -438,9 +476,11 @@ class ContractAmendmentModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='amend_buyer', password='testpass', email='abuyer@test.com')
         self.seller = User.objects.create_user(username='amend_seller', password='testpass', email='aseller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_修改买方')
+        self.seller_company = create_company_for_user(self.seller, '_修改卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -620,8 +660,8 @@ class ContractAmendmentModelTest(TestCase):
         """测试不同合同可以有相同的修改编号"""
         # 创建另一个合同
         transaction2 = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=2,
             quantity=500,
             unit_price=20.00,
@@ -669,9 +709,11 @@ class LetterOfCreditModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='lc_buyer', password='testpass', email='lc_buyer@test.com')
         self.seller = User.objects.create_user(username='lc_seller', password='testpass', email='lc_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_LC买方')
+        self.seller_company = create_company_for_user(self.seller, '_LC卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -699,8 +741,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026001',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -723,8 +765,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026002',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -747,8 +789,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026003',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -765,8 +807,8 @@ class LetterOfCreditModelTest(TestCase):
                 lc_no='LC2026003',
                 contract=self.contract,
                 transaction=self.transaction,
-                applicant=self.buyer,
-                beneficiary=self.seller,
+                applicant=self.buyer_company,
+                beneficiary=self.seller_company,
                 amount=10000.00,
                 currency='USD',
                 expiry_date=date(2026, 12, 31),
@@ -783,8 +825,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026004',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -809,8 +851,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026005',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -834,8 +876,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026006',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -868,8 +910,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026007',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -889,8 +931,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026008',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -901,8 +943,8 @@ class LetterOfCreditModelTest(TestCase):
             advising_bank='Bank of America'
         )
 
-        assert lc.applicant == self.buyer
-        assert lc.beneficiary == self.seller
+        assert lc.applicant == self.buyer_company
+        assert lc.beneficiary == self.seller_company
 
     def test_letter_of_credit_ordering(self):
         """测试信用证按创建时间倒序排列"""
@@ -911,8 +953,8 @@ class LetterOfCreditModelTest(TestCase):
 
         # 创建第二个合同用于第二个信用证
         transaction2 = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=2,
             quantity=2000,
             unit_price=15.00,
@@ -938,8 +980,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026009',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -957,8 +999,8 @@ class LetterOfCreditModelTest(TestCase):
             lc_no='LC2026010',
             contract=contract2,
             transaction=transaction2,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=30000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -980,9 +1022,11 @@ class LcAmendmentModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='lca_buyer', password='testpass', email='lca_buyer@test.com')
         self.seller = User.objects.create_user(username='lca_seller', password='testpass', email='lca_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_LCA买方')
+        self.seller_company = create_company_for_user(self.seller, '_LCA卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -1007,8 +1051,8 @@ class LcAmendmentModelTest(TestCase):
             lc_no='LC2026001',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -1190,8 +1234,8 @@ class LcAmendmentModelTest(TestCase):
         """测试不同信用证可以有相同的修改编号"""
         # 创建第二个交易和合同
         transaction2 = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=2,
             quantity=500,
             unit_price=20.00,
@@ -1216,8 +1260,8 @@ class LcAmendmentModelTest(TestCase):
             lc_no='LC2026002',
             contract=contract2,
             transaction=transaction2,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
@@ -1254,9 +1298,11 @@ class BankOperationModelTest(TestCase):
     def setUp(self):
         self.buyer = User.objects.create_user(username='bo_buyer', password='testpass', email='bo_buyer@test.com')
         self.seller = User.objects.create_user(username='bo_seller', password='testpass', email='bo_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_BO买方')
+        self.seller_company = create_company_for_user(self.seller, '_BO卖方')
         self.transaction = Transaction.objects.create(
-            buyer=self.buyer,
-            seller=self.seller,
+            buyer=self.buyer_company,
+            seller=self.seller_company,
             product_id=1,
             quantity=1000,
             unit_price=10.00,
@@ -1281,8 +1327,8 @@ class BankOperationModelTest(TestCase):
             lc_no='LC2026001',
             contract=self.contract,
             transaction=self.transaction,
-            applicant=self.buyer,
-            beneficiary=self.seller,
+            applicant=self.buyer_company,
+            beneficiary=self.seller_company,
             amount=10000.00,
             currency='USD',
             expiry_date=date(2026, 12, 31),
