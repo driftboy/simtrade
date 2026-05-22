@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest apps/ --tb=line -x)",
+      "Bash(git branch *)",
+      "Bash(xargs echo \"文件数:\")",
+      "Bash(mkdir -p apps/documents)",
+      "Bash(pytest apps/documents/tests/test_models.py -v)",
+      "Bash(pytest apps/documents/tests/test_models.py -v --tb=short)",
+      "Bash(pytest apps/documents/tests/test_models.py::DocumentDependencyTest -v)",
+      "Bash(pytest apps/documents/tests/test_models.py::DocumentTest -v)",
+      "Bash(sqlite3 db.sqlite3 \"VACUUM;\")",
+      "Bash(pytest apps/documents/tests/test_models.py::DocumentTest::test_create_document -s -v --tb=short)",
+      "Bash(export DJANGO_SETTINGS_MODULE=tests.settings)",
+      "Bash(pytest apps/documents/tests/test_models.py::DocumentTest::test_create_document -v --nomigrations)",
+      "Bash(pytest apps/documents/tests/test_models.py::DocumentTest -v --nomigrations)",
+      "Bash(pytest apps/documents/tests/test_models.py --nomigrations -v)",
+      "Bash(pytest apps/documents/tests/test_models.py --nomigrations -q)",
+      "Bash(pytest apps/documents/tests/test_models.py -k \"not DocumentTest\" -v)",
+      "Bash(pytest apps/documents/tests/test_models.py::DocumentValidationTest -v)",
+      "Bash(pytest apps/documents/tests/test_validators.py -v)",
+      "Bash(pytest apps/documents/tests/test_validators.py::TestDocumentValidator::test_date_logic_validation_pass -v -s)",
+      "Bash(pytest apps/documents/tests/ -v)",
+      "Bash(pytest apps/documents/tests/test_validators.py -v --tb=short)",
+      "Bash(pytest apps/documents/tests/test_serializers.py -v)",
+      "Bash(pytest apps/documents/tests/ -v --tb=short)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(git merge feature/document-system --no-ff -m 'feat: merge document system feature branch *)",
+      "Bash(pip search *)",
+      "Bash(pip show *)",
+      "Bash(pip index *)",
+      "Bash(/d/anaconda3/python.exe -c \"import channels; import channels_redis; import redis; import daphne; print\\('channels:', channels.__version__\\); print\\('channels-redis:', channels_redis.__version__\\); print\\('redis:', redis.__version__\\); print\\('daphne:', daphne.__version__\\)\")",
+      "Bash(xargs cat)",
+      "Bash(pytest apps/products/tests/test_api.py -v)",
+      "Bash(pytest apps/products/tests/ -v)",
+      "Bash(pytest apps/transactions/tests/test_models.py -v)",
+      "Bash(pytest apps/transactions/tests/test_state_machine.py -v)",
+      "Bash(pytest apps/transactions/tests/test_state_machine.py -v --nomigrations)",
+      "Bash(pytest apps/notifications/tests/test_notifications.py -v)"
+    ],
+    "additionalDirectories": [
+      "F:\\vsworkspace\\simtrade\\.worktrees\\document-system\\apps"
+    ]
+  }
+}

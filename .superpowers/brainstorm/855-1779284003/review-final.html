@@ -1,0 +1,117 @@
+<h2>设计文档最终评审</h2>
+<p class="subtitle">SimTrade v1.1 设计规格审查</p>
+
+<div class="section">
+  <h3>📊 评审结果</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">综合评分卡</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">完整性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 95%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">95</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">一致性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 92%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">92</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">准确性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 93%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">93</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="width: 100px;">可实施性</span>
+        <div style="flex: 1; background: #eee; height: 25px; border-radius: 4px;">
+          <div style="background: #4caf50; width: 88%; height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">88</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 20px; text-align: center;">
+      <span style="font-size: 32px; font-weight: bold; color: #2196f3;">综合评分: 92/100</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>✅ 评审结论</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">通过评审</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+      <p style="font-size: 16px; font-weight: bold; color: #2e7d32;">✓ 设计文档 v1.1 已通过评审</p>
+      <p style="margin-top: 10px;">文档质量优秀，结构完整，逻辑清晰，可直接用于编写实现计划。</p>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <h4 style="margin-bottom: 10px;">📋 文档覆盖范围</h4>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 11px;">
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 项目概述</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 角色系统 (10角色)</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 数据模型 (28表)</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 状态机 (8个)</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 业务流程</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 单证系统 (15种)</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 评分系统</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 权限系统 (RBAC)</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 字段配置</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ REST API</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 数据字典 (15类)</div>
+        <div class="placeholder" style="padding: 8px; background: #e8f5e9;">✅ 部署要求</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>💡 建议（非必须）</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">后续迭代可考虑</div>
+  <div class="mockup-body" style="padding: 15px;">
+    <ul style="line-height: 2;">
+      <li>错误码体系 — 统一错误码格式和列表</li>
+      <li>数据初始化方案 — 商品、汇率、港口等基础数据如何初始化</li>
+      <li>缓存策略 — 哪些数据需要缓存，缓存失效策略</li>
+      <li>日志规范 — 日志等级、格式、存储策略</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>📄 相关文件</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">文档位置</div>
+  <div class="mockup-body" style="padding: 15px; font-family: monospace; font-size: 11px;">
+    docs/superpowers/specs/2026-05-20-simtrade-design.md<br>
+    docs/superpowers/specs/2026-05-20-simtrade-review-final.md<br>
+    docs/superpowers/specs/2026-05-20-simtrade-design-review.md
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+  <h3>🚀 准备就绪</h3>
+  <p>设计文档已通过评审，可以进入 <strong>实现计划</strong> 阶段。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="plan" onclick="toggleSelect(this)">
+    <div class="letter">确定</div>
+    <div class="content">
+      <h3>开始编写实现计划</h3>
+      <p>进入实现计划阶段</p>
+    </div>
+  </div>
+</div>
