@@ -6,6 +6,7 @@ from django.db import IntegrityError
 
 from apps.roles.models import Company, TradeRole
 from apps.core.models import Country
+from apps.users.models import User
 
 
 class TestCompanyModel:
@@ -260,3 +261,98 @@ class TestTradeRoleModel:
         assert 'inspection' in valid_codes
         assert 'forex' in valid_codes
         assert 'tax' in valid_codes
+
+
+class TestUserCompanyRoleModel:
+    """Test cases for UserCompanyRole model."""
+
+    def test_create_user_company_role(self, db):
+        """测试创建用户-公司-角色分配"""
+        country = Country.objects.create(code='CN', name='中国', name_en='China')
+        user = User.objects.create_user(username='testuser', password='testpass')
+        company = Company.objects.create(
+            name='测试公司',
+            code='TEST002',
+            country=country
+        )
+        role = TradeRole.objects.create(
+            code='exporter',
+            name='出口商',
+            description='销售货物'
+        )
+
+        from apps.roles.models import UserCompanyRole
+        assignment = UserCompanyRole.objects.create(
+            user=user,
+            company=company,
+            role=role
+        )
+
+        assert assignment.user == user
+        assert assignment.company == company
+        assert assignment.role == role
+        assert assignment.status == 'pending'
+        assert assignment.is_active is False
+
+    def test_user_company_role_unique(self, db):
+        """测试用户-公司-角色组合唯一性"""
+        country = Country.objects.create(code='CN', name='中国', name_en='China')
+        user = User.objects.create_user(username='testuser2', password='testpass')
+        company = Company.objects.create(
+            name='测试公司2',
+            code='TEST003',
+            country=country
+        )
+        role = TradeRole.objects.create(
+            code='importer',
+            name='进口商',
+            description='购买货物'
+        )
+
+        from apps.roles.models import UserCompanyRole
+        UserCompanyRole.objects.create(
+            user=user,
+            company=company,
+            role=role
+        )
+
+        with pytest.raises(IntegrityError):
+            UserCompanyRole.objects.create(
+                user=user,
+                company=company,
+                role=role
+            )
+
+    def test_activate_role(self, db):
+        """测试激活角色（单一激活）"""
+        country = Country.objects.create(code='CN', name='中国', name_en='China')
+        user = User.objects.create_user(username='testuser3', password='testpass')
+        company = Company.objects.create(
+            name='测试公司3',
+            code='TEST004',
+            country=country
+        )
+        role1 = TradeRole.objects.create(code='exporter', name='出口商', description='A')
+        role2 = TradeRole.objects.create(code='importer', name='进口商', description='B')
+
+        from apps.roles.models import UserCompanyRole
+        assignment1 = UserCompanyRole.objects.create(
+            user=user,
+            company=company,
+            role=role1,
+            is_active=True
+        )
+        UserCompanyRole.objects.create(
+            user=user,
+            company=company,
+            role=role2
+        )
+
+        # 激活第二个角色，第一个应该自动停用
+        assignment2 = UserCompanyRole.objects.filter(user=user, role=role2).first()
+        assignment2.is_active = True
+        assignment2.save()
+
+        assignment1.refresh_from_db()
+        assert assignment1.is_active is False
+        assert assignment2.is_active is True

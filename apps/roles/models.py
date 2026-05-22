@@ -74,3 +74,65 @@ class TradeRole(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class UserCompanyRole(models.Model):
+    """用户-公司-角色分配（支持多学生共享一公司）"""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', '待审核'
+        APPROVED = 'approved', '已批准'
+        REJECTED = 'rejected', '已拒绝'
+        ACTIVE = 'active', '激活中'
+        SUSPENDED = 'suspended', '已暂停'
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='trade_roles'
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='members'
+    )
+    role = models.ForeignKey(
+        TradeRole,
+        on_delete=models.CASCADE,
+        related_name='assignees'
+    )
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    is_active = models.BooleanField('当前激活', default=False)
+    requested_at = models.DateTimeField('申请时间', auto_now_add=True)
+    approved_at = models.DateTimeField('批准时间', null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='approved_role_assignments'
+    )
+    notes = models.TextField('备注', blank=True)
+
+    class Meta:
+        db_table = 'user_company_roles'
+        unique_together = [['user', 'company', 'role']]
+        verbose_name = '用户角色分配'
+        verbose_name_plural = '用户角色分配'
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f'{self.user.username} - {self.company.name} - {self.role.name}'
+
+    def save(self, *args, **kwargs):
+        # 确保单一激活：如果设置为激活，停用该用户的其他角色
+        if self.is_active:
+            UserCompanyRole.objects.filter(
+                user=self.user,
+                is_active=True
+            ).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
