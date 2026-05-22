@@ -383,3 +383,47 @@ class TransactionLogModelTest(TestCase):
         )
         assert log.transaction == self.transaction
         assert self.transaction.logs.filter(action='test_action').exists()
+
+
+class ContractStatusExpansionTest(TestCase):
+    """测试合同状态选项扩展"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='status_buyer', password='testpass', email='sbuyer2@test.com')
+        self.seller = User.objects.create_user(username='status_seller', password='testpass', email='sseller2@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+
+    def test_contract_status_expansion(self):
+        """测试合同状态选项扩展"""
+        contract = Contract.objects.create(
+            contract_no='SC001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Test Product',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+
+        # 测试新状态
+        contract.status = 'pending_confirm'
+        assert contract.get_status_display() == '待确认'
+
+        contract.status = 'amending'
+        assert contract.get_status_display() == '修改中'
+
+        contract.status = 'one_signed'
+        assert contract.get_status_display() == '一方签字'

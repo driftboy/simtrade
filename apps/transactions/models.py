@@ -109,9 +109,12 @@ class Contract(models.Model):
 
     class Status(models.TextChoices):
         DRAFT = 'draft', '草稿'
+        PENDING_CONFIRM = 'pending_confirm', '待确认'
         PENDING_SIGN = 'pending_sign', '待签字'
+        ONE_SIGNED = 'one_signed', '一方签字'
         SIGNED = 'signed', '已签字'
         EFFECTIVE = 'effective', '已生效'
+        AMENDING = 'amending', '修改中'
         FULFILLED = 'fulfilled', '履行完毕'
         CANCELLED = 'cancelled', '已取消'
 
