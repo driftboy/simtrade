@@ -1,6 +1,8 @@
 import pytest
 from django.test import TestCase
-from apps.transactions.models import Transaction, InquiryMessage
+from django.core.exceptions import ValidationError
+from datetime import date, datetime
+from apps.transactions.models import Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog
 from apps.users.models import User
 
 
@@ -64,3 +66,320 @@ class InquiryMessageTest(TestCase):
         )
         assert message.message_type == 'inquiry'
         assert message.get_message_type_display() == '询盘'
+
+
+class ContractModelTest(TestCase):
+    """测试合同模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='contract_buyer', password='testpass', email='cbuyer@test.com')
+        self.seller = User.objects.create_user(username='contract_seller', password='testpass', email='cseller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+
+    def test_create_contract(self):
+        """测试创建合同"""
+        contract = Contract.objects.create(
+            contract_no='CT202601001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='T/T 30% in advance',
+            delivery_time=date(2026, 6, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Cotton T-Shirt',
+            product_spec='100% Cotton, Size M',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+        assert contract.contract_no == 'CT202601001'
+        assert contract.status == 'draft'
+        assert contract.get_status_display() == '草稿'
+        assert str(contract) == '合同 CT202601001'
+
+    def test_contract_status_choices(self):
+        """测试合同状态枚举"""
+        contract = Contract.objects.create(
+            contract_no='CT202601002',
+            transaction=self.transaction,
+            trade_term='CIF',
+            payment_term='L/C at sight',
+            delivery_time=date(2026, 7, 15),
+            port_of_loading='Ningbo',
+            port_of_discharge='Hamburg',
+            product_name='Silk Scarf',
+            quantity=500,
+            unit='pcs',
+            unit_price=25.00,
+            total_amount=12500.00,
+            currency='USD'
+        )
+        # 测试所有状态
+        for status_code, display_name in Contract.Status.choices:
+            contract.status = status_code
+            contract.save()
+            assert contract.get_status_display() == display_name
+
+    def test_contract_field_validation(self):
+        """测试合同字段验证"""
+        contract = Contract.objects.create(
+            contract_no='CT202601003',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='T/T',
+            delivery_time=date(2026, 8, 1),
+            port_of_loading='Shenzhen',
+            port_of_discharge='Rotterdam',
+            product_name='Wool Sweater',
+            product_spec='Merino wool',
+            quantity=2000,
+            unit='pcs',
+            unit_price=50.00,
+            total_amount=100000.00,
+            currency='EUR',
+            packing='Carton package',
+            shipping_marks='ABC/123',
+            remarks='Partial shipment allowed'
+        )
+        assert contract.packing == 'Carton package'
+        assert contract.shipping_marks == 'ABC/123'
+        assert contract.remarks == 'Partial shipment allowed'
+
+    def test_contract_unique_contract_no(self):
+        """测试合同号唯一性"""
+        Contract.objects.create(
+            contract_no='CT202601004',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='T/T',
+            delivery_time=date(2026, 9, 1),
+            port_of_loading='Qingdao',
+            port_of_discharge='New York',
+            product_name='Linen Shirt',
+            quantity=1500,
+            unit='pcs',
+            unit_price=30.00,
+            total_amount=45000.00,
+            currency='USD'
+        )
+        # 尝试创建相同合同号应失败
+        with pytest.raises(Exception):  # IntegrityError
+            Contract.objects.create(
+                contract_no='CT202601004',
+                transaction=self.transaction,
+                trade_term='CIF',
+                payment_term='L/C',
+                delivery_time=date(2026, 10, 1),
+                port_of_loading='Guangzhou',
+                port_of_discharge='London',
+                product_name='Denim Jeans',
+                quantity=1000,
+                unit='pcs',
+                unit_price=40.00,
+                total_amount=40000.00,
+                currency='USD'
+            )
+
+    def test_contract_transaction_one_to_one(self):
+        """测试交易与合同一对一关系"""
+        contract = Contract.objects.create(
+            contract_no='CT202601005',
+            transaction=self.transaction,
+            trade_term='EXW',
+            payment_term='D/P',
+            delivery_time=date(2026, 11, 1),
+            port_of_loading='Xiamen',
+            port_of_discharge='Tokyo',
+            product_name='Polyester Jacket',
+            quantity=800,
+            unit='pcs',
+            unit_price=60.00,
+            total_amount=48000.00,
+            currency='JPY'
+        )
+        assert self.transaction.contract == contract
+
+
+class ContractSignatureModelTest(TestCase):
+    """测试合同签字记录模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='sig_buyer', password='testpass', email='sbuyer@test.com')
+        self.seller = User.objects.create_user(username='sig_seller', password='testpass', email='sseller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='CT202601010',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='T/T',
+            delivery_time=date(2026, 6, 30),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Cotton T-Shirt',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+
+    def test_create_contract_signature(self):
+        """测试创建签字记录"""
+        signature = ContractSignature.objects.create(
+            contract=self.contract,
+            party='buyer',
+            signer=self.buyer,
+            signer_name='张三',
+            ip_address='192.168.1.100'
+        )
+        assert signature.party == 'buyer'
+        assert signature.signer == self.buyer
+        assert signature.signer_name == '张三'
+        assert signature.ip_address == '192.168.1.100'
+
+    def test_signature_unique_together_constraint(self):
+        """测试合同和当事方的唯一约束"""
+        # 创建买方签字
+        ContractSignature.objects.create(
+            contract=self.contract,
+            party='buyer',
+            signer=self.buyer,
+            signer_name='张三'
+        )
+        # 尝试为同一合同和当事方创建第二条记录应失败
+        with pytest.raises(Exception):  # IntegrityError
+            ContractSignature.objects.create(
+                contract=self.contract,
+                party='buyer',
+                signer=self.buyer,
+                signer_name='李四'
+            )
+
+    def test_multiple_parties_can_sign(self):
+        """测试不同当事方可以签字"""
+        buyer_sig = ContractSignature.objects.create(
+            contract=self.contract,
+            party='buyer',
+            signer=self.buyer,
+            signer_name='张三'
+        )
+        seller_sig = ContractSignature.objects.create(
+            contract=self.contract,
+            party='seller',
+            signer=self.seller,
+            signer_name='王五'
+        )
+        assert buyer_sig.party == 'buyer'
+        assert seller_sig.party == 'seller'
+        assert ContractSignature.objects.filter(contract=self.contract).count() == 2
+
+
+class TransactionLogModelTest(TestCase):
+    """测试交易操作日志模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='log_buyer', password='testpass', email='lbuyer@test.com')
+        self.seller = User.objects.create_user(username='log_seller', password='testpass', email='lseller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='inquiring'
+        )
+
+    def test_create_transaction_log(self):
+        """测试创建交易日志"""
+        log = TransactionLog.objects.create(
+            transaction=self.transaction,
+            user=self.buyer,
+            action='status_change',
+            details={'old_status': 'inquiring', 'new_status': 'negotiating'},
+            ip_address='192.168.1.100'
+        )
+        assert log.action == 'status_change'
+        assert log.user == self.buyer
+        assert log.details['old_status'] == 'inquiring'
+        assert log.details['new_status'] == 'negotiating'
+        assert log.ip_address == '192.168.1.100'
+
+    def test_transaction_log_jsonfield_details(self):
+        """测试 JSONField 详情存储"""
+        # 测试嵌套 JSON
+        log = TransactionLog.objects.create(
+            transaction=self.transaction,
+            user=self.seller,
+            action='offer_submitted',
+            details={
+                'quantity': 1500,
+                'price': '9.50',
+                'trade_term': 'FOB',
+                'metadata': {
+                    'source': 'web',
+                    'device': 'desktop'
+                }
+            }
+        )
+        assert log.details['quantity'] == 1500
+        assert log.details['price'] == '9.50'
+        assert log.details['metadata']['source'] == 'web'
+
+    def test_transaction_log_without_user(self):
+        """测试无用户日志（系统操作）"""
+        log = TransactionLog.objects.create(
+            transaction=self.transaction,
+            action='auto_reminder',
+            details={'type': 'payment_reminder', 'days': 3}
+        )
+        assert log.user is None
+        assert log.action == 'auto_reminder'
+
+    def test_transaction_log_ordering(self):
+        """测试日志按创建时间倒序排列"""
+        log1 = TransactionLog.objects.create(
+            transaction=self.transaction,
+            user=self.buyer,
+            action='action1',
+            details={}
+        )
+        log2 = TransactionLog.objects.create(
+            transaction=self.transaction,
+            user=self.seller,
+            action='action2',
+            details={}
+        )
+        # 强制更新 log1 的创建时间，确保时间差
+        from django.utils import timezone
+        log1.created_at = timezone.now() - timezone.timedelta(seconds=1)
+        log1.save()
+        logs = list(TransactionLog.objects.filter(transaction=self.transaction))
+        assert logs[0] == log2
+        assert logs[1] == log1
+
+    def test_transaction_log_relationships(self):
+        """测试日志与交易的关系"""
+        log = TransactionLog.objects.create(
+            transaction=self.transaction,
+            user=self.buyer,
+            action='test_action',
+            details={'test': 'data'}
+        )
+        assert log.transaction == self.transaction
+        assert self.transaction.logs.filter(action='test_action').exists()
