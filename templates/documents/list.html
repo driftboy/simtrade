@@ -1,0 +1,121 @@
+{% extends "documents/base.html" %}
+
+{% block title %}我的单证 - SimTrade{% endblock %}
+
+{% block document_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="page-header">
+            <h2>单证管理
+                <a href="/documents/create/" class="btn btn-primary pull-right">
+                    <span class="glyphicon glyphicon-plus"></span> 新建单证
+                </a>
+            </h2>
+        </div>
+
+        <!-- 筛选器 -->
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <select id="filterType" class="form-control">
+                            <option value="">所有类型</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterStatus" class="form-control">
+                            <option value="">所有状态</option>
+                            <option value="draft">草稿</option>
+                            <option value="pending_review">待审核</option>
+                            <option value="approved">已审核</option>
+                            <option value="rejected">审核不通过</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="filterTransaction" class="form-control" placeholder="交易号...">
+                    </div>
+                    <div class="col-md-2">
+                        <button id="filterBtn" class="btn btn-default btn-block">筛选</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 单证列表 -->
+        <div id="documentList">
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    function loadDocuments(filters) {
+        filters = filters || {};
+        var params = $.param(filters);
+
+        $.ajax({
+            url: '/api/v1/documents/documents/?' + params,
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.data.length === 0) {
+                    html = '<div class="alert alert-info">暂无单证</div>';
+                } else {
+                    response.data.forEach(function(doc) {
+                        var statusClass = getStatusClass(doc.status);
+                        html += `
+                            <div class="document-card">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h4>${doc.template_name}</h4>
+                                        <p class="text-muted">创建时间: ${doc.created_at}</p>
+                                        ${doc.transaction_id ? '<p>交易号: #' + doc.transaction_id + '</p>' : ''}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="status-badge ${statusClass}">${doc.status_display}</span>
+                                    </div>
+                                    <div class="col-md-3 text-right">
+                                        <a href="/documents/${doc.id}/preview/" class="btn btn-default btn-sm">预览</a>
+                                        ${doc.status === 'draft' ? '<a href="/documents/' + doc.id + '/edit/" class="btn btn-primary btn-sm">编辑</a>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                $('#documentList').html(html);
+            },
+            error: function(xhr) {
+                $('#documentList').html('<div class="alert alert-danger">加载失败</div>');
+            }
+        });
+    }
+
+    function getStatusClass(status) {
+        var classes = {
+            'draft': 'status-draft',
+            'pending_review': 'status-pending',
+            'approved': 'status-approved',
+            'rejected': 'status-rejected'
+        };
+        return classes[status] || '';
+    }
+
+    // 初始加载
+    loadDocuments();
+
+    // 筛选按钮
+    $('#filterBtn').click(function() {
+        var filters = {};
+        if ($('#filterType').val()) filters.template = $('#filterType').val();
+        if ($('#filterStatus').val()) filters.status = $('#filterStatus').val();
+        loadDocuments(filters);
+    });
+});
+</script>
+{% endblock %}
