@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}商品市场 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>商品市场</h2>
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <select id="categoryFilter" class="form-control">
+                            <option value="">所有分类</option>
+                            <option value="electronics">电子产品</option>
+                            <option value="textiles">纺织品</option>
+                            <option value="machinery">机械设备</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" id="searchInput" class="form-control" placeholder="搜索商品...">
+                    </div>
+                    <div class="col-md-2">
+                        <button id="searchBtn" class="btn btn-primary btn-block">搜索</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="productList" class="product-list">
+            <!-- 商品列表将通过 AJAX 加载 -->
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/transactions.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    function loadProducts() {
+        var category = $('#categoryFilter').val();
+        var search = $('#searchInput').val();
+        var url = '/api/v1/products/products/';
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            data: {
+                category: category,
+                search: search
+            },
+            success: function(response) {
+                var html = '';
+                if (response.data.length === 0) {
+                    html = '<div class="alert alert-info">暂无商品</div>';
+                } else {
+                    html = '<div class="row">';
+                    response.data.forEach(function(product) {
+                        html += `
+                            <div class="col-md-4">
+                                <div class="panel panel-default product-card">
+                                    <div class="panel-heading">
+                                        <strong>${product.code}</strong>
+                                        <span class="pull-right badge">${product.category_display}</span>
+                                    </div>
+                                    <div class="panel-body">
+                                        <h4>${product.name}</h4>
+                                        <p>单位: ${product.unit}</p>
+                                        ${product.description ? '<p>' + product.description + '</p>' : ''}
+                                        <button class="btn btn-primary btn-sm send-inquiry-btn"
+                                                data-product-id="${product.id}"
+                                                data-product-name="${product.name}">
+                                            发送询盘
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                $('#productList').html(html);
+            },
+            error: function() {
+                $('#productList').html('<div class="alert alert-danger">加载失败</div>');
+            }
+        });
+    }
+
+    // 初始加载
+    loadProducts();
+
+    // 搜索按钮
+    $('#searchBtn').click(loadProducts);
+
+    // 回车搜索
+    $('#searchInput').keypress(function(e) {
+        if (e.which == 13) loadProducts();
+    });
+
+    // 分类筛选
+    $('#categoryFilter').change(loadProducts);
+});
+</script>
+{% endblock %}

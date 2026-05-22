@@ -96,5 +96,12 @@
     <script src="{% static 'js/main.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
+
+    <script>
+    window.user = {
+        is_authenticated: {% if user.is_authenticated %}true{% else %}false{% endif %},
+        username: {% if user.is_authenticated %}'{{ user.username }}'{% else %}null{% endif %}
+    };
+    </script>
 </body>
 </html>
