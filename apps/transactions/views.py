@@ -9,6 +9,8 @@ from apps.transactions.serializers import (
     ContractSerializer
 )
 from apps.transactions.services import TransactionService
+from apps.roles.services import RoleService
+from apps.roles.models import Company
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -18,12 +20,19 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # 只返回当前用户参与的交易
+        """只返回当前用户所属公司参与的交易"""
         user = self.request.user
+        current_role = RoleService.get_current_role(user)
+
+        if not current_role or not current_role.company:
+            # 没有激活角色时，返回空查询集
+            return Transaction.objects.none()
+
+        company = current_role.company
         return Transaction.objects.filter(
-            buyer=user
+            buyer=company
         ) | Transaction.objects.filter(
-            seller=user
+            seller=company
         )
 
     def list(self, request, *args, **kwargs):
@@ -38,9 +47,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """创建交易（询盘）"""
+        # 获取当前激活角色的公司作为买方
+        current_role = RoleService.get_current_role(request.user)
+
+        if not current_role or not current_role.company:
+            return Response({
+                'code': 4001,
+                'message': '请先激活一个角色'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(buyer=request.user, created_by=request.user, status='inquiring')
+            serializer.save(
+                buyer=current_role.company,
+                created_by=request.user,
+                status='inquiring'
+            )
             # 记录日志
             TransactionService.log_transaction(
                 serializer.instance,
@@ -129,10 +151,17 @@ class TransactionViewSet(viewsets.ModelViewSet):
         })
 
     def _get_user_role(self, transaction, user):
-        """获取用户在交易中的角色"""
-        if transaction.buyer == user:
+        """获取用户在交易中的角色（基于用户所属公司）"""
+        current_role = RoleService.get_current_role(user)
+
+        if not current_role or not current_role.company:
+            return 'observer'
+
+        company = current_role.company
+
+        if transaction.buyer == company:
             return 'buyer'
-        elif transaction.seller == user:
+        elif transaction.seller == company:
             return 'seller'
         return 'observer'
 
