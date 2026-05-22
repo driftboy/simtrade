@@ -1,6 +1,7 @@
 from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
+from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
 from apps.notifications.services import NotificationService
 
 
@@ -205,3 +206,240 @@ class ContractService:
         import string
         count = contract.amendments.count() + 1
         return f"{contract.contract_no}-A{count:02d}"
+
+
+class LetterOfCreditService:
+    """信用证业务服务"""
+
+    @staticmethod
+    def create_from_contract(contract):
+        """从合同创建信用证草稿"""
+        # 检查支付方式是否为 L/C
+        # 支持 L/C, L/C at sight 等格式
+        if not contract.payment_term or 'L/C' not in contract.payment_term:
+            return None
+
+        lc_no = LetterOfCreditService._generate_lc_no()
+
+        # 默认单据要求
+        documents_required = [
+            'commercial_invoice',
+            'bill_of_lading',
+            'insurance_policy',
+            'packing_list'
+        ]
+
+        lc = LetterOfCredit.objects.create(
+            lc_no=lc_no,
+            contract=contract,
+            transaction=contract.transaction,
+            applicant=contract.transaction.buyer,
+            beneficiary=contract.transaction.seller,
+            amount=contract.total_amount,
+            currency=contract.currency,
+            expiry_date=contract.delivery_time + timezone.timedelta(days=90),
+            latest_shipment_date=contract.delivery_time,
+            port_of_loading=contract.port_of_loading,
+            port_of_discharge=contract.port_of_discharge,
+            documents_required=documents_required,
+            issuing_bank='中国银行',
+            advising_bank='通知银行'
+        )
+
+        TransactionService.log_transaction(
+            contract.transaction,
+            contract.transaction.buyer,
+            'lc_created',
+            {'lc_id': lc.id}
+        )
+        return lc
+
+    @staticmethod
+    def apply_for_issue(lc, user):
+        """申请开证：草稿 -> 待开证"""
+        if lc.status != 'draft':
+            raise ValueError(f"信用证状态不允许申请开证: {lc.status}")
+
+        lc.status = 'pending_issue'
+        lc.save()
+
+        TransactionService.log_transaction(
+            lc.transaction,
+            user,
+            'lc_applied_for_issue',
+            {'lc_id': lc.id}
+        )
+        return lc
+
+    @staticmethod
+    def auto_issue(lc):
+        """系统自动开证：待开证 -> 已开证"""
+        if lc.status != 'pending_issue':
+            raise ValueError(f"信用证状态不允许开证: {lc.status}")
+
+        lc.status = 'issued'
+        lc.issue_date = timezone.now().date()
+        lc.issued_at = timezone.now()
+        lc.advised_at = timezone.now()
+        lc.save()
+
+        BankOperation.objects.create(
+            lc=lc,
+            operation_type='issue',
+            processed_by='system',
+            notes='系统自动开证'
+        )
+
+        BankOperation.objects.create(
+            lc=lc,
+            operation_type='advise',
+            processed_by='system',
+            notes='系统自动通知'
+        )
+
+        TransactionService.log_transaction(
+            lc.transaction,
+            lc.beneficiary,
+            'lc_issued',
+            {'lc_id': lc.id}
+        )
+        return lc
+
+    @staticmethod
+    def request_amendment(lc, content, reason, user):
+        """请求修改：已开证 -> 修改中"""
+        if lc.status != 'issued':
+            raise ValueError(f"信用证状态不允许请求修改: {lc.status}")
+
+        amendment_no = LetterOfCreditService._generate_amendment_no(lc)
+        amendment = LcAmendment.objects.create(
+            lc=lc,
+            amendment_no=amendment_no,
+            initiated_by=user,
+            content=content,
+            reason=reason
+        )
+
+        lc.status = 'amending'
+        lc.save()
+        return amendment
+
+    @staticmethod
+    def approve_amendment(lc, amendment_id):
+        """批准修改：修改中 -> 已开证"""
+        if lc.status != 'amending':
+            raise ValueError(f"信用证状态不允许批准修改: {lc.status}")
+
+        amendment = LcAmendment.objects.get(id=amendment_id)
+        amendment.status = 'approved'
+        amendment.processed_at = timezone.now()
+        amendment.save()
+
+        for key, value in amendment.content.items():
+            setattr(lc, key, value)
+
+        lc.status = 'issued'
+        lc.save()
+        return lc
+
+    @staticmethod
+    def withdraw_amendment(lc, user):
+        """撤回修改请求：修改中 -> 已开证"""
+        if lc.status != 'amending':
+            raise ValueError(f"信用证状态不允许撤回修改: {lc.status}")
+
+        lc.amendments.filter(status='pending').delete()
+        lc.status = 'issued'
+        lc.save()
+        return lc
+
+    @staticmethod
+    def submit_documents(lc, document_ids, user):
+        """交单：已开证 -> 已交单"""
+        if lc.status != 'issued':
+            raise ValueError(f"信用证状态不允许交单: {lc.status}")
+
+        lc.status = 'submitted'
+        lc.submitted_at = timezone.now()
+        lc.save()
+
+        TransactionService.log_transaction(
+            lc.transaction,
+            user,
+            'lc_documents_submitted',
+            {'lc_id': lc.id, 'document_count': len(document_ids)}
+        )
+        return lc
+
+    @staticmethod
+    def auto_negotiate(lc):
+        """系统自动议付：已交单 -> 已议付"""
+        if lc.status != 'submitted':
+            return lc
+
+        lc.status = 'negotiated'
+        lc.negotiated_at = timezone.now()
+        lc.save()
+
+        BankOperation.objects.create(
+            lc=lc,
+            operation_type='negotiate',
+            processed_by='system',
+            notes='单据齐全，自动议付',
+            result={'documents_count': len(lc.documents_required)}
+        )
+
+        LetterOfCreditService.auto_pay(lc)
+        return lc
+
+    @staticmethod
+    def auto_pay(lc):
+        """系统自动付款：已议付 -> 已付款"""
+        if lc.status != 'negotiated':
+            return lc
+
+        lc.status = 'paid'
+        lc.paid_at = timezone.now()
+        lc.save()
+
+        BankOperation.objects.create(
+            lc=lc,
+            operation_type='pay',
+            processed_by='system',
+            notes=f'自动付款 {lc.amount} {lc.currency}',
+            result={'amount': str(lc.amount), 'currency': lc.currency}
+        )
+
+        return lc
+
+    @staticmethod
+    def cancel(lc, user, reason):
+        """取消信用证"""
+        if lc.status in ['negotiated', 'paid']:
+            raise ValueError(f"信用证状态不允许取消: {lc.status}")
+
+        lc.status = 'cancelled'
+        lc.save()
+
+        TransactionService.log_transaction(
+            lc.transaction,
+            user,
+            'lc_cancelled',
+            {'reason': reason}
+        )
+        return lc
+
+    @staticmethod
+    def _generate_lc_no():
+        """生成信用证号"""
+        import random
+        import string
+        year = timezone.now().year
+        random_str = ''.join(random.choices(string.digits, k=6))
+        return f"LC{year}{random_str}"
+
+    @staticmethod
+    def _generate_amendment_no(lc):
+        """生成修改编号"""
+        count = lc.amendments.count() + 1
+        return f"{lc.lc_no}-A{count:02d}"

@@ -5,7 +5,8 @@ from django.utils import timezone
 from apps.transactions.models import (
     Transaction, Contract, ContractSignature, TransactionLog, ContractAmendment
 )
-from apps.transactions.services import ContractService
+from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
+from apps.transactions.services import ContractService, LetterOfCreditService
 from apps.users.models import User
 
 
@@ -483,3 +484,587 @@ class ContractServiceTest(TestCase):
         self.contract.refresh_from_db()
         assert self.contract.unit_price == 12.00
         assert self.contract.total_amount == 12000.00
+
+
+class LetterOfCreditServiceTest(TestCase):
+    """测试信用证业务服务"""
+
+    def setUp(self):
+        """设置测试数据"""
+        self.buyer = User.objects.create_user(
+            username='lc_buyer',
+            password='testpass',
+            email='lc_buyer@test.com'
+        )
+        self.seller = User.objects.create_user(
+            username='lc_seller',
+            password='testpass',
+            email='lc_seller@test.com'
+        )
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='SC2026001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Cotton T-Shirt',
+            product_spec='100% Cotton, Size M',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD',
+            status='effective'
+        )
+
+    def test_create_lc_from_contract(self):
+        """测试从合同创建信用证"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        assert lc.status == 'draft'
+        assert lc.contract == self.contract
+        assert lc.lc_no.startswith('LC2026')
+        assert lc.amount == 10000.00
+        assert lc.currency == 'USD'
+        assert lc.applicant == self.buyer
+        assert lc.beneficiary == self.seller
+        assert lc.port_of_loading == 'Shanghai'
+        assert lc.port_of_discharge == 'Los Angeles'
+
+    def test_create_lc_from_non_lc_contract(self):
+        """测试非L/C合同创建信用证返回None"""
+        self.contract.payment_term = 'T/T'
+        self.contract.save()
+
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        assert lc is None
+
+    def test_create_lc_creates_transaction_log(self):
+        """测试创建信用证生成交易日志"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_created'
+        ).first()
+        assert log is not None
+        assert log.details['lc_id'] == lc.id
+
+    def test_apply_for_issue(self):
+        """测试申请开证：草稿 -> 待开证"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        result = LetterOfCreditService.apply_for_issue(lc, self.buyer)
+
+        assert result.status == 'pending_issue'
+        lc.refresh_from_db()
+        assert lc.status == 'pending_issue'
+
+    def test_apply_for_issue_creates_log(self):
+        """测试申请开证创建日志"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        LetterOfCreditService.apply_for_issue(lc, self.buyer)
+
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_applied_for_issue'
+        ).first()
+        assert log is not None
+        assert log.user == self.buyer
+
+    def test_apply_for_issue_invalid_status(self):
+        """测试申请开证时状态不正确"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许申请开证'):
+            LetterOfCreditService.apply_for_issue(lc, self.buyer)
+
+    def test_auto_issue(self):
+        """测试系统自动开证：待开证 -> 已开证"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'pending_issue'
+        lc.save()
+
+        result = LetterOfCreditService.auto_issue(lc)
+
+        assert result.status == 'issued'
+        lc.refresh_from_db()
+        assert lc.status == 'issued'
+        assert lc.issue_date is not None
+        assert lc.issued_at is not None
+        assert lc.advised_at is not None
+
+    def test_auto_issue_creates_bank_operations(self):
+        """测试自动开证创建银行操作记录"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'pending_issue'
+        lc.save()
+
+        LetterOfCreditService.auto_issue(lc)
+
+        # 检查开证操作
+        issue_op = BankOperation.objects.filter(
+            lc=lc,
+            operation_type='issue'
+        ).first()
+        assert issue_op is not None
+        assert issue_op.notes == '系统自动开证'
+
+        # 检查通知操作
+        advise_op = BankOperation.objects.filter(
+            lc=lc,
+            operation_type='advise'
+        ).first()
+        assert advise_op is not None
+        assert advise_op.notes == '系统自动通知'
+
+    def test_auto_issue_creates_log(self):
+        """测试自动开证创建日志"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'pending_issue'
+        lc.save()
+
+        LetterOfCreditService.auto_issue(lc)
+
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_issued'
+        ).first()
+        assert log is not None
+        assert log.user == self.seller  # 受益人
+
+    def test_auto_issue_invalid_status(self):
+        """测试自动开证时状态不正确"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许开证'):
+            LetterOfCreditService.auto_issue(lc)
+
+    def test_request_amendment(self):
+        """测试请求修改：已开证 -> 修改中"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        content = {'amount': 12000.00}
+        reason = '数量增加'
+        amendment = LetterOfCreditService.request_amendment(lc, content, reason, self.buyer)
+
+        # 检查 LC 状态变为修改中
+        lc.refresh_from_db()
+        assert lc.status == 'amending'
+        # 检查返回的是 amendment 对象
+        assert amendment.amendment_no.startswith('LC2026')
+        assert amendment.amendment_no.endswith('-A01')
+
+    def test_request_amendment_creates_amendment_record(self):
+        """测试请求修改创建修改记录"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        content = {'amount': 12000.00}
+        reason = '数量增加'
+        amendment = LetterOfCreditService.request_amendment(lc, content, reason, self.buyer)
+
+        assert amendment.initiated_by == self.buyer
+        assert amendment.content == content
+        assert amendment.reason == reason
+        assert amendment.status == 'pending'
+
+    def test_request_amendment_invalid_status(self):
+        """测试请求修改时状态不正确"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许请求修改'):
+            LetterOfCreditService.request_amendment(
+                lc,
+                {'amount': 12000.00},
+                'test',
+                self.buyer
+            )
+
+    def test_approve_amendment(self):
+        """测试批准修改：修改中 -> 已开证"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        # 请求修改
+        amendment = LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            '数量增加',
+            self.buyer
+        )
+
+        # 批准修改
+        result = LetterOfCreditService.approve_amendment(lc, amendment.id)
+
+        assert result.status == 'issued'
+        lc.refresh_from_db()
+        assert lc.status == 'issued'
+        assert lc.amount == 12000.00
+
+    def test_approve_amendment_updates_amendment_status(self):
+        """测试批准修改更新修改记录状态"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        amendment = LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            '数量增加',
+            self.buyer
+        )
+
+        LetterOfCreditService.approve_amendment(lc, amendment.id)
+
+        amendment.refresh_from_db()
+        assert amendment.status == 'approved'
+        assert amendment.processed_at is not None
+
+    def test_approve_amendment_invalid_status(self):
+        """测试批准修改时状态不正确"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许批准修改'):
+            LetterOfCreditService.approve_amendment(lc, 1)
+
+    def test_withdraw_amendment(self):
+        """测试撤回修改请求：修改中 -> 已开证"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        # 请求修改
+        LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            '数量增加',
+            self.buyer
+        )
+
+        # 撤回修改
+        result = LetterOfCreditService.withdraw_amendment(lc, self.buyer)
+
+        assert result.status == 'issued'
+        lc.refresh_from_db()
+        assert lc.status == 'issued'
+
+    def test_withdraw_amendment_deletes_pending_amendments(self):
+        """测试撤回修改删除待处理的修改记录"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        amendment = LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            '数量增加',
+            self.buyer
+        )
+
+        LetterOfCreditService.withdraw_amendment(lc, self.buyer)
+
+        # 检查修改记录已被删除
+        exists = LcAmendment.objects.filter(id=amendment.id).exists()
+        assert exists is False
+
+    def test_withdraw_amendment_invalid_status(self):
+        """测试撤回修改时状态不正确"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许撤回修改'):
+            LetterOfCreditService.withdraw_amendment(lc, self.buyer)
+
+    def test_submit_documents(self):
+        """测试交单：已开证 -> 已交单"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        document_ids = [1, 2, 3]
+        result = LetterOfCreditService.submit_documents(lc, document_ids, self.seller)
+
+        assert result.status == 'submitted'
+        lc.refresh_from_db()
+        assert lc.status == 'submitted'
+        assert lc.submitted_at is not None
+
+    def test_submit_documents_creates_log(self):
+        """测试交单创建日志"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        document_ids = [1, 2, 3]
+        LetterOfCreditService.submit_documents(lc, document_ids, self.seller)
+
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_documents_submitted'
+        ).first()
+        assert log is not None
+        assert log.details['document_count'] == 3
+
+    def test_submit_documents_invalid_status(self):
+        """测试交单时状态不正确"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许交单'):
+            LetterOfCreditService.submit_documents(lc, [1, 2], self.seller)
+
+    def test_auto_negotiate(self):
+        """测试系统自动议付：已交单 -> 已议付（自动付款）"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'submitted'
+        lc.save()
+
+        result = LetterOfCreditService.auto_negotiate(lc)
+
+        # auto_negotiate 会触发 auto_pay，所以最终状态是 paid
+        assert result.status == 'paid'
+        lc.refresh_from_db()
+        assert lc.status == 'paid'
+        assert lc.negotiated_at is not None
+        assert lc.paid_at is not None
+
+    def test_auto_negotiate_creates_bank_operation(self):
+        """测试自动议付创建银行操作记录"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'submitted'
+        lc.save()
+
+        LetterOfCreditService.auto_negotiate(lc)
+
+        op = BankOperation.objects.filter(
+            lc=lc,
+            operation_type='negotiate'
+        ).first()
+        assert op is not None
+        assert op.notes == '单据齐全，自动议付'
+
+    def test_auto_negotiate_triggers_auto_pay(self):
+        """测试自动议付触发自动付款"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'submitted'
+        lc.save()
+
+        LetterOfCreditService.auto_negotiate(lc)
+
+        lc.refresh_from_db()
+        assert lc.status == 'paid'
+        assert lc.paid_at is not None
+
+    def test_auto_negotiate_wrong_status_no_op(self):
+        """测试自动议付状态不正确时不操作"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        result = LetterOfCreditService.auto_negotiate(lc)
+
+        assert result.status == 'draft'
+
+    def test_auto_pay(self):
+        """测试系统自动付款：已议付 -> 已付款"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'negotiated'
+        lc.save()
+
+        result = LetterOfCreditService.auto_pay(lc)
+
+        assert result.status == 'paid'
+        lc.refresh_from_db()
+        assert lc.status == 'paid'
+        assert lc.paid_at is not None
+
+    def test_auto_pay_creates_bank_operation(self):
+        """测试自动付款创建银行操作记录"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'negotiated'
+        lc.save()
+
+        LetterOfCreditService.auto_pay(lc)
+
+        op = BankOperation.objects.filter(
+            lc=lc,
+            operation_type='pay'
+        ).first()
+        assert op is not None
+        assert '自动付款' in op.notes
+        # Decimal 转字符串后可能去掉尾部零
+        assert op.result['amount'] in ['10000.00', '10000.0']
+        assert op.result['currency'] == 'USD'
+
+    def test_auto_pay_wrong_status_no_op(self):
+        """测试自动付款状态不正确时不操作"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'draft'
+        lc.save()
+
+        result = LetterOfCreditService.auto_pay(lc)
+
+        assert result.status == 'draft'
+
+    def test_cancel(self):
+        """测试取消信用证"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        result = LetterOfCreditService.cancel(lc, self.buyer, '不需要了')
+
+        assert result.status == 'cancelled'
+        lc.refresh_from_db()
+        assert lc.status == 'cancelled'
+
+    def test_cancel_creates_log(self):
+        """测试取消创建日志"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        LetterOfCreditService.cancel(lc, self.buyer, '不需要了')
+
+        log = TransactionLog.objects.filter(
+            transaction=self.transaction,
+            action='lc_cancelled'
+        ).first()
+        assert log is not None
+        assert log.details['reason'] == '不需要了'
+
+    def test_cancel_invalid_status_negotiated(self):
+        """测试取消已议付信用证（不允许）"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'negotiated'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许取消'):
+            LetterOfCreditService.cancel(lc, self.buyer, '取消')
+
+    def test_cancel_invalid_status_paid(self):
+        """测试取消已付款信用证（不允许）"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'paid'
+        lc.save()
+
+        with pytest.raises(ValueError, match='信用证状态不允许取消'):
+            LetterOfCreditService.cancel(lc, self.seller, '取消')
+
+    def test_generate_lc_no_format(self):
+        """测试信用证号格式"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+
+        assert lc.lc_no.startswith('LC2026')
+        assert len(lc.lc_no) == 12  # LC + 4位年份 + 6位随机数字
+
+    def test_generate_amendment_no_format(self):
+        """测试修改编号格式"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        amendment = LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            'test',
+            self.buyer
+        )
+
+        assert amendment.amendment_no == f'{lc.lc_no}-A01'
+
+    def test_generate_amendment_no_sequence(self):
+        """测试修改编号序列"""
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc.status = 'issued'
+        lc.save()
+
+        # 第一次修改
+        LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 11000.00},
+            '第一次',
+            self.buyer
+        )
+        # 重置状态
+        lc.status = 'issued'
+        lc.save()
+
+        # 第二次修改
+        LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            '第二次',
+            self.buyer
+        )
+
+        amendments = LcAmendment.objects.filter(lc=lc).order_by('created_at')
+        assert amendments[0].amendment_no == f'{lc.lc_no}-A01'
+        assert amendments[1].amendment_no == f'{lc.lc_no}-A02'
+
+    def test_full_lc_workflow(self):
+        """测试完整信用证流程"""
+        # 1. 从合同创建信用证
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        assert lc.status == 'draft'
+
+        # 2. 申请开证
+        lc = LetterOfCreditService.apply_for_issue(lc, self.buyer)
+        assert lc.status == 'pending_issue'
+
+        # 3. 自动开证
+        lc = LetterOfCreditService.auto_issue(lc)
+        assert lc.status == 'issued'
+
+        # 4. 交单
+        lc = LetterOfCreditService.submit_documents(lc, [1, 2, 3], self.seller)
+        assert lc.status == 'submitted'
+
+        # 5. 自动议付（触发自动付款）
+        lc = LetterOfCreditService.auto_negotiate(lc)
+        assert lc.status == 'paid'
+
+    def test_amendment_workflow(self):
+        """测试修改流程"""
+        # 1. 创建并开立信用证
+        lc = LetterOfCreditService.create_from_contract(self.contract)
+        lc = LetterOfCreditService.apply_for_issue(lc, self.buyer)
+        lc = LetterOfCreditService.auto_issue(lc)
+        assert lc.status == 'issued'
+
+        # 2. 请求修改
+        amendment = LetterOfCreditService.request_amendment(
+            lc,
+            {'amount': 12000.00},
+            '数量增加',
+            self.buyer
+        )
+        assert lc.status == 'amending'
+
+        # 3. 批准修改
+        lc = LetterOfCreditService.approve_amendment(lc, amendment.id)
+        assert lc.status == 'issued'
+        assert lc.amount == 12000.00
