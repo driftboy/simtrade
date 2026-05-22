@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}单证管理 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/documents.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <ol class="breadcrumb">
+            <li><a href="/">首页</a></li>
+            <li class="active">单证管理</li>
+        </ol>
+    </div>
+</div>
+
+{% block document_content %}
+{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/documents.js' %}"></script>
+{% endblock %}
