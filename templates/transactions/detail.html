@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}交易详情 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div id="transactionDetail">
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">磋商记录</div>
+            <div class="panel-body">
+                <div id="messageList"></div>
+                <div id="messageForm" style="margin-top: 20px;">
+                    <div class="row">
+                        <div class="col-md-10">
+                            <textarea id="messageContent" class="form-control" rows="3" placeholder="输入消息内容..."></textarea>
+                        </div>
+                        <div class="col-md-2">
+                            <button id="sendMessageBtn" class="btn btn-primary btn-block">发送</button>
+                            <button id="acceptOfferBtn" class="btn btn-success btn-block" style="margin-top: 10px;">接受报价</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    var transactionId = window.location.pathname.split('/')[2];
+
+    function loadTransactionDetail() {
+        $.ajax({
+            url: '/api/v1/transactions/transactions/' + transactionId + '/',
+            method: 'GET',
+            success: function(response) {
+                var tx = response.data;
+                var html = `
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3>交易 #${tx.id} - <span class="status-badge ${tx.status}">${tx.status_display}</span></h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>买方:</strong> ${tx.buyer_username}</p>
+                                    <p><strong>卖方:</strong> ${tx.seller_username}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>数量:</strong> ${tx.quantity}</p>
+                                    <p><strong>单价:</strong> $${tx.unit_price}</p>
+                                    <p><strong>贸易术语:</strong> ${tx.trade_term || '未指定'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('#transactionDetail').html(html);
+            },
+            error: function(xhr) {
+                $('#transactionDetail').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+            }
+        });
+    }
+
+    function loadMessages() {
+        $.ajax({
+            url: '/api/v1/transactions/transactions/' + transactionId + '/messages/',
+            method: 'GET',
+            success: function(response) {
+                var html = '<div class="clearfix">';
+                if (response.data.length === 0) {
+                    html += '<div class="alert alert-info">暂无消息</div>';
+                } else {
+                    response.data.forEach(function(msg) {
+                        var bubbleClass = msg.sender_role === 'buyer' ? 'bubble-right' : 'bubble-left';
+                        var typeLabel = msg.message_type_display;
+                        html += `
+                            <div class="message-bubble ${bubbleClass}">
+                                <strong>${msg.sender_username}</strong> <span class="label label-default">${typeLabel}</span>
+                                <p>${msg.content}</p>
+                                ${msg.offered_price ? '<p><strong>报价: $' + msg.offered_price + '</strong></p>' : ''}
+                                <div class="message-time">${msg.created_at}</div>
+                            </div>
+                        `;
+                    });
+                }
+                html += '</div>';
+                $('#messageList').html(html);
+            },
+            error: function(xhr) {
+                $('#messageList').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+            }
+        });
+    }
+
+    function sendMessage(messageType) {
+        var content = $('#messageContent').val();
+        if (!content && messageType === 'offer') {
+            alert('请输入消息内容');
+            return;
+        }
+
+        var data = {
+            message_type: messageType,
+            content: content || '接受报价'
+        };
+
+        $.ajax({
+            url: '/api/v1/transactions/transactions/' + transactionId + '/send_message/',
+            method: 'POST',
+            data: JSON.stringify(data),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                $('#messageContent').val('');
+                loadMessages();
+                loadTransactionDetail();
+            },
+            error: function(xhr) {
+                alert('发送失败: ' + (xhr.responseJSON?.message || '未知错误'));
+            }
+        });
+    }
+
+    $('#sendMessageBtn').click(function() {
+        sendMessage('offer');
+    });
+
+    $('#acceptOfferBtn').click(function() {
+        sendMessage('accept');
+    });
+
+    loadTransactionDetail();
+    loadMessages();
+});
+</script>
+{% endblock %}

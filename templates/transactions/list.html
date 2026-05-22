@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}我的交易 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>我的交易</h2>
+        <div id="transactionList">
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    function refreshTransactionList() {
+        $.ajax({
+            url: '/api/v1/transactions/transactions/',
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.data.length === 0) {
+                    html = '<div class="alert alert-info">暂无交易</div>';
+                } else {
+                    response.data.forEach(function(tx) {
+                        var statusClass = tx.status;
+                        html += `
+                            <div class="transaction-item">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h4>交易 #${tx.id}</h4>
+                                        <p>商品ID: ${tx.product_id} | 数量: ${tx.quantity} | 单价: $${tx.unit_price}</p>
+                                        <p>
+                                            买方: ${tx.buyer_username} &rarr; 卖方: ${tx.seller_username}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <span class="status-badge ${statusClass}">${tx.status_display}</span>
+                                        <br><br>
+                                        <a href="/transactions/${tx.id}/" class="btn btn-primary btn-sm">查看详情</a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                $('#transactionList').html(html);
+            },
+            error: function(xhr) {
+                $('#transactionList').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+            }
+        });
+    }
+
+    refreshTransactionList();
+
+    // 暴露给全局供 WebSocket 调用
+    window.refreshTransactionList = refreshTransactionList;
+});
+</script>
+{% endblock %}
