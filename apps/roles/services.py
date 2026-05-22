@@ -27,7 +27,7 @@ class RoleService:
             UserCompanyRole: 创建的角色分配对象
 
         Raises:
-            ValueError: 如果已有待审核或激活的相同角色
+            ValueError: 如果已有待审核或激活的相同角色，或公司/角色不存在
         """
         # 检查是否已有相同的角色分配（任何状态）
         # 由于模型有 unique_together 约束，需要先检查避免数据库错误
@@ -40,8 +40,15 @@ class RoleService:
         if existing:
             raise ValueError('已有该角色分配')
 
-        company = Company.objects.get(id=company_id)
-        role = TradeRole.objects.get(code=role_code)
+        try:
+            company = Company.objects.get(id=company_id)
+        except Company.DoesNotExist:
+            raise ValueError('公司不存在')
+
+        try:
+            role = TradeRole.objects.get(code=role_code)
+        except TradeRole.DoesNotExist:
+            raise ValueError('角色不存在')
 
         return UserCompanyRole.objects.create(
             user=user,
@@ -67,9 +74,12 @@ class RoleService:
             UserCompanyRole: 更新后的角色分配对象
 
         Raises:
-            ValueError: 如果状态不是待审核
+            ValueError: 如果角色分配不存在或状态不是待审核
         """
-        assignment = UserCompanyRole.objects.select_for_update().get(id=assignment_id)
+        try:
+            assignment = UserCompanyRole.objects.select_for_update().get(id=assignment_id)
+        except UserCompanyRole.DoesNotExist:
+            raise ValueError('角色分配不存在')
 
         if assignment.status != UserCompanyRole.Status.PENDING:
             raise ValueError('只能批准待审核的申请')
@@ -105,9 +115,12 @@ class RoleService:
             UserCompanyRole: 更新后的角色分配对象
 
         Raises:
-            ValueError: 如果状态不是待审核
+            ValueError: 如果角色分配不存在或状态不是待审核
         """
-        assignment = UserCompanyRole.objects.select_for_update().get(id=assignment_id)
+        try:
+            assignment = UserCompanyRole.objects.select_for_update().get(id=assignment_id)
+        except UserCompanyRole.DoesNotExist:
+            raise ValueError('角色分配不存在')
 
         if assignment.status != UserCompanyRole.Status.PENDING:
             raise ValueError('只能拒绝待审核的申请')
@@ -125,6 +138,7 @@ class RoleService:
         return assignment
 
     @staticmethod
+    @transaction.atomic
     def activate_role(user, assignment_id):
         """
         激活角色（单一激活）
@@ -137,9 +151,12 @@ class RoleService:
             UserCompanyRole: 更新后的角色分配对象
 
         Raises:
-            ValueError: 如果无权激活或状态不允许
+            ValueError: 如果角色分配不存在、无权激活或状态不允许
         """
-        assignment = UserCompanyRole.objects.get(id=assignment_id)
+        try:
+            assignment = UserCompanyRole.objects.get(id=assignment_id)
+        except UserCompanyRole.DoesNotExist:
+            raise ValueError('角色分配不存在')
 
         # 检查是否有权激活
         if assignment.user != user:
