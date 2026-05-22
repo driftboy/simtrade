@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/v1/documents/', include('apps.documents.urls')),
     path('api/v1/products/', include('apps.products.urls')),
     path('api/v1/', include('apps.transactions.urls')),
+    path('api/v1/', include('apps.roles.urls')),
 ]
 
 if settings.DEBUG:
