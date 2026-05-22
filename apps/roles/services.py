@@ -5,6 +5,7 @@ RoleService - 业务逻辑层服务
 """
 from django.utils import timezone
 from django.db import transaction
+import random
 
 from apps.roles.models import Company, TradeRole, UserCompanyRole
 
@@ -239,3 +240,165 @@ class RoleService:
                 'status': assignment.status,
             }
         }
+
+
+class CompanyService:
+    """公司服务类 - 处理公司相关的业务逻辑"""
+
+    @staticmethod
+    @transaction.atomic
+    def create_company(user, name, name_en='', country_id=None, **kwargs):
+        """
+        创建公司并自动将创建者加入为出口商成员
+
+        Args:
+            user: 创建用户
+            name: 公司名称
+            name_en: 英文名称
+            country_id: 国家代码（Country.code）
+            **kwargs: 其他公司字段（type, address, phone, email等）
+
+        Returns:
+            Company: 创建的公司对象
+
+        Raises:
+            ValueError: 如果国家不存在
+        """
+        # 验证国家
+        from apps.core.models import Country
+        if country_id:
+            try:
+                # Country模型使用code作为主键
+                country = Country.objects.get(code=country_id)
+            except Country.DoesNotExist:
+                raise ValueError('国家不存在')
+        else:
+            country = None
+
+        # 生成唯一公司代码
+        code = CompanyService._generate_company_code()
+
+        # 创建公司
+        company = Company.objects.create(
+            name=name,
+            name_en=name_en,
+            code=code,
+            country=country,
+            created_by=user,
+            **kwargs
+        )
+
+        # 获取出口商角色
+        try:
+            exporter_role = TradeRole.objects.get(code='exporter')
+        except TradeRole.DoesNotExist:
+            # 如果出口商角色不存在，创建它
+            exporter_role = TradeRole.objects.create(
+                code='exporter',
+                name='出口商',
+                description='负责出口贸易业务'
+            )
+
+        # 创建人自动成为该公司成员（出口商角色，状态active，is_active=True）
+        UserCompanyRole.objects.create(
+            user=user,
+            company=company,
+            role=exporter_role,
+            status=UserCompanyRole.Status.ACTIVE,
+            is_active=True
+        )
+
+        return company
+
+    @staticmethod
+    def get_company_details(company_id, user):
+        """
+        获取公司详情（含成员列表）
+
+        Args:
+            company_id: 公司ID
+            user: 查询用户
+
+        Returns:
+            dict: {company: {...}, members: [...]}
+
+        Raises:
+            ValueError: 如果公司不存在
+        """
+        # 获取公司
+        try:
+            company = Company.objects.get(id=company_id)
+        except Company.DoesNotExist:
+            raise ValueError('公司不存在')
+
+        # 获取成员（过滤状态：approved, active, suspended）
+        valid_statuses = [
+            UserCompanyRole.Status.APPROVED,
+            UserCompanyRole.Status.ACTIVE,
+            UserCompanyRole.Status.SUSPENDED
+        ]
+
+        members_qs = UserCompanyRole.objects.filter(
+            company=company,
+            status__in=valid_statuses
+        ).select_related('user', 'role').order_by('-requested_at')
+
+        # 构建成员列表
+        members = []
+        for member in members_qs:
+            members.append({
+                'user_id': member.user.id,
+                'username': member.user.username,
+                'role_code': member.role.code,
+                'role_name': member.role.name,
+                'status': member.status,
+                'is_active': member.is_active
+            })
+
+        # 构建公司信息
+        company_info = {
+            'id': company.id,
+            'name': company.name,
+            'name_en': company.name_en,
+            'code': company.code,
+            'type': company.type,
+            'country_id': company.country.code if company.country else None,  # Country uses code as PK
+            'country_name': company.country.name if company.country else None,
+            'address': company.address,
+            'phone': company.phone,
+            'email': company.email,
+            'logo': company.logo,
+            'created_by_id': company.created_by.id if company.created_by else None,
+            'created_at': company.created_at.isoformat() if company.created_at else None,
+        }
+
+        return {
+            'company': company_info,
+            'members': members
+        }
+
+    @staticmethod
+    def _generate_company_code():
+        """
+        生成唯一公司代码（私有方法）
+
+        Returns:
+            str: 格式为 COMP_XXXXXX 的6位随机数字代码
+
+        Note:
+            使用随机生成并检查唯一性的方式，确保代码不重复
+        """
+        max_attempts = 10
+        for _ in range(max_attempts):
+            # 生成6位随机数字
+            random_digits = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            code = f'COMP_{random_digits}'
+
+            # 检查是否唯一
+            if not Company.objects.filter(code=code).exists():
+                return code
+
+        # 如果随机生成失败（极罕见），使用时间戳确保唯一性
+        import time
+        timestamp_suffix = str(int(time.time()))[-6:]
+        return f'COMP_{timestamp_suffix}'
