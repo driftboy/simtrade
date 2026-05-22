@@ -2,7 +2,7 @@ import pytest
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from datetime import date, datetime
-from apps.transactions.models import Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog
+from apps.transactions.models import Transaction, InquiryMessage, Contract, ContractSignature, TransactionLog, ContractAmendment
 from apps.users.models import User
 
 
@@ -427,3 +427,234 @@ class ContractStatusExpansionTest(TestCase):
 
         contract.status = 'one_signed'
         assert contract.get_status_display() == '一方签字'
+
+
+class ContractAmendmentModelTest(TestCase):
+    """测试合同修改记录模型"""
+
+    def setUp(self):
+        self.buyer = User.objects.create_user(username='amend_buyer', password='testpass', email='abuyer@test.com')
+        self.seller = User.objects.create_user(username='amend_seller', password='testpass', email='aseller@test.com')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=1,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+        self.contract = Contract.objects.create(
+            contract_no='SC001',
+            transaction=self.transaction,
+            trade_term='FOB',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shanghai',
+            port_of_discharge='Los Angeles',
+            product_name='Test Product',
+            quantity=1000,
+            unit='pcs',
+            unit_price=10.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+
+    def test_create_contract_amendment(self):
+        """测试创建合同修改记录"""
+        amendment = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A001',
+            requested_by=self.seller,
+            change_content={'unit_price': 6.00},
+            reason='价格调整'
+        )
+
+        assert amendment.amendment_no == 'A001'
+        assert amendment.status == 'pending'
+        assert amendment.get_status_display() == '待处理'
+        assert amendment.change_content['unit_price'] == 6.00
+        assert str(amendment) == 'SC001 - A001'
+        assert self.contract.amendments.count() == 1
+
+    def test_amendment_status_choices(self):
+        """测试修改状态枚举"""
+        amendment = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A002',
+            requested_by=self.buyer,
+            change_content={'quantity': 1500},
+            reason='数量增加'
+        )
+
+        # 测试 pending 状态
+        amendment.status = 'pending'
+        assert amendment.get_status_display() == '待处理'
+
+        # 测试 accepted 状态
+        amendment.status = 'accepted'
+        amendment.save()
+        assert amendment.get_status_display() == '已接受'
+
+        # 测试 rejected 状态
+        amendment.status = 'rejected'
+        amendment.save()
+        assert amendment.get_status_display() == '已拒绝'
+
+    def test_amendment_jsonfield_change_content(self):
+        """测试 JSONField 修改内容存储"""
+        amendment = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A003',
+            requested_by=self.seller,
+            change_content={
+                'unit_price': 12.00,
+                'quantity': 1200,
+                'total_amount': 14400.00
+            },
+            reason='综合调整'
+        )
+
+        assert amendment.change_content['unit_price'] == 12.00
+        assert amendment.change_content['quantity'] == 1200
+        assert amendment.change_content['total_amount'] == 14400.00
+
+    def test_amendment_without_requested_by(self):
+        """测试无请求用户的修改记录"""
+        amendment = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A004',
+            requested_by=None,
+            change_content={'port_of_discharge': 'Long Beach'},
+            reason='目的港变更'
+        )
+
+        assert amendment.requested_by is None
+        assert amendment.amendment_no == 'A004'
+
+    def test_amendment_processed_at(self):
+        """测试处理时间字段"""
+        import django.utils.timezone as timezone
+        amendment = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A005',
+            requested_by=self.buyer,
+            change_content={'delivery_time': '2027-01-31'},
+            reason='交货期延期'
+        )
+
+        # 初始状态 processed_at 为空
+        assert amendment.processed_at is None
+
+        # 处理后设置时间
+        amendment.status = 'accepted'
+        amendment.processed_at = timezone.now()
+        amendment.save()
+
+        assert amendment.processed_at is not None
+
+    def test_amendment_ordering(self):
+        """测试修改记录按创建时间倒序排列"""
+        import django.utils.timezone as timezone
+        earlier_time = timezone.now() - timezone.timedelta(seconds=1)
+
+        amendment1 = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A006',
+            requested_by=self.seller,
+            change_content={'field': 'value1'},
+            reason='原因1'
+        )
+        # 强制设置更早的创建时间
+        amendment1.created_at = earlier_time
+        amendment1.save()
+
+        amendment2 = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A007',
+            requested_by=self.buyer,
+            change_content={'field': 'value2'},
+            reason='原因2'
+        )
+
+        amendments = list(self.contract.amendments.all())
+        assert amendments[0] == amendment2
+        assert amendments[1] == amendment1
+
+    def test_amendment_relationships(self):
+        """测试修改记录与合同的关系"""
+        amendment = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A008',
+            requested_by=self.seller,
+            change_content={'test': 'data'},
+            reason='测试'
+        )
+
+        assert amendment.contract == self.contract
+        assert self.contract.amendments.filter(amendment_no='A008').exists()
+
+    def test_amendment_unique_together_constraint(self):
+        """测试合同和修改编号的唯一约束"""
+        # 创建第一个修改记录
+        ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A099',
+            requested_by=self.seller,
+            change_content={'field': 'value1'},
+            reason='原因1'
+        )
+        # 尝试为同一合同创建相同修改编号应失败
+        with pytest.raises(Exception):  # IntegrityError
+            ContractAmendment.objects.create(
+                contract=self.contract,
+                amendment_no='A099',
+                requested_by=self.buyer,
+                change_content={'field': 'value2'},
+                reason='原因2'
+            )
+
+    def test_amendment_different_contracts_same_amendment_no(self):
+        """测试不同合同可以有相同的修改编号"""
+        # 创建另一个合同
+        transaction2 = Transaction.objects.create(
+            buyer=self.buyer,
+            seller=self.seller,
+            product_id=2,
+            quantity=500,
+            unit_price=20.00,
+            status='pending_contract'
+        )
+        contract2 = Contract.objects.create(
+            contract_no='SC002',
+            transaction=transaction2,
+            trade_term='CIF',
+            payment_term='L/C',
+            delivery_time=date(2026, 12, 31),
+            port_of_loading='Shenzhen',
+            port_of_discharge='Rotterdam',
+            product_name='Another Product',
+            quantity=500,
+            unit='pcs',
+            unit_price=20.00,
+            total_amount=10000.00,
+            currency='USD'
+        )
+
+        # 两个合同可以有相同的修改编号
+        amendment1 = ContractAmendment.objects.create(
+            contract=self.contract,
+            amendment_no='A100',
+            requested_by=self.seller,
+            change_content={'field': 'value1'},
+            reason='原因1'
+        )
+        amendment2 = ContractAmendment.objects.create(
+            contract=contract2,
+            amendment_no='A100',
+            requested_by=self.buyer,
+            change_content={'field': 'value2'},
+            reason='原因2'
+        )
+
+        assert amendment1.amendment_no == amendment2.amendment_no
+        assert amendment1.contract != amendment2.contract

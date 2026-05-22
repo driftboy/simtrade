@@ -221,3 +221,47 @@ class TransactionLog(models.Model):
         verbose_name = '交易日志'
         verbose_name_plural = '交易日志'
         ordering = ['-created_at']
+
+
+class ContractAmendment(models.Model):
+    """合同修改记录"""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', '待处理'
+        ACCEPTED = 'accepted', '已接受'
+        REJECTED = 'rejected', '已拒绝'
+
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name='amendments',
+        verbose_name='合同'
+    )
+    amendment_no = models.CharField('修改编号', max_length=50)
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='requested_amendments',
+        verbose_name='请求人'
+    )
+    change_content = models.JSONField('修改内容')
+    reason = models.TextField('修改原因')
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    processed_at = models.DateTimeField('处理时间', null=True, blank=True)
+
+    class Meta:
+        db_table = 'contract_amendments'
+        verbose_name = '合同修改记录'
+        verbose_name_plural = '合同修改记录'
+        ordering = ['-created_at']
+        unique_together = [['contract', 'amendment_no']]
+
+    def __str__(self):
+        return f"{self.contract.contract_no} - {self.amendment_no}"
