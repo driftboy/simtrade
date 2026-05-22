@@ -1,10 +1,10 @@
 """
-Tests for Company model.
+Tests for Company and TradeRole models.
 """
 import pytest
 from django.db import IntegrityError
 
-from apps.roles.models import Company
+from apps.roles.models import Company, TradeRole
 from apps.core.models import Country
 
 
@@ -227,3 +227,36 @@ class TestCompanyModel:
             country=country
         )
         assert company.email == 'contact@company.com'
+
+
+class TestTradeRoleModel:
+    """Test cases for TradeRole model."""
+
+    def test_create_trade_role(self, db):
+        """测试创建贸易角色"""
+        role = TradeRole.objects.create(
+            code='exporter',
+            name='出口商',
+            description='销售货物到国外',
+            sort_order=1
+        )
+
+        assert role.code == 'exporter'
+        assert role.name == '出口商'
+        assert role.is_enabled is True
+        assert role.is_system is True
+
+    def test_trade_role_choices(self, db):
+        """测试角色代码选择"""
+        valid_codes = [choice[0] for choice in TradeRole.RoleType.choices]
+
+        assert 'exporter' in valid_codes
+        assert 'importer' in valid_codes
+        assert 'factory' in valid_codes
+        assert 'bank' in valid_codes
+        assert 'customs' in valid_codes
+        assert 'shipping' in valid_codes
+        assert 'insurance' in valid_codes
+        assert 'inspection' in valid_codes
+        assert 'forex' in valid_codes
+        assert 'tax' in valid_codes

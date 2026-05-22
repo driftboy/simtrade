@@ -36,3 +36,41 @@ class Company(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TradeRole(models.Model):
+    """10 种贸易角色定义"""
+
+    class RoleType(models.TextChoices):
+        EXPORTER = 'exporter', '出口商'
+        IMPORTER = 'importer', '进口商'
+        FACTORY = 'factory', '工厂'
+        BANK = 'bank', '银行'
+        CUSTOMS = 'customs', '海关'
+        SHIPPING = 'shipping', '货运公司'
+        INSURANCE = 'insurance', '保险公司'
+        INSPECTION = 'inspection', '商检机构'
+        FOREX = 'forex', '外汇局'
+        TAX = 'tax', '税务局'
+
+    code = models.CharField(
+        '角色代码',
+        max_length=50,
+        choices=RoleType.choices,
+        unique=True
+    )
+    name = models.CharField('角色名称', max_length=100)
+    description = models.TextField('职责说明')
+    is_enabled = models.BooleanField('是否启用', default=True)
+    is_system = models.BooleanField('系统预置', default=True)
+    sort_order = models.IntegerField('排序', default=0)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        db_table = 'trade_roles'
+        verbose_name = '贸易角色'
+        verbose_name_plural = '贸易角色'
+        ordering = ['sort_order', 'code']
+
+    def __str__(self):
+        return self.name
