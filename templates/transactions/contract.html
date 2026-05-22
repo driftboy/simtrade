@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}合同详情 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div id="contractDetail">
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4>修改历史</h4>
+            </div>
+            <div class="panel-body">
+                <div id="amendmentList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    var contractId = window.location.pathname.split('/')[3];
+
+    // 状态映射用于进度条
+    var statusSteps = ['draft', 'pending_confirm', 'pending_sign', 'one_signed', 'signed', 'effective', 'fulfilled'];
+    var statusLabels = {
+        'draft': '草稿',
+        'pending_confirm': '待确认',
+        'pending_sign': '待签字',
+        'one_signed': '一方签字',
+        'signed': '已签字',
+        'effective': '已生效',
+        'amending': '修改中',
+        'fulfilled': '履行完毕',
+        'cancelled': '已取消'
+    };
+
+    function getStatusIndex(status) {
+        return statusSteps.indexOf(status);
+    }
+
+    function loadContractDetail() {
+        $.ajax({
+            url: '/api/v1/transactions/contracts/' + contractId + '/',
+            method: 'GET',
+            success: function(response) {
+                var contract = response.data;
+                var statusIndex = getStatusIndex(contract.status);
+
+                // 构建状态进度条
+                var progressHtml = '<div class="progress-bar-container">';
+                statusSteps.forEach(function(step, index) {
+                    var isActive = index <= statusIndex;
+                    var isCurrent = index === statusIndex;
+                    var label = statusLabels[step] || step;
+                    progressHtml += `
+                        <div class="progress-step ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}">
+                            <div class="progress-dot"></div>
+                            <div class="progress-label">${label}</div>
+                        </div>
+                    `;
+                    if (index < statusSteps.length - 1) {
+                        progressHtml += `<div class="progress-line ${isActive ? 'active' : ''}"></div>`;
+                    }
+                });
+                progressHtml += '</div>';
+
+                var html = `
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3>合同 ${contract.contract_no} - <span class="status-badge ${contract.status}">${statusLabels[contract.status] || contract.status}</span></h3>
+                        </div>
+                        <div class="panel-body">
+                            ${progressHtml}
+
+                            <div class="row" style="margin-top: 30px;">
+                                <div class="col-md-6">
+                                    <h4>合同信息</h4>
+                                    <table class="table table-bordered">
+                                        <tr><th>合同号</th><td>${contract.contract_no}</td></tr>
+                                        <tr><th>贸易术语</th><td>${contract.trade_term}</td></tr>
+                                        <tr><th>付款方式</th><td>${contract.payment_term}</td></tr>
+                                        <tr><th>交货日期</th><td>${contract.delivery_time}</td></tr>
+                                        <tr><th>装运港</th><td>${contract.port_of_loading}</td></tr>
+                                        <tr><th>目的港</th><td>${contract.port_of_discharge}</td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4>商品信息</h4>
+                                    <table class="table table-bordered">
+                                        <tr><th>商品名称</th><td>${contract.product_name}</td></tr>
+                                        <tr><th>规格</th><td>${contract.product_spec || '-'}</td></tr>
+                                        <tr><th>数量</th><td>${contract.quantity} ${contract.unit}</td></tr>
+                                        <tr><th>单价</th><td>${contract.currency} ${contract.unit_price}</td></tr>
+                                        <tr><th>总金额</th><td>${contract.currency} ${contract.total_amount}</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-6">
+                                    <h4>签字信息</h4>
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th>买方签字</th>
+                                            <td>
+                                                ${contract.buyer_signed_at ?
+                                                    '<span class="text-success"><i class="glyphicon glyphicon-ok"></i> 已签字 (' + contract.buyer_signed_at + ')</span>' :
+                                                    '<span class="text-muted">未签字</span>'}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>卖方签字</th>
+                                            <td>
+                                                ${contract.seller_signed_at ?
+                                                    '<span class="text-success"><i class="glyphicon glyphicon-ok"></i> 已签字 (' + contract.seller_signed_at + ')</span>' :
+                                                    '<span class="text-muted">未签字</span>'}
+                                            </td>
+                                        </tr>
+                                        ${contract.effective_at ?
+                                            '<tr><th>生效时间</th><td>' + contract.effective_at + '</td></tr>' : ''}
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4>操作</h4>
+                                    <div id="actionButtons">
+                                        <button class="btn btn-primary" onclick="loadAvailableActions()">刷新可用操作</button>
+                                    </div>
+                                    <div id="availableActions" style="margin-top: 10px;"></div>
+                                </div>
+                            </div>
+
+                            ${contract.packing || contract.shipping_marks || contract.remarks ? `
+                            <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-12">
+                                    <h4>附加条款</h4>
+                                    ${contract.packing ? '<p><strong>包装方式:</strong> ' + contract.packing + '</p>' : ''}
+                                    ${contract.shipping_marks ? '<p><strong>唛头:</strong> ' + contract.shipping_marks + '</p>' : ''}
+                                    ${contract.remarks ? '<p><strong>备注:</strong> ' + contract.remarks + '</p>' : ''}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                $('#contractDetail').html(html);
+                loadAvailableActions();
+            },
+            error: function(xhr) {
+                $('#contractDetail').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+            }
+        });
+    }
+
+    function loadAvailableActions() {
+        $.ajax({
+            url: '/api/v1/transactions/contracts/' + contractId + '/status/',
+            method: 'GET',
+            success: function(response) {
+                var data = response.data;
+                var actionsHtml = '<p><strong>您的角色:</strong> ' + data.user_role + '</p>';
+
+                if (data.available_actions.length > 0) {
+                    actionsHtml += '<div class="btn-group">';
+                    data.available_actions.forEach(function(action) {
+                        var btnClass = 'btn-default';
+                        var label = action;
+                        if (action === 'send') { btnClass = 'btn-primary'; label = '发送确认'; }
+                        if (action === 'confirm') { btnClass = 'btn-success'; label = '确认条款'; }
+                        if (action === 'sign') { btnClass = 'btn-success'; label = '签署合同'; }
+                        if (action === 'request_change') { btnClass = 'btn-warning'; label = '请求修改'; }
+                        if (action === 'accept_change') { btnClass = 'btn-info'; label = '接受修改'; }
+                        if (action === 'cancel') { btnClass = 'btn-danger'; label = '取消合同'; }
+
+                        actionsHtml += `<button class="btn ${btnClass}" onclick="executeAction('${action}')">${label}</button>`;
+                    });
+                    actionsHtml += '</div>';
+                } else {
+                    actionsHtml += '<p class="text-muted">暂无可用操作</p>';
+                }
+
+                $('#availableActions').html(actionsHtml);
+            },
+            error: function(xhr) {
+                $('#availableActions').html('<div class="alert alert-warning">无法加载操作权限</div>');
+            }
+        });
+    }
+
+    function executeAction(action) {
+        var url = '/api/v1/transactions/contracts/' + contractId + '/' + action + '/';
+        var data = {};
+        var method = 'POST';
+
+        if (action === 'sign') {
+            var signerName = prompt('请输入签字人姓名:');
+            if (!signerName) return;
+            data.signer_name = signerName;
+        }
+
+        if (action === 'request_change') {
+            var reason = prompt('请输入修改原因:');
+            if (!reason) return;
+            var changeContent = prompt('请输入修改内容 (JSON格式):', '{}');
+            data.reason = reason;
+            data.change_content = JSON.parse(changeContent || '{}');
+        }
+
+        if (action === 'accept_change') {
+            var amendmentId = prompt('请输入修改记录ID:');
+            if (!amendmentId) return;
+            data.amendment_id = amendmentId;
+        }
+
+        if (action === 'cancel') {
+            var reason = prompt('请输入取消原因:');
+            if (!reason) return;
+            data.reason = reason;
+        }
+
+        $.ajax({
+            url: url,
+            method: method,
+            data: JSON.stringify(data),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                alert(response.message || '操作成功');
+                loadContractDetail();
+                loadAmendments();
+            },
+            error: function(xhr) {
+                alert('操作失败: ' + (xhr.responseJSON?.message || '未知错误'));
+            }
+        });
+    }
+
+    function loadAmendments() {
+        $.ajax({
+            url: '/api/v1/transactions/contracts/' + contractId + '/changes/',
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.data.length === 0) {
+                    html = '<div class="alert alert-info">暂无修改记录</div>';
+                } else {
+                    html = '<table class="table table-striped">';
+                    html += '<thead><tr><th>修改编号</th><th>请求人</th><th>状态</th><th>修改原因</th><th>创建时间</th><th>处理时间</th></tr></thead>';
+                    html += '<tbody>';
+                    response.data.forEach(function(amendment) {
+                        html += '<tr>';
+                        html += '<td>' + amendment.amendment_no + '</td>';
+                        html += '<td>' + (amendment.requested_by_username || '-') + '</td>';
+                        html += '<td><span class="label label-' + (amendment.status === 'accepted' ? 'success' : amendment.status === 'rejected' ? 'danger' : 'warning') + '">' + amendment.status_display + '</span></td>';
+                        html += '<td>' + amendment.reason + '</td>';
+                        html += '<td>' + amendment.created_at + '</td>';
+                        html += '<td>' + (amendment.processed_at || '-') + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                $('#amendmentList').html(html);
+            },
+            error: function(xhr) {
+                $('#amendmentList').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+            }
+        });
+    }
+
+    loadContractDetail();
+    loadAmendments();
+});
+</script>
+{% endblock %}

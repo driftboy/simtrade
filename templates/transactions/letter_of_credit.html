@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}信用证详情 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div id="lcDetail">
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4>修改历史</h4>
+            </div>
+            <div class="panel-body">
+                <div id="amendmentList"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4>银行操作记录</h4>
+            </div>
+            <div class="panel-body">
+                <div id="operationList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    var lcId = window.location.pathname.split('/')[3];
+
+    // 状态映射用于进度条
+    var statusSteps = ['draft', 'pending_issue', 'issued', 'submitted', 'negotiated', 'paid'];
+    var statusLabels = {
+        'draft': '草稿',
+        'pending_issue': '待开证',
+        'issued': '已开证',
+        'amending': '修改中',
+        'submitted': '已交单',
+        'negotiated': '已议付',
+        'paid': '已付款',
+        'cancelled': '已取消'
+    };
+
+    function getStatusIndex(status) {
+        return statusSteps.indexOf(status);
+    }
+
+    function loadLcDetail() {
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/',
+            method: 'GET',
+            success: function(response) {
+                var lc = response.data;
+                var statusIndex = getStatusIndex(lc.status);
+
+                // 构建状态进度条
+                var progressHtml = '<div class="progress-bar-container">';
+                statusSteps.forEach(function(step, index) {
+                    var isActive = index <= statusIndex;
+                    var isCurrent = index === statusIndex;
+                    var label = statusLabels[step] || step;
+                    progressHtml += `
+                        <div class="progress-step ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}">
+                            <div class="progress-dot"></div>
+                            <div class="progress-label">${label}</div>
+                        </div>
+                    `;
+                    if (index < statusSteps.length - 1) {
+                        progressHtml += `<div class="progress-line ${isActive ? 'active' : ''}"></div>`;
+                    }
+                });
+                progressHtml += '</div>';
+
+                // 构建单据要求列表
+                var docsHtml = '';
+                if (lc.documents_required && lc.documents_required.length > 0) {
+                    docsHtml = '<ul>';
+                    lc.documents_required.forEach(function(doc) {
+                        docsHtml += '<li>' + doc + '</li>';
+                    });
+                    docsHtml += '</ul>';
+                } else {
+                    docsHtml = '<span class="text-muted">暂无单据要求</span>';
+                }
+
+                var html = `
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3>信用证 ${lc.lc_no} - <span class="status-badge ${lc.status}">${statusLabels[lc.status] || lc.status}</span></h3>
+                        </div>
+                        <div class="panel-body">
+                            ${progressHtml}
+
+                            <div class="row" style="margin-top: 30px;">
+                                <div class="col-md-6">
+                                    <h4>基本信息</h4>
+                                    <table class="table table-bordered">
+                                        <tr><th>信用证号</th><td>${lc.lc_no}</td></tr>
+                                        <tr><th>开证行</th><td>${lc.issuing_bank}</td></tr>
+                                        <tr><th>通知行</th><td>${lc.advising_bank}</td></tr>
+                                        <tr><th>申请人</th><td>${lc.applicant_username || '-'}</td></tr>
+                                        <tr><th>受益人</th><td>${lc.beneficiary_username || '-'}</td></tr>
+                                        <tr><th>金额</th><td>${lc.currency} ${lc.amount}</td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4>期限信息</h4>
+                                    <table class="table table-bordered">
+                                        <tr><th>开证日期</th><td>${lc.issue_date || '-'}</td></tr>
+                                        <tr><th>有效期</th><td>${lc.expiry_date}</td></tr>
+                                        <tr><th>最迟装运日期</th><td>${lc.latest_shipment_date}</td></tr>
+                                        <tr><th>装运港</th><td>${lc.port_of_loading}</td></tr>
+                                        <tr><th>目的港</th><td>${lc.port_of_discharge}</td></tr>
+                                        <tr><th>关联合同</th><td>${lc.contract_contract_no || '-'}</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-12">
+                                    <h4>单据要求</h4>
+                                    ${docsHtml}
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-12">
+                                    <h4>处理时间线</h4>
+                                    <table class="table table-bordered">
+                                        ${lc.issued_at ? '<tr><th>开证时间</th><td>' + lc.issued_at + '</td></tr>' : ''}
+                                        ${lc.advised_at ? '<tr><th>通知时间</th><td>' + lc.advised_at + '</td></tr>' : ''}
+                                        ${lc.submitted_at ? '<tr><th>交单时间</th><td>' + lc.submitted_at + '</td></tr>' : ''}
+                                        ${lc.negotiated_at ? '<tr><th>议付时间</th><td>' + lc.negotiated_at + '</td></tr>' : ''}
+                                        ${lc.paid_at ? '<tr><th>付款时间</th><td>' + lc.paid_at + '</td></tr>' : ''}
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-12">
+                                    <h4>操作</h4>
+                                    <div id="actionButtons">
+                                        <div class="btn-group">
+                                            <button class="btn btn-primary" onclick="applyForIssue()">申请开证</button>
+                                            <button class="btn btn-warning" onclick="requestAmendment()">请求修改</button>
+                                            <button class="btn btn-info" onclick="submitDocuments()">提交单据</button>
+                                            <button class="btn btn-danger" onclick="cancelLc()">取消信用证</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('#lcDetail').html(html);
+            },
+            error: function(xhr) {
+                $('#lcDetail').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+            }
+        });
+    }
+
+    function applyForIssue() {
+        if (!confirm('确认申请开证吗？')) return;
+
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/apply/',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                alert(response.message || '申请成功');
+                loadLcDetail();
+                loadOperations();
+            },
+            error: function(xhr) {
+                alert('申请失败: ' + (xhr.responseJSON?.message || '未知错误'));
+            }
+        });
+    }
+
+    function requestAmendment() {
+        var reason = prompt('请输入修改原因:');
+        if (!reason) return;
+        var content = prompt('请输入修改内容 (JSON格式):', '{}');
+
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/request-amendment/',
+            method: 'POST',
+            data: JSON.stringify({
+                reason: reason,
+                content: JSON.parse(content || '{}')
+            }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                alert(response.message || '请求成功');
+                loadLcDetail();
+                loadAmendments();
+            },
+            error: function(xhr) {
+                alert('请求失败: ' + (xhr.responseJSON?.message || '未知错误'));
+            }
+        });
+    }
+
+    function submitDocuments() {
+        var docIdsStr = prompt('请输入单据ID列表 (逗号分隔):', '');
+        if (!docIdsStr) return;
+
+        var documentIds = docIdsStr.split(',').map(function(id) { return parseInt(id.trim()); });
+
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/submit-documents/',
+            method: 'POST',
+            data: JSON.stringify({
+                document_ids: documentIds
+            }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                alert(response.message || '提交成功');
+                loadLcDetail();
+                loadOperations();
+            },
+            error: function(xhr) {
+                alert('提交失败: ' + (xhr.responseJSON?.message || '未知错误'));
+            }
+        });
+    }
+
+    function cancelLc() {
+        var reason = prompt('请输入取消原因:');
+        if (!reason) return;
+
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/cancel/',
+            method: 'POST',
+            data: JSON.stringify({
+                reason: reason
+            }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                alert(response.message || '取消成功');
+                loadLcDetail();
+                loadOperations();
+            },
+            error: function(xhr) {
+                alert('取消失败: ' + (xhr.responseJSON?.message || '未知错误'));
+            }
+        });
+    }
+
+    function loadAmendments() {
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/amendments/',
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.data.length === 0) {
+                    html = '<div class="alert alert-info">暂无修改记录</div>';
+                } else {
+                    html = '<table class="table table-striped table-condensed">';
+                    html += '<thead><tr><th>修改编号</th><th>发起人</th><th>状态</th><th>创建时间</th></tr></thead>';
+                    html += '<tbody>';
+                    response.data.forEach(function(amendment) {
+                        html += '<tr>';
+                        html += '<td>' + amendment.amendment_no + '</td>';
+                        html += '<td>' + (amendment.initiated_by_username || '-') + '</td>';
+                        html += '<td><span class="label label-' + (amendment.status === 'approved' ? 'success' : amendment.status === 'rejected' ? 'danger' : 'warning') + '">' + amendment.status_display + '</span></td>';
+                        html += '<td>' + amendment.created_at + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                $('#amendmentList').html(html);
+            },
+            error: function(xhr) {
+                $('#amendmentList').html('<div class="alert alert-danger">加载失败</div>');
+            }
+        });
+    }
+
+    function loadOperations() {
+        $.ajax({
+            url: '/api/v1/transactions/letters-of-credit/' + lcId + '/operations/',
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.data.length === 0) {
+                    html = '<div class="alert alert-info">暂无操作记录</div>';
+                } else {
+                    html = '<table class="table table-striped table-condensed">';
+                    html += '<thead><tr><th>操作类型</th><th>处理方</th><th>操作员</th><th>时间</th></tr></thead>';
+                    html += '<tbody>';
+                    response.data.forEach(function(op) {
+                        html += '<tr>';
+                        html += '<td>' + op.operation_type_display + '</td>';
+                        html += '<td>' + op.processed_by + '</td>';
+                        html += '<td>' + (op.operator_username || '-') + '</td>';
+                        html += '<td>' + op.created_at + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                $('#operationList').html(html);
+            },
+            error: function(xhr) {
+                $('#operationList').html('<div class="alert alert-danger">加载失败</div>');
+            }
+        });
+    }
+
+    loadLcDetail();
+    loadAmendments();
+    loadOperations();
+});
+</script>
+{% endblock %}
