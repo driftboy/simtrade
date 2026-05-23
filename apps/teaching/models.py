@@ -193,3 +193,52 @@ class StudentEnrollment(models.Model):
 
     def __str__(self):
         return f'{self.student.username} - {self.teaching_class.name}'
+
+
+class ExperimentTemplate(models.Model):
+    """实验模板"""
+
+    name = models.CharField('模板名称', max_length=200)
+    description = models.TextField('模板描述', blank=True)
+    config = models.JSONField('预设配置', default=dict)
+    is_public = models.BooleanField('是否公开', default=False)
+    use_count = models.IntegerField('使用次数', default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True,
+        related_name='created_experiment_templates',
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'experiment_templates'
+        verbose_name = '实验模板'
+        verbose_name_plural = '实验模板'
+        ordering = ['-use_count', '-created_at']
+
+    def __str__(self):
+        return self.name
+
+
+class ExperimentGroup(models.Model):
+    """实验分组"""
+
+    experiment = models.ForeignKey(
+        'scoring.Experiment',
+        on_delete=models.CASCADE, related_name='groups',
+    )
+    company = models.OneToOneField(
+        'roles.Company',
+        on_delete=models.CASCADE, related_name='experiment_group',
+    )
+    group_name = models.CharField('组名', max_length=100)
+
+    class Meta:
+        db_table = 'experiment_groups'
+        verbose_name = '实验分组'
+        verbose_name_plural = '实验分组'
+        ordering = ['group_name']
+
+    def __str__(self):
+        return f'{self.experiment.name} - {self.group_name}'

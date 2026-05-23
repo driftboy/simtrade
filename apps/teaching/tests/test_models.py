@@ -2,7 +2,10 @@ import pytest
 import random
 from datetime import date
 from django.core.exceptions import ValidationError
-from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
+from apps.teaching.models import (
+    Semester, Course, TeachingClass, StudentEnrollment,
+    ExperimentTemplate, ExperimentGroup,
+)
 from apps.users.models import User
 
 
@@ -154,3 +157,34 @@ def test_enrollment_unique():
     StudentEnrollment.objects.create(teaching_class=cls, student=student)
     with pytest.raises(Exception):
         StudentEnrollment.objects.create(teaching_class=cls, student=student)
+
+
+@pytest.mark.django_db
+def test_create_experiment_template():
+    user = User.objects.create_user(
+        username='tpl_creator', password='pass',
+        email='tpl@test.com',
+    )
+    tpl = ExperimentTemplate.objects.create(
+        name='CIF 出口完整流程',
+        description='模拟 CIF 术语下的完整出口贸易流程',
+        config={'roles_per_group': 5, 'trade_term': 'CIF'},
+        is_public=True, created_by=user,
+    )
+    assert tpl.name == 'CIF 出口完整流程'
+    assert tpl.use_count == 0
+    assert str(tpl) == 'CIF 出口完整流程'
+
+
+@pytest.mark.django_db
+def test_create_experiment_group():
+    from apps.roles.models import Company
+    from apps.scoring.models import Experiment
+    company = Company.objects.create(name='实验组公司', code='EXP-GRP01')
+    experiment = Experiment.objects.create(
+        name='测试实验', start_date='2026-03-01 00:00:00',
+    )
+    group = ExperimentGroup.objects.create(
+        experiment=experiment, company=company, group_name='A 组',
+    )
+    assert group.group_name == 'A 组'
