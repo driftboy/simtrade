@@ -152,3 +152,44 @@ class TeachingClass(models.Model):
             )
             if not TeachingClass.objects.filter(enrollment_code=code).exists():
                 return code
+
+
+class StudentEnrollment(models.Model):
+    """学生选课记录"""
+
+    class Role(models.TextChoices):
+        STUDENT = 'student', '学生'
+        ASSISTANT = 'assistant', '助教'
+        MONITOR = 'monitor', '班长'
+
+    class Status(models.TextChoices):
+        ENROLLED = 'enrolled', '已选课'
+        DROPPED = 'dropped', '已退课'
+
+    teaching_class = models.ForeignKey(
+        TeachingClass, on_delete=models.CASCADE, related_name='enrollments',
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE, related_name='enrollments',
+    )
+    role = models.CharField(
+        '角色', max_length=20,
+        choices=Role.choices, default=Role.STUDENT,
+    )
+    status = models.CharField(
+        '状态', max_length=20,
+        choices=Status.choices, default=Status.ENROLLED,
+    )
+    enrolled_at = models.DateTimeField('选课时间', auto_now_add=True)
+    dropped_at = models.DateTimeField('退课时间', null=True, blank=True)
+
+    class Meta:
+        db_table = 'student_enrollments'
+        verbose_name = '学生选课'
+        verbose_name_plural = '学生选课'
+        ordering = ['-enrolled_at']
+        unique_together = [['teaching_class', 'student']]
+
+    def __str__(self):
+        return f'{self.student.username} - {self.teaching_class.name}'

@@ -2,7 +2,7 @@ import pytest
 import random
 from datetime import date
 from django.core.exceptions import ValidationError
-from apps.teaching.models import Semester, Course, TeachingClass
+from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
 from apps.users.models import User
 
 
@@ -122,3 +122,35 @@ def test_enrollment_code_unique():
     cls1 = TeachingClass.objects.create(course=course, name='班1')
     cls2 = TeachingClass.objects.create(course=course, name='班2')
     assert cls1.enrollment_code != cls2.enrollment_code
+
+
+def _make_class():
+    semester = Semester.objects.create(
+        name='学期', code=f'SEM-{random.randint(10000,99999)}',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='课', code=f'C-{random.randint(10000,99999)}',
+    )
+    return TeachingClass.objects.create(course=course, name='班')
+
+
+@pytest.mark.django_db
+def test_create_enrollment():
+    student = User.objects.create_user(username='stu1', password='pass')
+    cls = _make_class()
+    enrollment = StudentEnrollment.objects.create(
+        teaching_class=cls, student=student,
+    )
+    assert enrollment.status == 'enrolled'
+    assert enrollment.role == 'student'
+    assert str(enrollment) == f'stu1 - {cls.name}'
+
+
+@pytest.mark.django_db
+def test_enrollment_unique():
+    student = User.objects.create_user(username='stu2', password='pass')
+    cls = _make_class()
+    StudentEnrollment.objects.create(teaching_class=cls, student=student)
+    with pytest.raises(Exception):
+        StudentEnrollment.objects.create(teaching_class=cls, student=student)
