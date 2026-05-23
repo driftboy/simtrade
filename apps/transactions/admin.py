@@ -2,7 +2,8 @@ from django.contrib import admin
 from apps.transactions.models import (
     Transaction, InquiryMessage, Contract,
     ContractSignature, TransactionLog, ContractAmendment,
-    LetterOfCredit, LcAmendment, BankOperation
+    LetterOfCredit, LcAmendment, BankOperation,
+    PurchaseOrder
 )
 
 
@@ -89,3 +90,17 @@ class BankOperationAdmin(admin.ModelAdmin):
     list_filter = ['operation_type', 'processed_by', 'created_at']
     search_fields = ['lc__lc_no', 'notes']
     readonly_fields = ['created_at']
+
+
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    list_display = [
+        'order_no', 'buyer', 'seller', 'product_name',
+        'total_amount', 'status', 'created_at'
+    ]
+    list_filter = ['status', 'currency', 'created_at']
+    search_fields = ['order_no', 'product_name', 'buyer__name', 'seller__name']
+    readonly_fields = [
+        'created_at', 'updated_at', 'confirmed_at',
+        'shipped_at', 'invoiced_at', 'completed_at'
+    ]
