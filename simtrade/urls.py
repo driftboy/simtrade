@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/v1/products/', include('apps.products.urls')),
     path('api/v1/', include('apps.transactions.urls')),
     path('api/v1/', include('apps.roles.urls')),
+    path('api/v1/scoring/', include('apps.scoring.urls')),
 ]
 
 if settings.DEBUG:
