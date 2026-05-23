@@ -3,7 +3,7 @@ from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication, ForexSettlement
+from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication, ForexSettlement, TaxRefundApplication
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
@@ -1472,3 +1472,190 @@ class ForexService:
             {'settlement_no': settlement.settlement_no, 'reason': reason}
         )
         return settlement
+
+
+# HS 编码退税率表（基于前2位）
+HS_REFUND_RATES = {
+    '61': Decimal('0.13'),  # 纺织品
+    '62': Decimal('0.13'),
+    '63': Decimal('0.13'),
+    '84': Decimal('0.13'),  # 机械
+    '85': Decimal('0.13'),  # 电子产品
+    '01': Decimal('0.09'),  # 食品
+    '02': Decimal('0.09'),
+    '03': Decimal('0.09'),
+    '04': Decimal('0.09'),
+    '05': Decimal('0.09'),
+    '06': Decimal('0.09'),
+    '07': Decimal('0.09'),
+    '08': Decimal('0.09'),
+    '09': Decimal('0.09'),
+    '10': Decimal('0.09'),
+    '11': Decimal('0.09'),
+    '12': Decimal('0.09'),
+    '13': Decimal('0.09'),
+    '14': Decimal('0.09'),
+    '15': Decimal('0.09'),
+    '16': Decimal('0.09'),
+    '17': Decimal('0.09'),
+    '18': Decimal('0.09'),
+    '19': Decimal('0.09'),
+    '20': Decimal('0.09'),
+    '21': Decimal('0.09'),
+    '22': Decimal('0.09'),
+    '23': Decimal('0.09'),
+    '24': Decimal('0.09'),
+}
+
+DEFAULT_REFUND_RATE = Decimal('0.11')
+
+
+class TaxRefundService:
+    """出口退税服务"""
+
+    @staticmethod
+    def calculate_refund_rate(hs_code):
+        """根据 HS 编码查退税率"""
+        prefix = hs_code[:2] if len(hs_code) >= 2 else ''
+        return HS_REFUND_RATES.get(prefix, DEFAULT_REFUND_RATE)
+
+    @staticmethod
+    def create_application(user, declaration_id, tax_bureau_id):
+        """出口商申请退税"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能申请退税')
+
+        decl = CustomsDeclaration.objects.get(id=declaration_id)
+        if decl.declarant_id != current_role.company_id:
+            raise ValueError('只能为自己的报关单申请退税')
+
+        if decl.status != 'cleared':
+            raise ValueError('报关单未放行，无法申请退税')
+
+        shipment = decl.shipment
+        if shipment.status != 'arrived':
+            raise ValueError('货物未到港，无法申请退税')
+
+        # 检查外汇是否已核销或结汇
+        has_valid_forex = ForexSettlement.objects.filter(
+            customs_declaration=decl,
+            status__in=['verified', 'settled']
+        ).exists()
+        if not has_valid_forex:
+            raise ValueError('外汇尚未核销或结汇，无法申请退税')
+
+        tax_bureau = Company.objects.get(id=tax_bureau_id)
+        refund_rate = TaxRefundService.calculate_refund_rate(decl.hs_code)
+        refund_amount = (decl.total_value * refund_rate).quantize(Decimal('0.01'))
+
+        return TaxRefundApplication.objects.create(
+            customs_declaration=decl,
+            applicant=current_role.company,
+            tax_bureau=tax_bureau,
+            hs_code=decl.hs_code,
+            total_value=decl.total_value,
+            refund_rate=refund_rate,
+            refund_amount=refund_amount,
+            created_by=user
+        )
+
+    @staticmethod
+    def review(application_id, user):
+        """税务局审核"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'tax':
+            raise ValueError('只有税务局角色才能审核')
+
+        app = TaxRefundApplication.objects.get(id=application_id)
+        if app.tax_bureau_id != current_role.company_id:
+            raise ValueError('只能审核自己公司的退税申请')
+
+        if app.status != 'applied':
+            raise ValueError(f'退税申请状态不允许审核: {app.get_status_display()}')
+
+        app.status = 'reviewing'
+        app.reviewing_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.customs_declaration.shipment.contract.transaction,
+            user, 'tax_refund_reviewed',
+            {'application_no': app.application_no}
+        )
+        return app
+
+    @staticmethod
+    def approve(application_id, user):
+        """税务局批准"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'tax':
+            raise ValueError('只有税务局角色才能批准')
+
+        app = TaxRefundApplication.objects.get(id=application_id)
+        if app.tax_bureau_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的退税申请')
+
+        if app.status != 'reviewing':
+            raise ValueError(f'退税申请状态不允许批准: {app.get_status_display()}')
+
+        app.status = 'approved'
+        app.approved_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.customs_declaration.shipment.contract.transaction,
+            user, 'tax_refund_approved',
+            {'application_no': app.application_no}
+        )
+        return app
+
+    @staticmethod
+    def refund(application_id, user):
+        """税务局退税"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'tax':
+            raise ValueError('只有税务局角色才能退税')
+
+        app = TaxRefundApplication.objects.get(id=application_id)
+        if app.tax_bureau_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的退税申请')
+
+        if app.status != 'approved':
+            raise ValueError(f'退税申请状态不允许退税: {app.get_status_display()}')
+
+        app.status = 'refunded'
+        app.refunded_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.customs_declaration.shipment.contract.transaction,
+            user, 'tax_refund_refunded',
+            {'application_no': app.application_no, 'amount': str(app.refund_amount)}
+        )
+        return app
+
+    @staticmethod
+    def reject(application_id, user, reason=''):
+        """税务局拒绝"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'tax':
+            raise ValueError('只有税务局角色才能拒绝')
+
+        app = TaxRefundApplication.objects.get(id=application_id)
+        if app.tax_bureau_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的退税申请')
+
+        if app.status not in ('applied', 'reviewing'):
+            raise ValueError(f'退税申请状态不允许拒绝: {app.get_status_display()}')
+
+        app.status = 'rejected'
+        app.rejected_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.customs_declaration.shipment.contract.transaction,
+            user, 'tax_refund_rejected',
+            {'application_no': app.application_no, 'reason': reason}
+        )
+        return app
