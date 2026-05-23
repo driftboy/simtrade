@@ -752,3 +752,83 @@ class CustomsDeclaration(models.Model):
             else:
                 raise RuntimeError('无法生成唯一报关单号，请重试')
         super().save(*args, **kwargs)
+
+
+class InspectionApplication(models.Model):
+    """检验申请（报检单）"""
+
+    class Status(models.TextChoices):
+        APPLIED = 'applied', '已报检'
+        INSPECTING = 'inspecting', '检验中'
+        PASSED = 'passed', '合格'
+        CERTIFIED = 'certified', '已签发证书'
+        FAILED = 'failed', '不合格'
+
+    class InspectionType(models.TextChoices):
+        LEGAL = 'legal', '法定检验'
+        GENERAL = 'general', '一般鉴定'
+
+    shipment = models.ForeignKey(
+        Shipment,
+        on_delete=models.CASCADE,
+        related_name='inspection_applications'
+    )
+    applicant = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='inspection_applications'
+    )
+    inspector = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='processed_inspections'
+    )
+    application_no = models.CharField('报检号', max_length=50, unique=True, editable=False)
+    product_name = models.CharField('品名', max_length=200)
+    product_spec = models.CharField('规格', max_length=200, blank=True)
+    quantity = models.DecimalField('数量', max_digits=12, decimal_places=2)
+    goods_value = models.DecimalField('货值', max_digits=14, decimal_places=2, default=0)
+    inspection_type = models.CharField(
+        '检验类型', max_length=20,
+        choices=InspectionType.choices, default=InspectionType.LEGAL
+    )
+    fee = models.DecimalField('检验费', max_digits=14, decimal_places=2, default=0)
+    fee_currency = models.CharField('费用币种', max_length=10, default='CNY')
+    certificate_no = models.CharField('检验证书号', max_length=50, blank=True)
+    origin_certificate_no = models.CharField('产地证号', max_length=50, blank=True)
+    status = models.CharField('状态', max_length=20, choices=Status.choices, default=Status.APPLIED)
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_inspections'
+    )
+    inspecting_at = models.DateTimeField('开始检验时间', null=True, blank=True)
+    passed_at = models.DateTimeField('合格时间', null=True, blank=True)
+    certified_at = models.DateTimeField('签发时间', null=True, blank=True)
+    failed_at = models.DateTimeField('不合格时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'inspection_applications'
+        verbose_name = '检验申请'
+        verbose_name_plural = '检验申请'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.application_no
+
+    def save(self, *args, **kwargs):
+        if not self.application_no:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            for _ in range(10):
+                rand_str = f'{random.randint(100000, 999999)}'
+                no = f'IA{date_str}{rand_str}'
+                if not InspectionApplication.objects.filter(application_no=no).exists():
+                    self.application_no = no
+                    break
+            else:
+                raise RuntimeError('无法生成唯一报检号，请重试')
+        super().save(*args, **kwargs)
