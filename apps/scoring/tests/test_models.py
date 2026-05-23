@@ -2,9 +2,9 @@ from decimal import Decimal
 
 from django.test import TestCase
 from django.utils import timezone
-from apps.scoring.models import Experiment
-from apps.scoring.models import ScoringMetric
-from apps.roles.models import TradeRole
+from apps.scoring.models import Experiment, ScoringMetric, ScoreSheet, MetricScore
+from apps.roles.models import TradeRole, Company, UserCompanyRole
+from apps.users.models import User
 
 
 class ExperimentModelTest(TestCase):
@@ -62,3 +62,60 @@ class ScoringMetricModelTest(TestCase):
         role = TradeRole.objects.get(code='exporter')
         metric.applicable_roles.add(role)
         self.assertEqual(metric.applicable_roles.count(), 1)
+
+
+class ScoreSheetModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='student1', password='test', user_type='student',
+        )
+        self.experiment = Experiment.objects.create(
+            name='测试实验', start_date=timezone.now(),
+        )
+        role = TradeRole.objects.create(
+            code='exporter', name='出口商', description='', sort_order=1,
+        )
+        self.company = Company.objects.create(
+            name='测试公司', code='TEST01',
+        )
+        self.ucr = UserCompanyRole.objects.create(
+            user=self.user, company=self.company, role=role,
+            status='active', is_active=True,
+        )
+
+    def test_create_score_sheet(self):
+        sheet = ScoreSheet.objects.create(
+            experiment=self.experiment,
+            user=self.user,
+            user_company_role=self.ucr,
+        )
+        self.assertEqual(sheet.status, 'draft')
+        self.assertEqual(sheet.auto_score, Decimal('0'))
+
+    def test_final_score_calculation(self):
+        sheet = ScoreSheet.objects.create(
+            experiment=self.experiment,
+            user=self.user,
+            user_company_role=self.ucr,
+            auto_score=Decimal('85.5'),
+            teacher_adjustment=Decimal('-5'),
+        )
+        self.assertEqual(sheet.final_score, Decimal('80.5'))
+
+    def test_metric_score(self):
+        sheet = ScoreSheet.objects.create(
+            experiment=self.experiment,
+            user=self.user,
+            user_company_role=self.ucr,
+        )
+        metric = ScoringMetric.objects.create(
+            name='profit_margin', display_name='利润率',
+            dimension='financial', calculation_method='profit_margin',
+            weight=Decimal('20'),
+        )
+        ms = MetricScore.objects.create(
+            score_sheet=sheet, metric=metric,
+            raw_value=Decimal('0.15'), score=Decimal('75'),
+            details={'threshold': '20%'},
+        )
+        self.assertEqual(ms.score, Decimal('75'))
