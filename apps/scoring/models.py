@@ -32,6 +32,18 @@ class Experiment(models.Model):
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
+    teaching_class = models.ForeignKey(
+        'teaching.TeachingClass',
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='experiments', verbose_name='所属班级',
+    )
+    template = models.ForeignKey(
+        'teaching.ExperimentTemplate',
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='experiments', verbose_name='来源模板',
+    )
+    group_config = models.JSONField('分组配置', default=dict, blank=True)
+
     class Meta:
         db_table = 'scoring_experiments'
         verbose_name = '实验'
