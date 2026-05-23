@@ -2,13 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from apps.transactions.models import Transaction, InquiryMessage, Contract
+from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder
 from apps.transactions.serializers import (
     TransactionSerializer,
     InquiryMessageSerializer,
-    ContractSerializer
+    ContractSerializer,
+    PurchaseOrderSerializer,
+    CreatePurchaseOrderSerializer
 )
-from apps.transactions.services import TransactionService
+from apps.transactions.services import TransactionService, PurchaseOrderService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
 
@@ -184,3 +186,94 @@ class ContractViewSet(viewsets.ModelViewSet):
             'code': 0,
             'message': '签字成功'
         })
+
+
+class PurchaseOrderViewSet(viewsets.ModelViewSet):
+    """采购订单视图集"""
+
+    serializer_class = PurchaseOrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return PurchaseOrder.objects.none()
+        company = current_role.company
+        return PurchaseOrder.objects.filter(
+            buyer=company
+        ) | PurchaseOrder.objects.filter(
+            seller=company
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreatePurchaseOrderSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                po = PurchaseOrderService.create_order(user=request.user, **serializer.validated_data)
+                result_serializer = PurchaseOrderSerializer(po)
+                return Response({
+                    'code': 0, 'message': '采购订单创建成功', 'data': result_serializer.data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    @action(detail=True, methods=['post'])
+    def confirm(self, request, pk=None):
+        po = self.get_object()
+        try:
+            result = PurchaseOrderService.confirm(po.id, request.user)
+            return Response({'code': 0, 'message': '订单已确认', 'data': PurchaseOrderSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def ship(self, request, pk=None):
+        po = self.get_object()
+        try:
+            tracking_info = request.data.get('tracking_info', '')
+            result = PurchaseOrderService.ship(po.id, request.user, tracking_info)
+            return Response({'code': 0, 'message': '已发货', 'data': PurchaseOrderSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def invoice(self, request, pk=None):
+        po = self.get_object()
+        try:
+            result = PurchaseOrderService.invoice(po.id, request.user)
+            return Response({'code': 0, 'message': '已开票', 'data': PurchaseOrderSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        po = self.get_object()
+        try:
+            result = PurchaseOrderService.complete(po.id, request.user)
+            return Response({'code': 0, 'message': '已确认收货', 'data': PurchaseOrderSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        po = self.get_object()
+        try:
+            reason = request.data.get('reason', '')
+            result = PurchaseOrderService.cancel(po.id, request.user, reason)
+            return Response({'code': 0, 'message': '订单已取消', 'data': PurchaseOrderSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
