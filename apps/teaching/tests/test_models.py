@@ -2,7 +2,7 @@ import pytest
 import random
 from datetime import date
 from django.core.exceptions import ValidationError
-from apps.teaching.models import Semester
+from apps.teaching.models import Semester, Course
 from apps.users.models import User
 
 
@@ -56,3 +56,43 @@ def test_semester_active_uniqueness():
     )
     with pytest.raises(ValidationError):
         semester2.clean()
+
+
+@pytest.mark.django_db
+def test_create_course():
+    semester = Semester.objects.create(
+        name='2026 春', code='2026S',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='国际贸易实务', code='INTL-301',
+        description='外贸模拟课程',
+    )
+    assert course.name == '国际贸易实务'
+    assert course.status == 'upcoming'
+    assert str(course) == '2026 春 - 国际贸易实务'
+
+
+@pytest.mark.django_db
+def test_course_code_unique_per_semester():
+    semester = Semester.objects.create(
+        name='学期', code='SEM01',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    Course.objects.create(semester=semester, name='课1', code='C01')
+    with pytest.raises(Exception):
+        Course.objects.create(semester=semester, name='课2', code='C01')
+
+
+@pytest.mark.django_db
+def test_course_weight_validation():
+    semester = Semester.objects.create(
+        name='学期', code='SEM02',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course(
+        semester=semester, name='权重课', code='W01',
+        experiment_weight=0.50, assignment_weight=0.60,
+    )
+    with pytest.raises(ValidationError):
+        course.clean()
