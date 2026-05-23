@@ -600,3 +600,81 @@ class Shipment(models.Model):
             else:
                 raise RuntimeError('无法生成唯一货运编号，请重试')
         super().save(*args, **kwargs)
+
+
+class InsurancePolicy(models.Model):
+    """保险单"""
+
+    class Status(models.TextChoices):
+        APPLIED = 'applied', '已投保'
+        UNDERWRITTEN = 'underwritten', '已承保'
+        ISSUED = 'issued', '已签发'
+        CANCELLED = 'cancelled', '已取消'
+
+    class CoverageType(models.TextChoices):
+        FPA = 'fpa', '平安险'
+        WA = 'wa', '水渍险'
+        ALL_RISK = 'all_risk', '一切险'
+
+    contract = models.OneToOneField(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name='insurance_policy'
+    )
+    shipment = models.ForeignKey(
+        Shipment,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='insurance_policies'
+    )
+    insured = models.ForeignKey(
+        'roles.Company', on_delete=models.PROTECT,
+        related_name='insured_policies'
+    )
+    insurer = models.ForeignKey(
+        'roles.Company', on_delete=models.PROTECT,
+        related_name='issued_policies'
+    )
+    policy_no = models.CharField('保单号', max_length=50, unique=True, editable=False)
+    cargo_description = models.TextField('货物描述')
+    insured_amount = models.DecimalField('投保金额', max_digits=14, decimal_places=2)
+    premium = models.DecimalField('保费', max_digits=14, decimal_places=2, default=0)
+    premium_currency = models.CharField('保费币种', max_length=10, default='CNY')
+    coverage_type = models.CharField(
+        '险种', max_length=20,
+        choices=CoverageType.choices, default=CoverageType.ALL_RISK
+    )
+    status = models.CharField('状态', max_length=20, choices=Status.choices, default=Status.APPLIED)
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_insurance_policies'
+    )
+    underwritten_at = models.DateTimeField('承保时间', null=True, blank=True)
+    issued_at = models.DateTimeField('签发时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'insurance_policies'
+        verbose_name = '保险单'
+        verbose_name_plural = '保险单'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.policy_no
+
+    def save(self, *args, **kwargs):
+        if not self.policy_no:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            for _ in range(10):
+                rand_str = f'{random.randint(100000, 999999)}'
+                no = f'IN{date_str}{rand_str}'
+                if not InsurancePolicy.objects.filter(policy_no=no).exists():
+                    self.policy_no = no
+                    break
+            else:
+                raise RuntimeError('无法生成唯一保单号，请重试')
+        super().save(*args, **kwargs)
