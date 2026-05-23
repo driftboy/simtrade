@@ -30,11 +30,10 @@ class MetricScoreSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class ScoreSheetSerializer(serializers.ModelSerializer):
+class ScoreSheetListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(
         source='get_status_display', read_only=True,
     )
-    metric_scores = MetricScoreSerializer(many=True, read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
@@ -44,13 +43,16 @@ class ScoreSheetSerializer(serializers.ModelSerializer):
             'status', 'status_display',
             'auto_score', 'teacher_adjustment', 'final_score',
             'teacher_comment', 'reviewed_by', 'reviewed_at',
-            'metric_scores', 'created_at', 'updated_at',
+            'created_at', 'updated_at',
         ]
-        read_only_fields = [
-            'id', 'auto_score', 'final_score',
-            'status', 'teacher_adjustment', 'teacher_comment',
-            'reviewed_by', 'reviewed_at', 'created_at', 'updated_at',
-        ]
+        read_only_fields = fields
+
+
+class ScoreSheetDetailSerializer(ScoreSheetListSerializer):
+    metric_scores = MetricScoreSerializer(many=True, read_only=True)
+
+    class Meta(ScoreSheetListSerializer.Meta):
+        fields = ScoreSheetListSerializer.Meta.fields + ['metric_scores']
 
 
 class ExperimentScoringConfigSerializer(serializers.ModelSerializer):

@@ -40,7 +40,7 @@ def _standardize_time(
         return Decimal('0')
     if minutes <= benchmark:
         return Decimal('100')
-    if minutes >= max_time:
+    if minutes >= max_time or max_time <= benchmark:
         return Decimal('0')
     return ((max_time - minutes) / (max_time - benchmark) * Decimal('100')).quantize(Decimal('0.01'))
 
@@ -97,7 +97,7 @@ class CostControlCalculator(MetricCalculator):
         if actual_cost is None or benchmark_cost is None or benchmark_cost == 0:
             return None, Decimal('0'), {'reason': 'no_data'}
 
-        deviation_pct = (actual_cost - benchmark_cost) / benchmark_cost * Decimal('100')
+        deviation_pct = abs(actual_cost - benchmark_cost) / benchmark_cost * Decimal('100')
         config = metric.config or {}
         allowed_deviation = Decimal(str(config.get('benchmark_deviation_pct', 5)))
 
@@ -188,7 +188,7 @@ class CompletionRateCalculator(MetricCalculator):
         }
 
 
-class _TimeBasedCalculator(MetricCalculator):
+class TimeBasedCalculator(MetricCalculator):
     """时间类计算器基类"""
 
     @staticmethod
@@ -208,19 +208,19 @@ class _TimeBasedCalculator(MetricCalculator):
         }
 
 
-class ProcessingSpeedCalculator(_TimeBasedCalculator):
+class ProcessingSpeedCalculator(TimeBasedCalculator):
     pass
 
 
-class TradeCycleTimeCalculator(_TimeBasedCalculator):
+class TradeCycleTimeCalculator(TimeBasedCalculator):
     pass
 
 
-class DocumentTurnaroundCalculator(_TimeBasedCalculator):
+class DocumentTurnaroundCalculator(TimeBasedCalculator):
     pass
 
 
-class ResponseTimeCalculator(_TimeBasedCalculator):
+class ResponseTimeCalculator(TimeBasedCalculator):
     pass
 
 
@@ -228,9 +228,11 @@ class NegotiationEfficiencyCalculator(MetricCalculator):
     """谈判效率计算器
 
     轮次效率分（满分60）= (max_rounds - rounds + 1) / max_rounds * 60
-    价格偏差效率分（满分40）= max(0, (1 - deviation/0.3) * 40)
-    总分 = min(rounds_score + price_score, 100)
+    价格偏差效率分（满分40）= max(0, (1 - deviation/price_threshold) * 40)
+    总分 = clamp(rounds_score + price_score, 0, 100)
     """
+
+    PRICE_DEVIATION_THRESHOLD = Decimal('0.3')
 
     @staticmethod
     def calculate(user_company_role, experiment, metric, **kwargs) -> MetricResult:
@@ -238,7 +240,7 @@ class NegotiationEfficiencyCalculator(MetricCalculator):
         initial_price = kwargs.get('initial_price')
         final_price = kwargs.get('final_price')
 
-        if rounds is None or initial_price is None or final_price is None:
+        if rounds is None or initial_price is None or final_price is None or initial_price == 0:
             return None, Decimal('0'), {'reason': 'no_data'}
 
         config = metric.config or {}
@@ -248,19 +250,15 @@ class NegotiationEfficiencyCalculator(MetricCalculator):
         rounds_score = ((max_rounds - Decimal(str(rounds)) + Decimal('1')) / max_rounds * Decimal('60')).quantize(Decimal('0.01'))
 
         # 价格偏差效率分（满分 40）
-        # deviation >= 0.3 时得分为负，通过总分 clamp 到 0 处理
-        if initial_price == 0:
-            price_score = Decimal('40')
-        else:
-            deviation = abs(final_price - initial_price) / initial_price
-            price_score = (Decimal('1') - deviation / Decimal('0.299')) * Decimal('40')
+        deviation = abs(final_price - initial_price) / initial_price
+        price_score = (Decimal('1') - deviation / NegotiationEfficiencyCalculator.PRICE_DEVIATION_THRESHOLD) * Decimal('40')
 
         total_score = max(Decimal('0'), min(rounds_score + price_score, Decimal('100'))).quantize(Decimal('0.01'))
 
         return rounds, total_score, {
             'rounds': str(rounds),
             'rounds_score': str(rounds_score),
-            'price_score': str(price_score),
+            'price_score': str(price_score.quantize(Decimal('0.01'))),
             'initial_price': str(initial_price),
             'final_price': str(final_price),
         }

@@ -323,9 +323,10 @@ class NegotiationEfficiencyCalculatorTest(TestCase):
         self.assertLess(score, Decimal('80'))
 
     def test_one_round_bad_price(self):
+        """1 轮成交 + 价格偏差 40% → 低分（低于 60）"""
         raw, score, _ = NegotiationEfficiencyCalculator.calculate(
             self.ucr, self.experiment, self.metric,
-            rounds=1, initial_price=Decimal('100'), final_price=Decimal('70'),
+            rounds=1, initial_price=Decimal('100'), final_price=Decimal('60'),
         )
         self.assertLess(score, Decimal('60'))
 

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator
 
 
 class Experiment(models.Model):
@@ -157,6 +158,7 @@ class ScoreSheet(models.Model):
         return f'{self.user} - {self.user_company_role} - {self.final_score}'
 
     def save(self, *args, **kwargs):
+        # final_score 始终由 auto_score + teacher_adjustment 派生，确保一致性
         self.final_score = self.auto_score + self.teacher_adjustment
         super().save(*args, **kwargs)
 
@@ -225,6 +227,7 @@ class ExperimentScoringConfig(models.Model):
         max_digits=5,
         decimal_places=2,
         default=Decimal('20'),
+        validators=[MinValueValidator(Decimal('0'))],
     )
 
     class Meta:

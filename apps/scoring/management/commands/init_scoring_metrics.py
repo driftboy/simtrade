@@ -122,7 +122,17 @@ class Command(BaseCommand):
                 updated_count += 1
                 self.stdout.write(self.style.WARNING(f'[UPDATE] {metric.display_name}'))
 
-            applicable_roles = [roles[c] for c in role_codes if c in roles]
+            applicable_roles = []
+            missing = []
+            for c in role_codes:
+                if c in roles:
+                    applicable_roles.append(roles[c])
+                else:
+                    missing.append(c)
+            if missing:
+                self.stdout.write(self.style.WARNING(
+                    f'  [WARN] 角色未找到，已跳过: {", ".join(missing)}'
+                ))
             metric.applicable_roles.set(applicable_roles)
 
         self.stdout.write(

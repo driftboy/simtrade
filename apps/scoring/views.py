@@ -9,7 +9,8 @@ from apps.scoring.models import (
 )
 from apps.scoring.serializers import (
     ExperimentSerializer, ScoringMetricSerializer,
-    ScoreSheetSerializer, ExperimentScoringConfigSerializer,
+    ScoreSheetListSerializer, ScoreSheetDetailSerializer,
+    ExperimentScoringConfigSerializer,
 )
 from apps.scoring.services import ScoringService
 
@@ -26,7 +27,7 @@ class ExperimentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Experiment.objects.all()
         if self.request.user.user_type == 'student':
-            qs = qs.filter(status='active')
+            qs = qs.filter(status__in=['active', 'completed'])
         return qs
 
     def get_permissions(self):
@@ -43,8 +44,12 @@ class ScoringMetricViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ScoreSheetViewSet(viewsets.ReadOnlyModelViewSet):
     """评分表只读，写操作通过 review/recalculate action"""
-    serializer_class = ScoreSheetSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ScoreSheetDetailSerializer
+        return ScoreSheetListSerializer
 
     def get_queryset(self):
         qs = ScoreSheet.objects.select_related(
@@ -84,7 +89,7 @@ class ScoreSheetViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response({
             'code': 0, 'message': '审核成功',
-            'data': ScoreSheetSerializer(result).data,
+            'data': ScoreSheetDetailSerializer(result).data,
         })
 
     @action(detail=True, methods=['post'])
@@ -98,7 +103,7 @@ class ScoreSheetViewSet(viewsets.ReadOnlyModelViewSet):
         result = ScoringService.recalculate(sheet.id)
         return Response({
             'code': 0, 'message': '重新计算完成',
-            'data': ScoreSheetSerializer(result).data,
+            'data': ScoreSheetDetailSerializer(result).data,
         })
 
 
