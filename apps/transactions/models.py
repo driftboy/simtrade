@@ -510,16 +510,18 @@ class PurchaseOrder(models.Model):
     def save(self, *args, **kwargs):
         if not self.order_no:
             self.order_no = self._generate_order_no()
-        self.total_amount = self.quantity * self.unit_price
+        if self.status == 'draft' or not self.pk:
+            self.total_amount = self.quantity * self.unit_price
         super().save(*args, **kwargs)
 
     @staticmethod
     def _generate_order_no():
-        import random
         from django.utils import timezone
+        import random
         date_str = timezone.now().strftime('%Y%m%d')
-        while True:
+        for _ in range(10):
             rand_str = f'{random.randint(100000, 999999)}'
             order_no = f'PO{date_str}{rand_str}'
             if not PurchaseOrder.objects.filter(order_no=order_no).exists():
                 return order_no
+        raise RuntimeError('无法生成唯一订单编号，请重试')
