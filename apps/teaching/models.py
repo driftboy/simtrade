@@ -102,3 +102,53 @@ class Course(models.Model):
         super().clean()
         if self.experiment_weight + self.assignment_weight != 1:
             raise ValidationError('实验权重与作业权重之和必须为 1')
+
+
+class TeachingClass(models.Model):
+    """教学班级"""
+
+    class Status(models.TextChoices):
+        UPCOMING = 'upcoming', '未开始'
+        ACTIVE = 'active', '进行中'
+        ENDED = 'ended', '已结束'
+
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name='classes',
+    )
+    name = models.CharField('班级名称', max_length=100)
+    capacity = models.IntegerField('最大人数', default=40)
+    enrollment_code = models.CharField('选课码', max_length=20, unique=True)
+    status = models.CharField(
+        '状态', max_length=20,
+        choices=Status.choices, default=Status.UPCOMING,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True,
+        related_name='created_classes',
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'teaching_classes'
+        verbose_name = '教学班级'
+        verbose_name_plural = '教学班级'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.course.semester.name} - {self.course.name} - {self.name}'
+
+    def save(self, *args, **kwargs):
+        if not self.enrollment_code:
+            self.enrollment_code = self._generate_enrollment_code()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def _generate_enrollment_code():
+        while True:
+            code = ''.join(
+                random.choices(string.ascii_uppercase + string.digits, k=8)
+            )
+            if not TeachingClass.objects.filter(enrollment_code=code).exists():
+                return code

@@ -2,7 +2,7 @@ import pytest
 import random
 from datetime import date
 from django.core.exceptions import ValidationError
-from apps.teaching.models import Semester, Course
+from apps.teaching.models import Semester, Course, TeachingClass
 from apps.users.models import User
 
 
@@ -96,3 +96,29 @@ def test_course_weight_validation():
     )
     with pytest.raises(ValidationError):
         course.clean()
+
+
+@pytest.mark.django_db
+def test_create_teaching_class():
+    semester = Semester.objects.create(
+        name='学期', code='TSEM01',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(semester=semester, name='课', code='TC01')
+    cls = TeachingClass.objects.create(course=course, name='3 班', capacity=30)
+    assert cls.name == '3 班'
+    assert cls.enrollment_code
+    assert len(cls.enrollment_code) == 8
+    assert str(cls) == '学期 - 课 - 3 班'
+
+
+@pytest.mark.django_db
+def test_enrollment_code_unique():
+    semester = Semester.objects.create(
+        name='学期', code='TSEM02',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(semester=semester, name='课', code='TC02')
+    cls1 = TeachingClass.objects.create(course=course, name='班1')
+    cls2 = TeachingClass.objects.create(course=course, name='班2')
+    assert cls1.enrollment_code != cls2.enrollment_code
