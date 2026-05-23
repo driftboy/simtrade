@@ -10,5 +10,7 @@ router.register(r'contracts', views.ContractViewSet, basename='contract')
 router.register(r'purchase-orders', views.PurchaseOrderViewSet, basename='purchaseorder')
 router.register(r'shipments', views.ShipmentViewSet, basename='shipment')
 router.register(r'insurance-policies', views.InsurancePolicyViewSet, basename='insurancepolicy')
+router.register(r'customs-declarations', views.CustomsDeclarationViewSet, basename='customsdeclaration')
+router.register(r'inspection-applications', views.InspectionApplicationViewSet, basename='inspectionapplication')
 
 urlpatterns = router.urls

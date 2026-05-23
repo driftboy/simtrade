@@ -2,7 +2,8 @@ from rest_framework import serializers
 from apps.transactions.models import (
     Transaction, InquiryMessage, Contract, ContractSignature,
     ContractAmendment, LetterOfCredit, LcAmendment, BankOperation,
-    PurchaseOrder, Shipment, InsurancePolicy
+    PurchaseOrder, Shipment, InsurancePolicy,
+    CustomsDeclaration, InspectionApplication
 )
 
 
@@ -238,4 +239,82 @@ class CreateInsurancePolicySerializer(serializers.Serializer):
         choices=['fpa', 'wa', 'all_risk'], default='all_risk'
     )
     cargo_description = serializers.CharField()
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class CustomsDeclarationSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    declarant_name = serializers.CharField(source='declarant.name', read_only=True)
+    customs_office_name = serializers.CharField(source='customs_office.name', read_only=True)
+    shipment_no = serializers.CharField(source='shipment.shipment_no', read_only=True)
+
+    class Meta:
+        model = CustomsDeclaration
+        fields = [
+            'id', 'declaration_no', 'shipment', 'shipment_no',
+            'declarant', 'declarant_name', 'customs_office', 'customs_office_name',
+            'hs_code', 'goods_name', 'quantity', 'unit_value', 'total_value', 'currency',
+            'duty_rate', 'duty_amount', 'vat_rate', 'vat_amount',
+            'status', 'status_display', 'notes',
+            'created_by', 'reviewed_at', 'assessed_at', 'cleared_at', 'rejected_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'declaration_no', 'created_by',
+            'duty_rate', 'duty_amount', 'vat_rate', 'vat_amount',
+            'reviewed_at', 'assessed_at', 'cleared_at', 'rejected_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreateCustomsDeclarationSerializer(serializers.Serializer):
+    shipment_id = serializers.IntegerField(min_value=1)
+    customs_office_id = serializers.IntegerField(min_value=1)
+    hs_code = serializers.CharField(max_length=20)
+    goods_name = serializers.CharField(max_length=200)
+    quantity = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    unit_value = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    total_value = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=0.01)
+    currency = serializers.CharField(max_length=10, default='USD')
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class InspectionApplicationSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    inspection_type_display = serializers.CharField(source='get_inspection_type_display', read_only=True)
+    applicant_name = serializers.CharField(source='applicant.name', read_only=True)
+    inspector_name = serializers.CharField(source='inspector.name', read_only=True)
+    shipment_no = serializers.CharField(source='shipment.shipment_no', read_only=True)
+
+    class Meta:
+        model = InspectionApplication
+        fields = [
+            'id', 'application_no', 'shipment', 'shipment_no',
+            'applicant', 'applicant_name', 'inspector', 'inspector_name',
+            'product_name', 'product_spec', 'quantity', 'goods_value',
+            'inspection_type', 'inspection_type_display',
+            'fee', 'fee_currency',
+            'certificate_no', 'origin_certificate_no',
+            'status', 'status_display', 'notes',
+            'created_by', 'inspecting_at', 'passed_at', 'certified_at', 'failed_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'application_no', 'created_by', 'fee',
+            'certificate_no', 'origin_certificate_no',
+            'inspecting_at', 'passed_at', 'certified_at', 'failed_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreateInspectionApplicationSerializer(serializers.Serializer):
+    shipment_id = serializers.IntegerField(min_value=1)
+    inspector_id = serializers.IntegerField(min_value=1)
+    inspection_type = serializers.ChoiceField(
+        choices=['legal', 'general'], default='legal'
+    )
+    product_name = serializers.CharField(max_length=200)
+    product_spec = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    quantity = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    goods_value = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=0.01)
     notes = serializers.CharField(required=False, allow_blank=True)

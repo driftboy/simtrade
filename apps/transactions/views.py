@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder, Shipment, InsurancePolicy
+from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication
 from apps.transactions.serializers import (
     TransactionSerializer,
     InquiryMessageSerializer,
@@ -12,9 +12,11 @@ from apps.transactions.serializers import (
     ShipmentSerializer,
     CreateShipmentSerializer,
     InsurancePolicySerializer,
-    CreateInsurancePolicySerializer
+    CreateInsurancePolicySerializer,
+    CustomsDeclarationSerializer, CreateCustomsDeclarationSerializer,
+    InspectionApplicationSerializer, CreateInspectionApplicationSerializer
 )
-from apps.transactions.services import TransactionService, PurchaseOrderService, ShipmentService, InsuranceService
+from apps.transactions.services import TransactionService, PurchaseOrderService, ShipmentService, InsuranceService, CustomsService, InspectionService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
 
@@ -427,5 +429,145 @@ class InsurancePolicyViewSet(viewsets.ModelViewSet):
                 reason=request.data.get('reason', '')
             )
             return Response({'code': 0, 'message': '已取消', 'data': InsurancePolicySerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CustomsDeclarationViewSet(viewsets.ModelViewSet):
+    serializer_class = CustomsDeclarationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return CustomsDeclaration.objects.none()
+        company = current_role.company
+        return CustomsDeclaration.objects.filter(declarant=company) | CustomsDeclaration.objects.filter(customs_office=company)
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateCustomsDeclarationSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                decl = CustomsService.create_declaration(user=request.user, **serializer.validated_data)
+                return Response({
+                    'code': 0, 'message': '报关申报成功',
+                    'data': CustomsDeclarationSerializer(decl).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'message': 'success', 'data': self.get_serializer(self.get_object()).data})
+
+    @action(detail=True, methods=['post'])
+    def review(self, request, pk=None):
+        try:
+            result = CustomsService.review(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '审核中', 'data': CustomsDeclarationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def assess(self, request, pk=None):
+        try:
+            result = CustomsService.assess(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '征税完成', 'data': CustomsDeclarationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def clear(self, request, pk=None):
+        try:
+            result = CustomsService.clear(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '已放行', 'data': CustomsDeclarationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        try:
+            result = CustomsService.reject(
+                self.get_object().id, request.user,
+                reason=request.data.get('reason', '')
+            )
+            return Response({'code': 0, 'message': '已退单', 'data': CustomsDeclarationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InspectionApplicationViewSet(viewsets.ModelViewSet):
+    serializer_class = InspectionApplicationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return InspectionApplication.objects.none()
+        company = current_role.company
+        return InspectionApplication.objects.filter(applicant=company) | InspectionApplication.objects.filter(inspector=company)
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateInspectionApplicationSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                app = InspectionService.create_application(user=request.user, **serializer.validated_data)
+                return Response({
+                    'code': 0, 'message': '报检成功',
+                    'data': InspectionApplicationSerializer(app).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'message': 'success', 'data': self.get_serializer(self.get_object()).data})
+
+    @action(detail=True, methods=['post'])
+    def inspect(self, request, pk=None):
+        try:
+            result = InspectionService.inspect(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '开始检验', 'data': InspectionApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def pass_inspection(self, request, pk=None):
+        try:
+            result = InspectionService.pass_inspection(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '检验合格', 'data': InspectionApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def certify(self, request, pk=None):
+        try:
+            result = InspectionService.certify(
+                self.get_object().id, request.user,
+                certificate_no=request.data['certificate_no'],
+                origin_certificate_no=request.data.get('origin_certificate_no', '')
+            )
+            return Response({'code': 0, 'message': '证书已签发', 'data': InspectionApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def fail(self, request, pk=None):
+        try:
+            result = InspectionService.fail_inspection(
+                self.get_object().id, request.user,
+                reason=request.data.get('reason', '')
+            )
+            return Response({'code': 0, 'message': '检验不合格', 'data': InspectionApplicationSerializer(result).data})
         except Exception as e:
             return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
