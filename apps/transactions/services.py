@@ -3,7 +3,7 @@ from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.models import PurchaseOrder, Shipment
+from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
@@ -871,3 +871,137 @@ class ShipmentService:
             {'shipment_no': shipment.shipment_no, 'reason': reason}
         )
         return shipment
+
+
+# 保险费率表
+INSURANCE_RATES = {
+    'fpa': Decimal('0.003'),      # 平安险 0.3%
+    'wa': Decimal('0.005'),       # 水渍险 0.5%
+    'all_risk': Decimal('0.008'), # 一切险 0.8%
+}
+
+# CIF 惯例加成比例
+INSURANCE_MARKUP = Decimal('1.10')  # 110%
+
+
+class InsuranceService:
+    """保险服务"""
+
+    @staticmethod
+    def calculate_premium(insured_amount, coverage_type):
+        """保费精算"""
+        rate = INSURANCE_RATES.get(coverage_type, Decimal('0.008'))
+        return insured_amount * rate
+
+    @staticmethod
+    def create_policy(user, contract_id, insurer_id, coverage_type='all_risk', **kwargs):
+        """出口商投保"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能投保')
+
+        contract = Contract.objects.get(id=contract_id)
+        if contract.transaction.seller_id != current_role.company_id:
+            raise ValueError('只能为自己的出口合同投保')
+
+        if contract.status != 'effective':
+            raise ValueError('合同未生效，无法投保')
+
+        insurer = Company.objects.get(id=insurer_id)
+
+        # 投保金额 = 合同金额 * 110%
+        insured_amount = contract.total_amount * INSURANCE_MARKUP
+        premium = InsuranceService.calculate_premium(insured_amount, coverage_type)
+
+        return InsurancePolicy.objects.create(
+            contract=contract,
+            insured=current_role.company,
+            insurer=insurer,
+            insured_amount=insured_amount,
+            premium=premium,
+            coverage_type=coverage_type,
+            created_by=user,
+            **kwargs
+        )
+
+    @staticmethod
+    def underwrite(policy_id, user):
+        """保险公司审核承保"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'insurance':
+            raise ValueError('只有保险公司角色才能承保')
+
+        policy = InsurancePolicy.objects.get(id=policy_id)
+        if policy.insurer_id != current_role.company_id:
+            raise ValueError('只能承保自己公司收到的保单')
+
+        if policy.status != 'applied':
+            raise ValueError(f'保单状态不允许承保: {policy.get_status_display()}')
+
+        policy.status = 'underwritten'
+        policy.underwritten_at = timezone.now()
+        policy.save()
+
+        TransactionService.log_transaction(
+            policy.contract.transaction, user, 'insurance_underwritten',
+            {'policy_no': policy.policy_no}
+        )
+        return policy
+
+    @staticmethod
+    def issue(policy_id, user):
+        """保险公司签发保单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'insurance':
+            raise ValueError('只有保险公司角色才能签发保单')
+
+        policy = InsurancePolicy.objects.get(id=policy_id)
+        if policy.insurer_id != current_role.company_id:
+            raise ValueError('只能签发自己公司的保单')
+
+        if policy.status != 'underwritten':
+            raise ValueError(f'保单状态不允许签发: {policy.get_status_display()}')
+
+        policy.status = 'issued'
+        policy.issued_at = timezone.now()
+        policy.save()
+
+        TransactionService.log_transaction(
+            policy.contract.transaction, user, 'insurance_issued',
+            {'policy_no': policy.policy_no}
+        )
+        return policy
+
+    @staticmethod
+    def cancel(policy_id, user, reason=''):
+        """取消保单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role:
+            raise ValueError('请先激活一个角色')
+
+        policy = InsurancePolicy.objects.get(id=policy_id)
+        company_id = current_role.company_id
+
+        if policy.status == 'issued':
+            raise ValueError('已签发的保单不能取消')
+
+        if policy.status not in ('applied', 'underwritten'):
+            raise ValueError(f'保单状态不允许取消: {policy.get_status_display()}')
+
+        if policy.status == 'applied':
+            if current_role.role.code != 'exporter' or company_id != policy.insured_id:
+                raise ValueError('已投保保单只能由投保人取消')
+        elif policy.status == 'underwritten':
+            is_insured = current_role.role.code == 'exporter' and company_id == policy.insured_id
+            is_insurer = current_role.role.code == 'insurance' and company_id == policy.insurer_id
+            if not (is_insured or is_insurer):
+                raise ValueError('已承保保单只能由投保人或保险公司取消')
+
+        policy.status = 'cancelled'
+        policy.save()
+
+        TransactionService.log_transaction(
+            policy.contract.transaction, user, 'insurance_cancelled',
+            {'policy_no': policy.policy_no, 'reason': reason}
+        )
+        return policy
