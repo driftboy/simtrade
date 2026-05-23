@@ -440,3 +440,86 @@ class BankOperation(models.Model):
 
     def __str__(self):
         return f"{self.lc.lc_no} - {self.get_operation_type_display()}"
+
+
+class PurchaseOrder(models.Model):
+    """采购订单 — 出口商向工厂的采购"""
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', '草稿'
+        CONFIRMED = 'confirmed', '已确认'
+        SHIPPED = 'shipped', '已发货'
+        INVOICED = 'invoiced', '已开票'
+        COMPLETED = 'completed', '已完成'
+        CANCELLED = 'cancelled', '已取消'
+
+    transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.CASCADE,
+        related_name='purchase_orders'
+    )
+    buyer = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='buying_purchase_orders'
+    )
+    seller = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='selling_purchase_orders'
+    )
+    order_no = models.CharField('订单编号', max_length=50, unique=True, editable=False)
+    product_name = models.CharField('商品名称', max_length=200)
+    product_code = models.CharField('商品编码', max_length=50, blank=True)
+    quantity = models.DecimalField('数量', max_digits=12, decimal_places=2)
+    unit = models.CharField('计量单位', max_length=20, default='件')
+    unit_price = models.DecimalField('单价', max_digits=12, decimal_places=2)
+    currency = models.CharField('币种', max_length=10, default='CNY')
+    total_amount = models.DecimalField('总金额', max_digits=14, decimal_places=2, editable=False)
+    delivery_date = models.DateField('交货日期', null=True, blank=True)
+    delivery_address = models.TextField('交货地址', blank=True)
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT
+    )
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_purchase_orders'
+    )
+    confirmed_at = models.DateTimeField('确认时间', null=True, blank=True)
+    shipped_at = models.DateTimeField('发货时间', null=True, blank=True)
+    invoiced_at = models.DateTimeField('开票时间', null=True, blank=True)
+    completed_at = models.DateTimeField('完成时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'purchase_orders'
+        verbose_name = '采购订单'
+        verbose_name_plural = '采购订单'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.order_no
+
+    def save(self, *args, **kwargs):
+        if not self.order_no:
+            self.order_no = self._generate_order_no()
+        self.total_amount = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def _generate_order_no():
+        import random
+        from django.utils import timezone
+        date_str = timezone.now().strftime('%Y%m%d')
+        while True:
+            rand_str = f'{random.randint(100000, 999999)}'
+            order_no = f'PO{date_str}{rand_str}'
+            if not PurchaseOrder.objects.filter(order_no=order_no).exists():
+                return order_no
