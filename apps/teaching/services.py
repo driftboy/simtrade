@@ -1,5 +1,12 @@
+import string
+
 from django.utils import timezone
-from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
+from apps.teaching.models import (
+    Semester, Course, TeachingClass, StudentEnrollment,
+    ExperimentGroup, ExperimentTemplate,
+)
+from apps.roles.models import Company, TradeRole, UserCompanyRole
+from apps.scoring.models import Experiment
 
 
 class SemesterService:
@@ -110,3 +117,91 @@ class TeachingClassService:
             teaching_class_id=teaching_class_id,
             status='enrolled',
         ).select_related('student')
+
+
+class ExperimentOrchestrationService:
+    """实验编排服务：模板创建、自动分组、批量角色分配。"""
+
+    @staticmethod
+    def create_from_template(template_id, teaching_class_id, user, **overrides):
+        template = ExperimentTemplate.objects.get(id=template_id)
+        config = {**template.config, **overrides}
+        experiment = Experiment.objects.create(
+            name=overrides.get('name', template.name),
+            description=template.description,
+            teaching_class_id=teaching_class_id,
+            template=template,
+            group_config=config,
+            created_by=user,
+            start_date=overrides.get('start_date', timezone.now()),
+        )
+        template.use_count += 1
+        template.save()
+        return experiment
+
+    @staticmethod
+    def auto_group(experiment_id, group_size=5):
+        experiment = Experiment.objects.get(id=experiment_id)
+        enrollments = StudentEnrollment.objects.filter(
+            teaching_class=experiment.teaching_class,
+            status='enrolled',
+        ).select_related('student')
+
+        students = list(enrollments)
+        group_names = list(string.ascii_uppercase)
+        groups = []
+
+        for i in range(0, len(students), group_size):
+            chunk = students[i:i + group_size]
+            letter = group_names[i // group_size]
+            company = Company.objects.create(
+                name=f'{experiment.name} - {letter}组',
+                code=f'EXP{experiment.id:04d}{letter}',
+            )
+            group = ExperimentGroup.objects.create(
+                experiment=experiment,
+                company=company,
+                group_name=f'{letter} 组',
+            )
+            groups.append(group)
+
+        return groups
+
+    @staticmethod
+    def batch_assign_roles(experiment_id):
+        experiment = Experiment.objects.get(id=experiment_id)
+        groups = ExperimentGroup.objects.filter(
+            experiment=experiment,
+        ).select_related('company')
+
+        all_roles = list(
+            TradeRole.objects.filter(is_enabled=True).order_by('sort_order'),
+        )
+        assignments = []
+
+        for group in groups:
+            enrollments = list(StudentEnrollment.objects.filter(
+                teaching_class=experiment.teaching_class,
+                status='enrolled',
+            ).select_related('student'))
+
+            for idx, enrollment in enumerate(enrollments):
+                if idx >= len(all_roles):
+                    break
+                role = all_roles[idx]
+                assignment = UserCompanyRole.objects.create(
+                    user=enrollment.student,
+                    company=group.company,
+                    role=role,
+                    status='active',
+                    is_active=(idx == 0),
+                )
+                assignments.append(assignment)
+
+        return assignments
+
+    @staticmethod
+    def get_experiment_groups(experiment_id):
+        return ExperimentGroup.objects.filter(
+            experiment_id=experiment_id,
+        ).select_related('company')

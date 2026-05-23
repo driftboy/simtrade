@@ -1,9 +1,11 @@
 import pytest
+import random
 from datetime import date
 from apps.users.models import User
 from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
 from apps.teaching.services import (
     SemesterService, CourseService, TeachingClassService,
+    ExperimentOrchestrationService,
 )
 
 
@@ -189,3 +191,69 @@ def test_enroll_already_enrolled(course, student):
             teaching_class_id=cls.id, student=student,
             enrollment_code=cls.enrollment_code,
         )
+
+
+# === ExperimentOrchestrationService helpers ===
+
+
+def _make_class_with_students(student_count=6):
+    semester = Semester.objects.create(
+        name='学期', code=f'EXP-SEM-{random.randint(10000,99999)}',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='课',
+        code=f'EXP-C-{random.randint(10000,99999)}',
+    )
+    cls = TeachingClass.objects.create(course=course, name='实验班')
+    students = []
+    for i in range(student_count):
+        s = User.objects.create_user(
+            username=f'expstu{i}_{random.randint(1000,9999)}',
+            password='pass', user_type='student',
+            email=f'expstu{i}_{random.randint(1000,9999)}@test.com',
+        )
+        StudentEnrollment.objects.create(teaching_class=cls, student=s)
+        students.append(s)
+    return cls, students
+
+
+# === ExperimentOrchestrationService ===
+
+
+@pytest.mark.django_db
+def test_auto_group():
+    cls, students = _make_class_with_students(6)
+    from apps.scoring.models import Experiment
+    experiment = Experiment.objects.create(
+        name='分组测试', start_date='2026-03-01 00:00:00',
+        teaching_class=cls,
+    )
+    groups = ExperimentOrchestrationService.auto_group(
+        experiment.id, group_size=3,
+    )
+    assert len(groups) == 2
+    for g in groups:
+        assert g.company is not None
+        assert g.group_name
+
+
+@pytest.mark.django_db
+def test_batch_assign_roles():
+    cls, students = _make_class_with_students(5)
+    from apps.scoring.models import Experiment
+    experiment = Experiment.objects.create(
+        name='角色测试', start_date='2026-03-01 00:00:00',
+        teaching_class=cls,
+    )
+    groups = ExperimentOrchestrationService.auto_group(
+        experiment.id, group_size=5,
+    )
+    # Ensure 10 trade roles exist
+    from apps.roles.management.commands.init_trade_roles import Command
+    Command().handle()
+
+    assignments = ExperimentOrchestrationService.batch_assign_roles(experiment.id)
+    assert len(assignments) == 5
+    role_codes = set(a.role.code for a in assignments)
+    assert len(role_codes) == 5
