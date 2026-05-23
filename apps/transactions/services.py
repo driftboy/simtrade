@@ -3,7 +3,7 @@ from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy
+from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
@@ -1005,3 +1005,188 @@ class InsuranceService:
             {'policy_no': policy.policy_no, 'reason': reason}
         )
         return policy
+
+
+# HS 编码税率表（基于前2位）
+HS_DUTY_RATES = {
+    '61': {'duty': Decimal('0.10'), 'vat': Decimal('0.13')},  # 纺织品
+    '62': {'duty': Decimal('0.10'), 'vat': Decimal('0.13')},
+    '63': {'duty': Decimal('0.10'), 'vat': Decimal('0.13')},
+    '84': {'duty': Decimal('0.12'), 'vat': Decimal('0.13')},  # 机械
+    '85': {'duty': Decimal('0.08'), 'vat': Decimal('0.13')},  # 电子产品
+    '01': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},  # 食品
+    '02': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '03': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '04': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '05': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '06': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '07': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '08': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '09': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '10': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '11': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '12': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '13': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '14': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '15': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '16': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '17': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '18': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '19': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '20': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '21': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '22': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '23': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+    '24': {'duty': Decimal('0.15'), 'vat': Decimal('0.09')},
+}
+
+DEFAULT_DUTY_RATE = Decimal('0.10')
+DEFAULT_VAT_RATE = Decimal('0.13')
+
+
+class CustomsService:
+    """海关报关服务"""
+
+    @staticmethod
+    def calculate_duties(hs_code, total_value):
+        """根据 HS 编码计算关税和增值税"""
+        prefix = hs_code[:2] if len(hs_code) >= 2 else ''
+        rates = HS_DUTY_RATES.get(prefix, {'duty': DEFAULT_DUTY_RATE, 'vat': DEFAULT_VAT_RATE})
+        duty_rate = rates['duty']
+        vat_rate = rates['vat']
+        duty_amount = total_value * duty_rate
+        vat_amount = (total_value + duty_amount) * vat_rate
+        return {
+            'duty_rate': duty_rate,
+            'duty_amount': duty_amount,
+            'vat_rate': vat_rate,
+            'vat_amount': vat_amount,
+        }
+
+    @staticmethod
+    def create_declaration(user, shipment_id, customs_office_id, hs_code, **kwargs):
+        """出口商申报报关"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能申报报关')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        if shipment.shipper_id != current_role.company_id:
+            raise ValueError('只能为自己的出口货运申报报关')
+
+        if shipment.status != 'shipped':
+            raise ValueError('提单未签发，无法申报报关')
+
+        customs_office = Company.objects.get(id=customs_office_id)
+
+        duties = CustomsService.calculate_duties(hs_code, kwargs.get('total_value', Decimal('0')))
+
+        return CustomsDeclaration.objects.create(
+            shipment=shipment,
+            declarant=current_role.company,
+            customs_office=customs_office,
+            hs_code=hs_code,
+            duty_rate=duties['duty_rate'],
+            vat_rate=duties['vat_rate'],
+            created_by=user,
+            **kwargs
+        )
+
+    @staticmethod
+    def review(declaration_id, user):
+        """海关审核"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'customs':
+            raise ValueError('只有海关角色才能审核')
+
+        decl = CustomsDeclaration.objects.get(id=declaration_id)
+        if decl.customs_office_id != current_role.company_id:
+            raise ValueError('只能审核自己公司的报关单')
+
+        if decl.status != 'declared':
+            raise ValueError(f'报关单状态不允许审核: {decl.get_status_display()}')
+
+        decl.status = 'reviewing'
+        decl.reviewed_at = timezone.now()
+        decl.save()
+
+        TransactionService.log_transaction(
+            decl.shipment.contract.transaction, user, 'customs_reviewed',
+            {'declaration_no': decl.declaration_no}
+        )
+        return decl
+
+    @staticmethod
+    def assess(declaration_id, user):
+        """海关征税"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'customs':
+            raise ValueError('只有海关角色才能征税')
+
+        decl = CustomsDeclaration.objects.get(id=declaration_id)
+        if decl.customs_office_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的报关单')
+
+        if decl.status != 'reviewing':
+            raise ValueError(f'报关单状态不允许征税: {decl.get_status_display()}')
+
+        duties = CustomsService.calculate_duties(decl.hs_code, decl.total_value)
+        decl.duty_amount = duties['duty_amount']
+        decl.vat_amount = duties['vat_amount']
+        decl.status = 'assessed'
+        decl.assessed_at = timezone.now()
+        decl.save()
+
+        TransactionService.log_transaction(
+            decl.shipment.contract.transaction, user, 'customs_assessed',
+            {'declaration_no': decl.declaration_no, 'duty': str(decl.duty_amount), 'vat': str(decl.vat_amount)}
+        )
+        return decl
+
+    @staticmethod
+    def clear(declaration_id, user):
+        """海关放行"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'customs':
+            raise ValueError('只有海关角色才能放行')
+
+        decl = CustomsDeclaration.objects.get(id=declaration_id)
+        if decl.customs_office_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的报关单')
+
+        if decl.status != 'assessed':
+            raise ValueError(f'报关单状态不允许放行: {decl.get_status_display()}')
+
+        decl.status = 'cleared'
+        decl.cleared_at = timezone.now()
+        decl.save()
+
+        TransactionService.log_transaction(
+            decl.shipment.contract.transaction, user, 'customs_cleared',
+            {'declaration_no': decl.declaration_no}
+        )
+        return decl
+
+    @staticmethod
+    def reject(declaration_id, user, reason=''):
+        """海关退单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'customs':
+            raise ValueError('只有海关角色才能退单')
+
+        decl = CustomsDeclaration.objects.get(id=declaration_id)
+        if decl.customs_office_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的报关单')
+
+        if decl.status not in ('declared', 'reviewing'):
+            raise ValueError(f'报关单状态不允许退单: {decl.get_status_display()}')
+
+        decl.status = 'rejected'
+        decl.rejected_at = timezone.now()
+        decl.save()
+
+        TransactionService.log_transaction(
+            decl.shipment.contract.transaction, user, 'customs_rejected',
+            {'declaration_no': decl.declaration_no, 'reason': reason}
+        )
+        return decl
