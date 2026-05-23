@@ -4,7 +4,8 @@ from apps.transactions.models import (
     ContractSignature, TransactionLog, ContractAmendment,
     LetterOfCredit, LcAmendment, BankOperation,
     PurchaseOrder, Shipment, InsurancePolicy,
-    CustomsDeclaration, InspectionApplication
+    CustomsDeclaration, InspectionApplication,
+    ForexSettlement, TaxRefundApplication
 )
 
 
@@ -164,4 +165,37 @@ class InspectionApplicationAdmin(admin.ModelAdmin):
     readonly_fields = [
         'created_at', 'updated_at',
         'inspecting_at', 'passed_at', 'certified_at', 'failed_at'
+    ]
+
+
+@admin.register(ForexSettlement)
+class ForexSettlementAdmin(admin.ModelAdmin):
+    list_display = [
+        'settlement_no', 'applicant', 'forex_bureau',
+        'foreign_currency', 'foreign_amount',
+        'reference_rate', 'reference_cny_amount',
+        'settlement_rate', 'settlement_cny_amount',
+        'status', 'created_at'
+    ]
+    list_filter = ['status', 'foreign_currency', 'created_at']
+    search_fields = ['settlement_no']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'verified_at', 'settled_at', 'rejected_at'
+    ]
+
+
+@admin.register(TaxRefundApplication)
+class TaxRefundApplicationAdmin(admin.ModelAdmin):
+    list_display = [
+        'application_no', 'applicant', 'tax_bureau',
+        'hs_code', 'total_value',
+        'refund_rate', 'refund_amount',
+        'status', 'created_at'
+    ]
+    list_filter = ['status', 'created_at']
+    search_fields = ['application_no', 'hs_code']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'reviewing_at', 'approved_at', 'refunded_at', 'rejected_at'
     ]
