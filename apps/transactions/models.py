@@ -678,3 +678,77 @@ class InsurancePolicy(models.Model):
             else:
                 raise RuntimeError('无法生成唯一保单号，请重试')
         super().save(*args, **kwargs)
+
+
+class CustomsDeclaration(models.Model):
+    """出口报关单"""
+
+    class Status(models.TextChoices):
+        DECLARED = 'declared', '已申报'
+        REVIEWING = 'reviewing', '审核中'
+        ASSESSED = 'assessed', '已征税'
+        CLEARED = 'cleared', '已放行'
+        REJECTED = 'rejected', '已退单'
+
+    shipment = models.ForeignKey(
+        Shipment,
+        on_delete=models.CASCADE,
+        related_name='customs_declarations'
+    )
+    declarant = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='customs_declarations'
+    )
+    customs_office = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='processed_declarations'
+    )
+    declaration_no = models.CharField('报关单号', max_length=50, unique=True, editable=False)
+    hs_code = models.CharField('HS编码', max_length=20)
+    goods_name = models.CharField('品名', max_length=200)
+    quantity = models.DecimalField('数量', max_digits=12, decimal_places=2)
+    unit_value = models.DecimalField('单价', max_digits=12, decimal_places=2)
+    total_value = models.DecimalField('总价', max_digits=14, decimal_places=2)
+    currency = models.CharField('币种', max_length=10, default='USD')
+    duty_rate = models.DecimalField('关税率', max_digits=5, decimal_places=4, default=0)
+    duty_amount = models.DecimalField('关税金额', max_digits=14, decimal_places=2, default=0)
+    vat_rate = models.DecimalField('增值税率', max_digits=5, decimal_places=4, default=0)
+    vat_amount = models.DecimalField('增值税金额', max_digits=14, decimal_places=2, default=0)
+    status = models.CharField('状态', max_length=20, choices=Status.choices, default=Status.DECLARED)
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_declarations'
+    )
+    reviewed_at = models.DateTimeField('审核时间', null=True, blank=True)
+    assessed_at = models.DateTimeField('征税时间', null=True, blank=True)
+    cleared_at = models.DateTimeField('放行时间', null=True, blank=True)
+    rejected_at = models.DateTimeField('退单时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'customs_declarations'
+        verbose_name = '出口报关单'
+        verbose_name_plural = '出口报关单'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.declaration_no
+
+    def save(self, *args, **kwargs):
+        if not self.declaration_no:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            for _ in range(10):
+                rand_str = f'{random.randint(100000, 999999)}'
+                no = f'CD{date_str}{rand_str}'
+                if not CustomsDeclaration.objects.filter(declaration_no=no).exists():
+                    self.declaration_no = no
+                    break
+            else:
+                raise RuntimeError('无法生成唯一报关单号，请重试')
+        super().save(*args, **kwargs)
