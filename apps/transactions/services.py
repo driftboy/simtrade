@@ -3,7 +3,7 @@ from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration
+from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
@@ -1190,3 +1190,146 @@ class CustomsService:
             {'declaration_no': decl.declaration_no, 'reason': reason}
         )
         return decl
+
+
+# 检验费率表
+INSPECTION_RATES = {
+    'legal': Decimal('0.005'),   # 法定检验 0.5%
+    'general': Decimal('0.003'), # 一般鉴定 0.3%
+}
+
+
+class InspectionService:
+    """商检服务"""
+
+    @staticmethod
+    def calculate_fee(inspection_type, goods_value):
+        """检验费计算"""
+        rate = INSPECTION_RATES.get(inspection_type, Decimal('0.005'))
+        return goods_value * rate
+
+    @staticmethod
+    def create_application(user, shipment_id, inspector_id, inspection_type='legal', **kwargs):
+        """出口商报检"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能报检')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        if shipment.shipper_id != current_role.company_id:
+            raise ValueError('只能为自己的出口货运报检')
+
+        if shipment.status != 'shipped':
+            raise ValueError('提单未签发，无法报检')
+
+        inspector = Company.objects.get(id=inspector_id)
+        goods_value = kwargs.get('goods_value', Decimal('0'))
+        fee = InspectionService.calculate_fee(inspection_type, goods_value)
+
+        return InspectionApplication.objects.create(
+            shipment=shipment,
+            applicant=current_role.company,
+            inspector=inspector,
+            inspection_type=inspection_type,
+            fee=fee,
+            created_by=user,
+            **kwargs
+        )
+
+    @staticmethod
+    def inspect(application_id, user):
+        """商检机构开始检验"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'inspection':
+            raise ValueError('只有商检机构角色才能检验')
+
+        app = InspectionApplication.objects.get(id=application_id)
+        if app.inspector_id != current_role.company_id:
+            raise ValueError('只能检验自己公司收到的报检单')
+
+        if app.status != 'applied':
+            raise ValueError(f'报检单状态不允许检验: {app.get_status_display()}')
+
+        app.status = 'inspecting'
+        app.inspecting_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.shipment.contract.transaction, user, 'inspection_started',
+            {'application_no': app.application_no}
+        )
+        return app
+
+    @staticmethod
+    def pass_inspection(application_id, user):
+        """商检合格"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'inspection':
+            raise ValueError('只有商检机构角色才能判定合格')
+
+        app = InspectionApplication.objects.get(id=application_id)
+        if app.inspector_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的报检单')
+
+        if app.status != 'inspecting':
+            raise ValueError(f'报检单状态不允许判定: {app.get_status_display()}')
+
+        app.status = 'passed'
+        app.passed_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.shipment.contract.transaction, user, 'inspection_passed',
+            {'application_no': app.application_no}
+        )
+        return app
+
+    @staticmethod
+    def certify(application_id, user, certificate_no, origin_certificate_no=''):
+        """签发检验证书 + 产地证"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'inspection':
+            raise ValueError('只有商检机构角色才能签发证书')
+
+        app = InspectionApplication.objects.get(id=application_id)
+        if app.inspector_id != current_role.company_id:
+            raise ValueError('只能签发自己公司的证书')
+
+        if app.status != 'passed':
+            raise ValueError(f'报检单状态不允许签发证书: {app.get_status_display()}')
+
+        app.status = 'certified'
+        app.certificate_no = certificate_no
+        app.origin_certificate_no = origin_certificate_no
+        app.certified_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.shipment.contract.transaction, user, 'inspection_certified',
+            {'application_no': app.application_no, 'certificate_no': certificate_no}
+        )
+        return app
+
+    @staticmethod
+    def fail_inspection(application_id, user, reason=''):
+        """检验不合格"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'inspection':
+            raise ValueError('只有商检机构角色才能判定不合格')
+
+        app = InspectionApplication.objects.get(id=application_id)
+        if app.inspector_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的报检单')
+
+        if app.status != 'inspecting':
+            raise ValueError(f'报检单状态不允许判定不合格: {app.get_status_display()}')
+
+        app.status = 'failed'
+        app.failed_at = timezone.now()
+        app.save()
+
+        TransactionService.log_transaction(
+            app.shipment.contract.transaction, user, 'inspection_failed',
+            {'application_no': app.application_no, 'reason': reason}
+        )
+        return app
