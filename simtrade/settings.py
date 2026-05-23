@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.transactions',
     'apps.notifications',
     'apps.roles',
+    'apps.scoring',
 ]
 
 MIDDLEWARE = [
