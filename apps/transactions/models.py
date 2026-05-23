@@ -900,3 +900,72 @@ class ForexSettlement(models.Model):
             else:
                 raise RuntimeError('无法生成唯一结算单号，请重试')
         super().save(*args, **kwargs)
+
+
+class TaxRefundApplication(models.Model):
+    """出口退税申请"""
+
+    class Status(models.TextChoices):
+        APPLIED = 'applied', '已申请'
+        REVIEWING = 'reviewing', '审核中'
+        APPROVED = 'approved', '已批准'
+        REFUNDED = 'refunded', '已退税'
+        REJECTED = 'rejected', '已拒绝'
+
+    customs_declaration = models.ForeignKey(
+        CustomsDeclaration,
+        on_delete=models.CASCADE,
+        related_name='tax_refund_applications'
+    )
+    applicant = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='tax_refund_applications'
+    )
+    tax_bureau = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='processed_tax_refunds'
+    )
+    application_no = models.CharField('退税申请号', max_length=50, unique=True, editable=False)
+    hs_code = models.CharField('HS编码', max_length=20)
+    total_value = models.DecimalField('报关总价值', max_digits=14, decimal_places=2)
+    refund_rate = models.DecimalField('退税率', max_digits=5, decimal_places=4, default=0)
+    refund_amount = models.DecimalField('退税金额', max_digits=14, decimal_places=2, default=0)
+    refund_currency = models.CharField('退税币种', max_length=10, default='CNY')
+    status = models.CharField('状态', max_length=20, choices=Status.choices, default=Status.APPLIED)
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_tax_refunds'
+    )
+    reviewing_at = models.DateTimeField('审核时间', null=True, blank=True)
+    approved_at = models.DateTimeField('批准时间', null=True, blank=True)
+    refunded_at = models.DateTimeField('退税时间', null=True, blank=True)
+    rejected_at = models.DateTimeField('拒绝时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'tax_refund_applications'
+        verbose_name = '出口退税申请'
+        verbose_name_plural = '出口退税申请'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.application_no
+
+    def save(self, *args, **kwargs):
+        if not self.application_no:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            for _ in range(10):
+                rand_str = f'{random.randint(100000, 999999)}'
+                no = f'TR{date_str}{rand_str}'
+                if not TaxRefundApplication.objects.filter(application_no=no).exists():
+                    self.application_no = no
+                    break
+            else:
+                raise RuntimeError('无法生成唯一退税申请号，请重试')
+        super().save(*args, **kwargs)
