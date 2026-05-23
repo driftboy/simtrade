@@ -3,7 +3,8 @@ from apps.transactions.models import (
     Transaction, InquiryMessage, Contract, ContractSignature,
     ContractAmendment, LetterOfCredit, LcAmendment, BankOperation,
     PurchaseOrder, Shipment, InsurancePolicy,
-    CustomsDeclaration, InspectionApplication
+    CustomsDeclaration, InspectionApplication,
+    ForexSettlement, TaxRefundApplication
 )
 
 
@@ -317,4 +318,68 @@ class CreateInspectionApplicationSerializer(serializers.Serializer):
     product_spec = serializers.CharField(max_length=200, required=False, allow_blank=True)
     quantity = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
     goods_value = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=0.01)
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class ForexSettlementSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    applicant_name = serializers.CharField(source='applicant.name', read_only=True)
+    forex_bureau_name = serializers.CharField(source='forex_bureau.name', read_only=True)
+    declaration_no = serializers.CharField(source='customs_declaration.declaration_no', read_only=True)
+
+    class Meta:
+        model = ForexSettlement
+        fields = [
+            'id', 'settlement_no', 'customs_declaration', 'declaration_no',
+            'applicant', 'applicant_name', 'forex_bureau', 'forex_bureau_name',
+            'foreign_currency', 'foreign_amount',
+            'reference_rate', 'reference_cny_amount',
+            'settlement_rate', 'settlement_cny_amount',
+            'status', 'status_display', 'notes',
+            'created_by', 'verified_at', 'settled_at', 'rejected_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'settlement_no', 'created_by',
+            'reference_rate', 'reference_cny_amount',
+            'settlement_rate', 'settlement_cny_amount',
+            'verified_at', 'settled_at', 'rejected_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreateForexSettlementSerializer(serializers.Serializer):
+    declaration_id = serializers.IntegerField(min_value=1)
+    forex_bureau_id = serializers.IntegerField(min_value=1)
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class TaxRefundApplicationSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    applicant_name = serializers.CharField(source='applicant.name', read_only=True)
+    tax_bureau_name = serializers.CharField(source='tax_bureau.name', read_only=True)
+    declaration_no = serializers.CharField(source='customs_declaration.declaration_no', read_only=True)
+
+    class Meta:
+        model = TaxRefundApplication
+        fields = [
+            'id', 'application_no', 'customs_declaration', 'declaration_no',
+            'applicant', 'applicant_name', 'tax_bureau', 'tax_bureau_name',
+            'hs_code', 'total_value',
+            'refund_rate', 'refund_amount', 'refund_currency',
+            'status', 'status_display', 'notes',
+            'created_by', 'reviewing_at', 'approved_at', 'refunded_at', 'rejected_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'application_no', 'created_by',
+            'hs_code', 'total_value', 'refund_rate', 'refund_amount', 'refund_currency',
+            'reviewing_at', 'approved_at', 'refunded_at', 'rejected_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreateTaxRefundApplicationSerializer(serializers.Serializer):
+    declaration_id = serializers.IntegerField(min_value=1)
+    tax_bureau_id = serializers.IntegerField(min_value=1)
     notes = serializers.CharField(required=False, allow_blank=True)

@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication
+from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication, ForexSettlement, TaxRefundApplication
 from apps.transactions.serializers import (
     TransactionSerializer,
     InquiryMessageSerializer,
@@ -14,9 +14,11 @@ from apps.transactions.serializers import (
     InsurancePolicySerializer,
     CreateInsurancePolicySerializer,
     CustomsDeclarationSerializer, CreateCustomsDeclarationSerializer,
-    InspectionApplicationSerializer, CreateInspectionApplicationSerializer
+    InspectionApplicationSerializer, CreateInspectionApplicationSerializer,
+    ForexSettlementSerializer, CreateForexSettlementSerializer,
+    TaxRefundApplicationSerializer, CreateTaxRefundApplicationSerializer
 )
-from apps.transactions.services import TransactionService, PurchaseOrderService, ShipmentService, InsuranceService, CustomsService, InspectionService
+from apps.transactions.services import TransactionService, PurchaseOrderService, ShipmentService, InsuranceService, CustomsService, InspectionService, ForexService, TaxRefundService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
 
@@ -569,5 +571,133 @@ class InspectionApplicationViewSet(viewsets.ModelViewSet):
                 reason=request.data.get('reason', '')
             )
             return Response({'code': 0, 'message': '检验不合格', 'data': InspectionApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForexSettlementViewSet(viewsets.ModelViewSet):
+    serializer_class = ForexSettlementSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return ForexSettlement.objects.none()
+        company = current_role.company
+        return ForexSettlement.objects.filter(applicant=company) | ForexSettlement.objects.filter(forex_bureau=company)
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateForexSettlementSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                settlement = ForexService.create_settlement(user=request.user, **serializer.validated_data)
+                return Response({
+                    'code': 0, 'message': '外汇核销申请成功',
+                    'data': ForexSettlementSerializer(settlement).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'message': 'success', 'data': self.get_serializer(self.get_object()).data})
+
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        try:
+            result = ForexService.verify(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '核销成功', 'data': ForexSettlementSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def settle(self, request, pk=None):
+        try:
+            result = ForexService.settle(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '结汇成功', 'data': ForexSettlementSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        try:
+            result = ForexService.reject(
+                self.get_object().id, request.user,
+                reason=request.data.get('reason', '')
+            )
+            return Response({'code': 0, 'message': '已拒绝', 'data': ForexSettlementSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TaxRefundApplicationViewSet(viewsets.ModelViewSet):
+    serializer_class = TaxRefundApplicationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return TaxRefundApplication.objects.none()
+        company = current_role.company
+        return TaxRefundApplication.objects.filter(applicant=company) | TaxRefundApplication.objects.filter(tax_bureau=company)
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateTaxRefundApplicationSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                app = TaxRefundService.create_application(user=request.user, **serializer.validated_data)
+                return Response({
+                    'code': 0, 'message': '退税申请成功',
+                    'data': TaxRefundApplicationSerializer(app).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'message': 'success', 'data': self.get_serializer(self.get_object()).data})
+
+    @action(detail=True, methods=['post'])
+    def review(self, request, pk=None):
+        try:
+            result = TaxRefundService.review(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '审核中', 'data': TaxRefundApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        try:
+            result = TaxRefundService.approve(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '已批准', 'data': TaxRefundApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def refund(self, request, pk=None):
+        try:
+            result = TaxRefundService.refund(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '已退税', 'data': TaxRefundApplicationSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        try:
+            result = TaxRefundService.reject(
+                self.get_object().id, request.user,
+                reason=request.data.get('reason', '')
+            )
+            return Response({'code': 0, 'message': '已拒绝', 'data': TaxRefundApplicationSerializer(result).data})
         except Exception as e:
             return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
