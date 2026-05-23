@@ -2,8 +2,10 @@ from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
+from apps.transactions.models import PurchaseOrder
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
+from apps.roles.models import Company
 
 
 class TransactionService:
@@ -509,3 +511,160 @@ class StateTransitionService:
             'lc_paid',
             {'lc_id': lc.id, 'amount': str(lc.amount)}
         )
+
+
+class PurchaseOrderService:
+    """采购订单业务服务"""
+
+    @staticmethod
+    def create_order(user, transaction_id, seller_id, **kwargs):
+        """出口商创建采购订单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能创建采购订单')
+
+        transaction = Transaction.objects.get(id=transaction_id)
+        if transaction.seller_id != current_role.company_id:
+            raise ValueError('只能为自己的出口交易创建采购订单')
+
+        seller = Company.objects.get(id=seller_id)
+        po = PurchaseOrder(
+            transaction=transaction,
+            buyer_id=current_role.company_id,
+            seller=seller,
+            created_by=user,
+            **kwargs
+        )
+        po.save()
+
+        TransactionService.log_transaction(
+            transaction,
+            user,
+            'purchase_order_created',
+            {'po_id': po.id, 'order_no': po.order_no}
+        )
+        return po
+
+    @staticmethod
+    def confirm(order_id, user):
+        """工厂确认订单（draft -> confirmed）"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'factory':
+            raise ValueError('只有工厂角色才能确认订单')
+
+        po = PurchaseOrder.objects.get(id=order_id)
+        if po.seller_id != current_role.company_id:
+            raise ValueError('只能确认自己公司作为卖方的订单')
+        if po.status != 'draft':
+            raise ValueError('订单状态不允许确认')
+
+        po.status = 'confirmed'
+        po.confirmed_at = timezone.now()
+        po.save()
+
+        TransactionService.log_transaction(
+            po.transaction,
+            user,
+            'purchase_order_confirmed',
+            {'po_id': po.id, 'order_no': po.order_no}
+        )
+        return po
+
+    @staticmethod
+    def ship(order_id, user, tracking_info=''):
+        """工厂发货（confirmed -> shipped）"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'factory':
+            raise ValueError('只有工厂角色才能发货')
+
+        po = PurchaseOrder.objects.get(id=order_id)
+        if po.seller_id != current_role.company_id:
+            raise ValueError('只能发货自己公司作为卖方的订单')
+        if po.status != 'confirmed':
+            raise ValueError('订单状态不允许发货')
+
+        po.status = 'shipped'
+        po.shipped_at = timezone.now()
+        po.save()
+
+        TransactionService.log_transaction(
+            po.transaction,
+            user,
+            'purchase_order_shipped',
+            {'po_id': po.id, 'order_no': po.order_no, 'tracking_info': tracking_info}
+        )
+        return po
+
+    @staticmethod
+    def invoice(order_id, user):
+        """工厂开票（shipped -> invoiced）"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'factory':
+            raise ValueError('只有工厂角色才能开票')
+
+        po = PurchaseOrder.objects.get(id=order_id)
+        if po.seller_id != current_role.company_id:
+            raise ValueError('只能开票自己公司作为卖方的订单')
+        if po.status != 'shipped':
+            raise ValueError('订单状态不允许开票')
+
+        po.status = 'invoiced'
+        po.invoiced_at = timezone.now()
+        po.save()
+
+        TransactionService.log_transaction(
+            po.transaction,
+            user,
+            'purchase_order_invoiced',
+            {'po_id': po.id, 'order_no': po.order_no}
+        )
+        return po
+
+    @staticmethod
+    def complete(order_id, user):
+        """出口商确认收货（invoiced -> completed）"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能确认收货')
+
+        po = PurchaseOrder.objects.get(id=order_id)
+        if po.buyer_id != current_role.company_id:
+            raise ValueError('只能确认收货自己公司作为买方的订单')
+        if po.status != 'invoiced':
+            raise ValueError('订单状态不允许确认收货')
+
+        po.status = 'completed'
+        po.completed_at = timezone.now()
+        po.save()
+
+        TransactionService.log_transaction(
+            po.transaction,
+            user,
+            'purchase_order_completed',
+            {'po_id': po.id, 'order_no': po.order_no}
+        )
+        return po
+
+    @staticmethod
+    def cancel(order_id, user, reason=''):
+        """取消订单"""
+        po = PurchaseOrder.objects.get(id=order_id)
+
+        if po.status in ('shipped', 'invoiced', 'completed'):
+            status_labels = {
+                'shipped': '已发货',
+                'invoiced': '已开票',
+                'completed': '已完成',
+            }
+            raise ValueError(f'{status_labels[po.status]}的订单不能取消')
+
+        po.status = 'cancelled'
+        po.save()
+
+        TransactionService.log_transaction(
+            po.transaction,
+            user,
+            'purchase_order_cancelled',
+            {'po_id': po.id, 'order_no': po.order_no, 'reason': reason}
+        )
+        return po
