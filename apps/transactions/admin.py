@@ -3,7 +3,7 @@ from apps.transactions.models import (
     Transaction, InquiryMessage, Contract,
     ContractSignature, TransactionLog, ContractAmendment,
     LetterOfCredit, LcAmendment, BankOperation,
-    PurchaseOrder
+    PurchaseOrder, Shipment, InsurancePolicy
 )
 
 
@@ -103,4 +103,34 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     readonly_fields = [
         'created_at', 'updated_at', 'confirmed_at',
         'shipped_at', 'invoiced_at', 'completed_at'
+    ]
+
+
+@admin.register(Shipment)
+class ShipmentAdmin(admin.ModelAdmin):
+    list_display = [
+        'shipment_no', 'shipper', 'carrier', 'vessel_name',
+        'port_of_loading', 'port_of_discharge',
+        'freight_amount', 'status', 'created_at'
+    ]
+    list_filter = ['status', 'freight_currency', 'created_at']
+    search_fields = ['shipment_no', 'booking_no', 'bl_no', 'vessel_name']
+    readonly_fields = [
+        'created_at', 'updated_at', 'booked_at',
+        'loaded_at', 'shipped_at', 'arrived_at'
+    ]
+
+
+@admin.register(InsurancePolicy)
+class InsurancePolicyAdmin(admin.ModelAdmin):
+    list_display = [
+        'policy_no', 'insured', 'insurer',
+        'insured_amount', 'premium', 'coverage_type',
+        'status', 'created_at'
+    ]
+    list_filter = ['status', 'coverage_type', 'created_at']
+    search_fields = ['policy_no', 'cargo_description']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'underwritten_at', 'issued_at'
     ]
