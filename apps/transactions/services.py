@@ -647,24 +647,42 @@ class PurchaseOrderService:
 
     @staticmethod
     def cancel(order_id, user, reason=''):
-        """取消订单"""
+        """取消订单
+
+        Draft 状态仅出口商可取消。
+        Confirmed 状态出口商和工厂均可取消。
+        Shipped/Invoiced/Completed 不可取消。
+        """
+        current_role = RoleService.get_current_role(user)
+        if not current_role:
+            raise ValueError('请先激活一个角色')
+
         po = PurchaseOrder.objects.get(id=order_id)
 
         if po.status in ('shipped', 'invoiced', 'completed'):
-            status_labels = {
-                'shipped': '已发货',
-                'invoiced': '已开票',
-                'completed': '已完成',
-            }
-            raise ValueError(f'{status_labels[po.status]}的订单不能取消')
+            raise ValueError(f'订单状态不允许取消: {po.get_status_display()}')
+
+        if po.status not in ('draft', 'confirmed'):
+            raise ValueError(f'订单状态不允许取消: {po.get_status_display()}')
+
+        company_id = current_role.company_id
+
+        if po.status == 'draft':
+            # 仅出口商（buyer 方）可取消
+            if current_role.role.code != 'exporter' or company_id != po.buyer_id:
+                raise ValueError('草稿订单只能由出口商取消')
+        elif po.status == 'confirmed':
+            # 出口商或工厂均可取消
+            is_buyer = current_role.role.code == 'exporter' and company_id == po.buyer_id
+            is_seller = current_role.role.code == 'factory' and company_id == po.seller_id
+            if not (is_buyer or is_seller):
+                raise ValueError('已确认订单只能由出口商或工厂取消')
 
         po.status = 'cancelled'
         po.save()
 
         TransactionService.log_transaction(
-            po.transaction,
-            user,
-            'purchase_order_cancelled',
-            {'po_id': po.id, 'order_no': po.order_no, 'reason': reason}
+            po.transaction, user, 'purchase_order_cancelled',
+            {'order_no': po.order_no, 'reason': reason}
         )
         return po

@@ -239,9 +239,10 @@ class PurchaseOrderServiceCancelTest(TestCase):
         call_command('init_trade_roles')
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
-        imp = User.objects.create_user('cx_imp', 'p', 'cai@t.com')
+        self.importer = User.objects.create_user('cx_imp', 'p', 'cai@t.com')
+        self.importer_company = create_company_for_user(self.importer, '_取消进口商')
         self.transaction = Transaction.objects.create(
-            buyer=create_company_for_user(imp, '_取消进口商'), seller=self.exporter_company,
+            buyer=self.importer_company, seller=self.exporter_company,
             product_id=1, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
@@ -273,5 +274,29 @@ class PurchaseOrderServiceCancelTest(TestCase):
         )
         PurchaseOrderService.confirm(po.id, self.factory_user)
         PurchaseOrderService.ship(po.id, self.factory_user)
-        with pytest.raises(ValueError, match='已发货的订单不能取消'):
+        with pytest.raises(ValueError, match='订单状态不允许取消'):
+            PurchaseOrderService.cancel(po.id, self.exporter)
+
+    def test_cancel_by_importer_rejected(self):
+        """进口商不能取消订单"""
+        po = PurchaseOrderService.create_order(
+            user=self.exporter, transaction_id=self.transaction.id,
+            seller_id=self.factory_company.id,
+            product_name='商品', quantity=Decimal('100'), unit_price=Decimal('10.00')
+        )
+        setup_role(self.importer, self.importer_company, 'importer')
+        with pytest.raises(ValueError, match='草稿订单只能由出口商取消'):
+            PurchaseOrderService.cancel(po.id, self.importer)
+
+    def test_cancel_invoiced_rejected(self):
+        """已开票的订单不能取消"""
+        po = PurchaseOrderService.create_order(
+            user=self.exporter, transaction_id=self.transaction.id,
+            seller_id=self.factory_company.id,
+            product_name='商品', quantity=Decimal('100'), unit_price=Decimal('10.00')
+        )
+        PurchaseOrderService.confirm(po.id, self.factory_user)
+        PurchaseOrderService.ship(po.id, self.factory_user)
+        PurchaseOrderService.invoice(po.id, self.factory_user)
+        with pytest.raises(ValueError, match='订单状态不允许取消'):
             PurchaseOrderService.cancel(po.id, self.exporter)
