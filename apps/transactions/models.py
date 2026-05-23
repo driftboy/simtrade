@@ -832,3 +832,71 @@ class InspectionApplication(models.Model):
             else:
                 raise RuntimeError('无法生成唯一报检号，请重试')
         super().save(*args, **kwargs)
+
+
+class ForexSettlement(models.Model):
+    """外汇结算"""
+
+    class Status(models.TextChoices):
+        APPLIED = 'applied', '已申请'
+        VERIFIED = 'verified', '已核销'
+        SETTLED = 'settled', '已结汇'
+        REJECTED = 'rejected', '已拒绝'
+
+    customs_declaration = models.ForeignKey(
+        CustomsDeclaration,
+        on_delete=models.CASCADE,
+        related_name='forex_settlements'
+    )
+    applicant = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='forex_settlements'
+    )
+    forex_bureau = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='processed_forex_settlements'
+    )
+    settlement_no = models.CharField('结算单号', max_length=50, unique=True, editable=False)
+    foreign_currency = models.CharField('外币币种', max_length=10, default='USD')
+    foreign_amount = models.DecimalField('外币金额', max_digits=14, decimal_places=2)
+    reference_rate = models.DecimalField('参考汇率', max_digits=10, decimal_places=4)
+    reference_cny_amount = models.DecimalField('参考人民币金额', max_digits=14, decimal_places=2)
+    settlement_rate = models.DecimalField('结汇汇率', max_digits=10, decimal_places=4, default=0)
+    settlement_cny_amount = models.DecimalField('结汇人民币金额', max_digits=14, decimal_places=2, default=0)
+    status = models.CharField('状态', max_length=20, choices=Status.choices, default=Status.APPLIED)
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_forex_settlements'
+    )
+    verified_at = models.DateTimeField('核销时间', null=True, blank=True)
+    settled_at = models.DateTimeField('结汇时间', null=True, blank=True)
+    rejected_at = models.DateTimeField('拒绝时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'forex_settlements'
+        verbose_name = '外汇结算'
+        verbose_name_plural = '外汇结算'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.settlement_no
+
+    def save(self, *args, **kwargs):
+        if not self.settlement_no:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            for _ in range(10):
+                rand_str = f'{random.randint(100000, 999999)}'
+                no = f'FX{date_str}{rand_str}'
+                if not ForexSettlement.objects.filter(settlement_no=no).exists():
+                    self.settlement_no = no
+                    break
+            else:
+                raise RuntimeError('无法生成唯一结算单号，请重试')
+        super().save(*args, **kwargs)
