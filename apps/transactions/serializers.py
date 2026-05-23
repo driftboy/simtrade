@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from apps.transactions.models import (
     Transaction, InquiryMessage, Contract, ContractSignature,
-    ContractAmendment, LetterOfCredit, LcAmendment, BankOperation
+    ContractAmendment, LetterOfCredit, LcAmendment, BankOperation,
+    PurchaseOrder
 )
 
 
@@ -128,3 +129,44 @@ class LetterOfCreditSerializer(serializers.ModelSerializer):
                   'amendments', 'bank_operations']
         read_only_fields = ['id', 'created_at', 'updated_at', 'issued_at',
                             'advised_at', 'submitted_at', 'negotiated_at', 'paid_at']
+
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    buyer_name = serializers.CharField(source='buyer.name', read_only=True)
+    seller_name = serializers.CharField(source='seller.name', read_only=True)
+    transaction_id = serializers.IntegerField(source='transaction.id', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True, default='')
+
+    class Meta:
+        model = PurchaseOrder
+        fields = [
+            'id', 'order_no', 'transaction', 'transaction_id',
+            'buyer', 'buyer_name', 'seller', 'seller_name',
+            'product_name', 'product_code', 'quantity', 'unit',
+            'unit_price', 'currency', 'total_amount',
+            'delivery_date', 'delivery_address',
+            'status', 'status_display', 'notes',
+            'created_by', 'created_by_name',
+            'confirmed_at', 'shipped_at', 'invoiced_at', 'completed_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'order_no', 'created_by', 'total_amount',
+            'confirmed_at', 'shipped_at', 'invoiced_at', 'completed_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreatePurchaseOrderSerializer(serializers.Serializer):
+    transaction_id = serializers.IntegerField(min_value=1)
+    seller_id = serializers.IntegerField(min_value=1)
+    product_name = serializers.CharField(max_length=200)
+    product_code = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    quantity = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    unit = serializers.CharField(max_length=20, default='件')
+    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    currency = serializers.CharField(max_length=10, default='CNY')
+    delivery_date = serializers.DateField(required=False, allow_null=True)
+    delivery_address = serializers.CharField(required=False, allow_blank=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
