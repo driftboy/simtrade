@@ -3,7 +3,7 @@ from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication
+from apps.transactions.models import PurchaseOrder, Shipment, InsurancePolicy, CustomsDeclaration, InspectionApplication, ForexSettlement
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
@@ -1333,3 +1333,142 @@ class InspectionService:
             {'application_no': app.application_no, 'reason': reason}
         )
         return app
+
+
+import random as _random
+
+# 汇率配置
+EXCHANGE_RATES = {
+    'USD': {'base': Decimal('7.2000'), 'range': Decimal('0.0500')},
+    'EUR': {'base': Decimal('7.8000'), 'range': Decimal('0.0600')},
+    'GBP': {'base': Decimal('9.1000'), 'range': Decimal('0.0700')},
+}
+
+
+class ForexService:
+    """外汇结算服务"""
+
+    @staticmethod
+    def get_exchange_rate(currency):
+        """获取模拟汇率"""
+        if currency == 'CNY':
+            return Decimal('1.0000')
+        config = EXCHANGE_RATES.get(currency)
+        if not config:
+            raise ValueError(f'不支持的币种: {currency}')
+        base = config['base']
+        rate_range = config['range']
+        fluctuation = Decimal(str(_random.uniform(
+            float(-rate_range), float(rate_range)
+        )))
+        return (base + fluctuation).quantize(Decimal('0.0001'))
+
+    @staticmethod
+    def create_settlement(user, declaration_id, forex_bureau_id):
+        """出口商申请收汇核销"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能申请外汇核销')
+
+        decl = CustomsDeclaration.objects.get(id=declaration_id)
+        if decl.declarant_id != current_role.company_id:
+            raise ValueError('只能为自己的报关单申请外汇核销')
+
+        if decl.status != 'cleared':
+            raise ValueError('报关单未放行，无法申请外汇核销')
+
+        shipment = decl.shipment
+        if shipment.status != 'arrived':
+            raise ValueError('货物未到港，无法申请外汇核销')
+
+        forex_bureau = Company.objects.get(id=forex_bureau_id)
+        rate = ForexService.get_exchange_rate(decl.currency)
+
+        return ForexSettlement.objects.create(
+            customs_declaration=decl,
+            applicant=current_role.company,
+            forex_bureau=forex_bureau,
+            foreign_currency=decl.currency,
+            foreign_amount=decl.total_value,
+            reference_rate=rate,
+            reference_cny_amount=(decl.total_value * rate).quantize(Decimal('0.01')),
+            created_by=user
+        )
+
+    @staticmethod
+    def verify(settlement_id, user):
+        """外汇局核销"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'forex':
+            raise ValueError('只有外汇局角色才能核销')
+
+        settlement = ForexSettlement.objects.get(id=settlement_id)
+        if settlement.forex_bureau_id != current_role.company_id:
+            raise ValueError('只能核销自己公司的结算单')
+
+        if settlement.status != 'applied':
+            raise ValueError(f'结算单状态不允许核销: {settlement.get_status_display()}')
+
+        settlement.status = 'verified'
+        settlement.verified_at = timezone.now()
+        settlement.save()
+
+        TransactionService.log_transaction(
+            settlement.customs_declaration.shipment.contract.transaction,
+            user, 'forex_verified',
+            {'settlement_no': settlement.settlement_no}
+        )
+        return settlement
+
+    @staticmethod
+    def settle(settlement_id, user):
+        """外汇局结汇"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'forex':
+            raise ValueError('只有外汇局角色才能结汇')
+
+        settlement = ForexSettlement.objects.get(id=settlement_id)
+        if settlement.forex_bureau_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的结算单')
+
+        if settlement.status != 'verified':
+            raise ValueError(f'结算单状态不允许结汇: {settlement.get_status_display()}')
+
+        rate = ForexService.get_exchange_rate(settlement.foreign_currency)
+        settlement.settlement_rate = rate
+        settlement.settlement_cny_amount = (settlement.foreign_amount * rate).quantize(Decimal('0.01'))
+        settlement.status = 'settled'
+        settlement.settled_at = timezone.now()
+        settlement.save()
+
+        TransactionService.log_transaction(
+            settlement.customs_declaration.shipment.contract.transaction,
+            user, 'forex_settled',
+            {'settlement_no': settlement.settlement_no, 'cny_amount': str(settlement.settlement_cny_amount)}
+        )
+        return settlement
+
+    @staticmethod
+    def reject(settlement_id, user, reason=''):
+        """外汇局拒绝"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'forex':
+            raise ValueError('只有外汇局角色才能拒绝')
+
+        settlement = ForexSettlement.objects.get(id=settlement_id)
+        if settlement.forex_bureau_id != current_role.company_id:
+            raise ValueError('只能处理自己公司的结算单')
+
+        if settlement.status != 'applied':
+            raise ValueError(f'结算单状态不允许拒绝: {settlement.get_status_display()}')
+
+        settlement.status = 'rejected'
+        settlement.rejected_at = timezone.now()
+        settlement.save()
+
+        TransactionService.log_transaction(
+            settlement.customs_declaration.shipment.contract.transaction,
+            user, 'forex_rejected',
+            {'settlement_no': settlement.settlement_no, 'reason': reason}
+        )
+        return settlement
