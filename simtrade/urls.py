@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/v1/', include('apps.transactions.urls')),
     path('api/v1/', include('apps.roles.urls')),
     path('api/v1/scoring/', include('apps.scoring.urls')),
+    path('api/v1/teaching/', include('apps.teaching.urls')),
 ]
 
 if settings.DEBUG:
