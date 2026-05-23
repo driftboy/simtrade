@@ -1,8 +1,9 @@
+from decimal import Decimal
 from django.utils import timezone
 from apps.transactions.models import Transaction, InquiryMessage, TransactionLog, Contract
 from apps.transactions.models import ContractAmendment, ContractSignature
 from apps.transactions.models import LetterOfCredit, LcAmendment, BankOperation
-from apps.transactions.models import PurchaseOrder
+from apps.transactions.models import PurchaseOrder, Shipment
 from apps.notifications.services import NotificationService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
@@ -686,3 +687,187 @@ class PurchaseOrderService:
             {'order_no': po.order_no, 'reason': reason}
         )
         return po
+
+
+# 贸易术语运费率表
+FREIGHT_RATES = {
+    'FOB': Decimal('0'),
+    'CFR': Decimal('0.03'),
+    'CIF': Decimal('0.03'),
+    'EXW': Decimal('0'),
+    'FCA': Decimal('0'),
+    'CPT': Decimal('0.03'),
+    'CIP': Decimal('0.03'),
+    'DAP': Decimal('0.03'),
+    'DDP': Decimal('0.03'),
+}
+
+
+class ShipmentService:
+    """货运服务"""
+
+    @staticmethod
+    def calculate_freight(contract_id):
+        """根据贸易术语计算运费"""
+        contract = Contract.objects.get(id=contract_id)
+        rate = FREIGHT_RATES.get(contract.trade_term, Decimal('0'))
+        return contract.total_amount * rate
+
+    @staticmethod
+    def create_shipment(user, contract_id, carrier_id, **kwargs):
+        """出口商创建货运订单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'exporter':
+            raise ValueError('只有出口商角色才能创建货运订单')
+
+        contract = Contract.objects.get(id=contract_id)
+        if contract.transaction.seller_id != current_role.company_id:
+            raise ValueError('只能为自己的出口合同创建货运订单')
+
+        if contract.status != 'effective':
+            raise ValueError('合同未生效，无法创建货运订单')
+
+        carrier = Company.objects.get(id=carrier_id)
+        freight_amount = ShipmentService.calculate_freight(contract_id)
+
+        return Shipment.objects.create(
+            contract=contract,
+            shipper=current_role.company,
+            carrier=carrier,
+            freight_amount=freight_amount,
+            created_by=user,
+            **kwargs
+        )
+
+    @staticmethod
+    def book(shipment_id, user, booking_no, vessel_name, etd, eta):
+        """货运公司确认订舱"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'shipping':
+            raise ValueError('只有货运公司角色才能订舱')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        if shipment.carrier_id != current_role.company_id:
+            raise ValueError('只能订舱自己公司的货运订单')
+
+        if shipment.status != 'draft':
+            raise ValueError(f'订单状态不允许订舱: {shipment.get_status_display()}')
+
+        shipment.status = 'booked'
+        shipment.booking_no = booking_no
+        shipment.vessel_name = vessel_name
+        shipment.etd = etd
+        shipment.eta = eta
+        shipment.booked_at = timezone.now()
+        shipment.save()
+
+        TransactionService.log_transaction(
+            shipment.contract.transaction, user, 'shipment_booked',
+            {'shipment_no': shipment.shipment_no, 'booking_no': booking_no}
+        )
+        return shipment
+
+    @staticmethod
+    def load(shipment_id, user, container_no=''):
+        """货运公司确认装船"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'shipping':
+            raise ValueError('只有货运公司角色才能确认装船')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        if shipment.carrier_id != current_role.company_id:
+            raise ValueError('只能确认自己公司的货运订单')
+
+        if shipment.status != 'booked':
+            raise ValueError(f'订单状态不允许装船: {shipment.get_status_display()}')
+
+        shipment.status = 'loaded'
+        shipment.container_no = container_no
+        shipment.loaded_at = timezone.now()
+        shipment.save()
+
+        TransactionService.log_transaction(
+            shipment.contract.transaction, user, 'shipment_loaded',
+            {'shipment_no': shipment.shipment_no, 'container_no': container_no}
+        )
+        return shipment
+
+    @staticmethod
+    def issue_bl(shipment_id, user, bl_no):
+        """货运公司签发提单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'shipping':
+            raise ValueError('只有货运公司角色才能签发提单')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        if shipment.carrier_id != current_role.company_id:
+            raise ValueError('只能为自己公司的货运订单签发提单')
+
+        if shipment.status != 'loaded':
+            raise ValueError(f'订单状态不允许签发提单: {shipment.get_status_display()}')
+
+        shipment.status = 'shipped'
+        shipment.bl_no = bl_no
+        shipment.shipped_at = timezone.now()
+        shipment.save()
+
+        TransactionService.log_transaction(
+            shipment.contract.transaction, user, 'shipment_bl_issued',
+            {'shipment_no': shipment.shipment_no, 'bl_no': bl_no}
+        )
+        return shipment
+
+    @staticmethod
+    def arrive(shipment_id, user):
+        """货运公司确认到港"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role or current_role.role.code != 'shipping':
+            raise ValueError('只有货运公司角色才能确认到港')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        if shipment.carrier_id != current_role.company_id:
+            raise ValueError('只能确认自己公司的货运订单')
+
+        if shipment.status != 'shipped':
+            raise ValueError(f'订单状态不允许确认到港: {shipment.get_status_display()}')
+
+        shipment.status = 'arrived'
+        shipment.arrived_at = timezone.now()
+        shipment.save()
+
+        TransactionService.log_transaction(
+            shipment.contract.transaction, user, 'shipment_arrived',
+            {'shipment_no': shipment.shipment_no}
+        )
+        return shipment
+
+    @staticmethod
+    def cancel(shipment_id, user, reason=''):
+        """取消货运订单"""
+        current_role = RoleService.get_current_role(user)
+        if not current_role:
+            raise ValueError('请先激活一个角色')
+
+        shipment = Shipment.objects.get(id=shipment_id)
+        company_id = current_role.company_id
+
+        if shipment.status not in ('draft', 'booked'):
+            raise ValueError(f'订单状态不允许取消: {shipment.get_status_display()}')
+
+        if shipment.status == 'draft':
+            if current_role.role.code != 'exporter' or company_id != shipment.shipper_id:
+                raise ValueError('草稿订单只能由出口商取消')
+        elif shipment.status == 'booked':
+            is_shipper = current_role.role.code == 'exporter' and company_id == shipment.shipper_id
+            is_carrier = current_role.role.code == 'shipping' and company_id == shipment.carrier_id
+            if not (is_shipper or is_carrier):
+                raise ValueError('已订舱订单只能由出口商或货运公司取消')
+
+        shipment.status = 'cancelled'
+        shipment.save()
+
+        TransactionService.log_transaction(
+            shipment.contract.transaction, user, 'shipment_cancelled',
+            {'shipment_no': shipment.shipment_no, 'reason': reason}
+        )
+        return shipment
