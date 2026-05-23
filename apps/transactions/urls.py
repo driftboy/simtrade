@@ -8,5 +8,7 @@ router = DefaultRouter()
 router.register(r'transactions', views.TransactionViewSet, basename='transaction')
 router.register(r'contracts', views.ContractViewSet, basename='contract')
 router.register(r'purchase-orders', views.PurchaseOrderViewSet, basename='purchaseorder')
+router.register(r'shipments', views.ShipmentViewSet, basename='shipment')
+router.register(r'insurance-policies', views.InsurancePolicyViewSet, basename='insurancepolicy')
 
 urlpatterns = router.urls

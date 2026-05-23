@@ -2,7 +2,7 @@ from rest_framework import serializers
 from apps.transactions.models import (
     Transaction, InquiryMessage, Contract, ContractSignature,
     ContractAmendment, LetterOfCredit, LcAmendment, BankOperation,
-    PurchaseOrder
+    PurchaseOrder, Shipment, InsurancePolicy
 )
 
 
@@ -169,4 +169,73 @@ class CreatePurchaseOrderSerializer(serializers.Serializer):
     currency = serializers.CharField(max_length=10, default='CNY')
     delivery_date = serializers.DateField(required=False, allow_null=True)
     delivery_address = serializers.CharField(required=False, allow_blank=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class ShipmentSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    shipper_name = serializers.CharField(source='shipper.name', read_only=True)
+    carrier_name = serializers.CharField(source='carrier.name', read_only=True)
+    contract_no = serializers.CharField(source='contract.contract_no', read_only=True)
+
+    class Meta:
+        model = Shipment
+        fields = [
+            'id', 'shipment_no', 'contract', 'contract_no',
+            'shipper', 'shipper_name', 'carrier', 'carrier_name',
+            'booking_no', 'bl_no', 'vessel_name',
+            'port_of_loading', 'port_of_discharge',
+            'etd', 'eta', 'container_no',
+            'freight_amount', 'freight_currency',
+            'status', 'status_display', 'notes',
+            'created_by', 'booked_at', 'loaded_at', 'shipped_at', 'arrived_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'shipment_no', 'created_by',
+            'booked_at', 'loaded_at', 'shipped_at', 'arrived_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreateShipmentSerializer(serializers.Serializer):
+    contract_id = serializers.IntegerField(min_value=1)
+    carrier_id = serializers.IntegerField(min_value=1)
+    port_of_loading = serializers.CharField(max_length=100)
+    port_of_discharge = serializers.CharField(max_length=100)
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class InsurancePolicySerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    coverage_type_display = serializers.CharField(source='get_coverage_type_display', read_only=True)
+    insured_name = serializers.CharField(source='insured.name', read_only=True)
+    insurer_name = serializers.CharField(source='insurer.name', read_only=True)
+    contract_no = serializers.CharField(source='contract.contract_no', read_only=True)
+
+    class Meta:
+        model = InsurancePolicy
+        fields = [
+            'id', 'policy_no', 'contract', 'contract_no', 'shipment',
+            'insured', 'insured_name', 'insurer', 'insurer_name',
+            'cargo_description', 'insured_amount',
+            'premium', 'premium_currency', 'coverage_type', 'coverage_type_display',
+            'status', 'status_display', 'notes',
+            'created_by', 'underwritten_at', 'issued_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'policy_no', 'created_by', 'insured_amount', 'premium',
+            'underwritten_at', 'issued_at',
+            'created_at', 'updated_at'
+        ]
+
+
+class CreateInsurancePolicySerializer(serializers.Serializer):
+    contract_id = serializers.IntegerField(min_value=1)
+    insurer_id = serializers.IntegerField(min_value=1)
+    coverage_type = serializers.ChoiceField(
+        choices=['fpa', 'wa', 'all_risk'], default='all_risk'
+    )
+    cargo_description = serializers.CharField()
     notes = serializers.CharField(required=False, allow_blank=True)

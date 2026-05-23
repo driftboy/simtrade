@@ -2,15 +2,19 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder
+from apps.transactions.models import Transaction, InquiryMessage, Contract, PurchaseOrder, Shipment, InsurancePolicy
 from apps.transactions.serializers import (
     TransactionSerializer,
     InquiryMessageSerializer,
     ContractSerializer,
     PurchaseOrderSerializer,
-    CreatePurchaseOrderSerializer
+    CreatePurchaseOrderSerializer,
+    ShipmentSerializer,
+    CreateShipmentSerializer,
+    InsurancePolicySerializer,
+    CreateInsurancePolicySerializer
 )
-from apps.transactions.services import TransactionService, PurchaseOrderService
+from apps.transactions.services import TransactionService, PurchaseOrderService, ShipmentService, InsuranceService
 from apps.roles.services import RoleService
 from apps.roles.models import Company
 
@@ -275,5 +279,153 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             reason = request.data.get('reason', '')
             result = PurchaseOrderService.cancel(po.id, request.user, reason)
             return Response({'code': 0, 'message': '订单已取消', 'data': PurchaseOrderSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ShipmentViewSet(viewsets.ModelViewSet):
+    serializer_class = ShipmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return Shipment.objects.none()
+        company = current_role.company
+        return Shipment.objects.filter(shipper=company) | Shipment.objects.filter(carrier=company)
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateShipmentSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                shipment = ShipmentService.create_shipment(user=request.user, **serializer.validated_data)
+                return Response({
+                    'code': 0, 'message': '货运订单创建成功',
+                    'data': ShipmentSerializer(shipment).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'message': 'success', 'data': self.get_serializer(self.get_object()).data})
+
+    @action(detail=True, methods=['post'])
+    def book(self, request, pk=None):
+        try:
+            result = ShipmentService.book(
+                self.get_object().id, request.user,
+                booking_no=request.data['booking_no'],
+                vessel_name=request.data['vessel_name'],
+                etd=request.data.get('etd'),
+                eta=request.data.get('eta')
+            )
+            return Response({'code': 0, 'message': '订舱成功', 'data': ShipmentSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def load(self, request, pk=None):
+        try:
+            result = ShipmentService.load(
+                self.get_object().id, request.user,
+                container_no=request.data.get('container_no', '')
+            )
+            return Response({'code': 0, 'message': '装船确认', 'data': ShipmentSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def issue_bl(self, request, pk=None):
+        try:
+            result = ShipmentService.issue_bl(
+                self.get_object().id, request.user,
+                bl_no=request.data['bl_no']
+            )
+            return Response({'code': 0, 'message': '提单已签发', 'data': ShipmentSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def arrive(self, request, pk=None):
+        try:
+            result = ShipmentService.arrive(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '已确认到港', 'data': ShipmentSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        try:
+            result = ShipmentService.cancel(
+                self.get_object().id, request.user,
+                reason=request.data.get('reason', '')
+            )
+            return Response({'code': 0, 'message': '已取消', 'data': ShipmentSerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InsurancePolicyViewSet(viewsets.ModelViewSet):
+    serializer_class = InsurancePolicySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        current_role = RoleService.get_current_role(user)
+        if not current_role or not current_role.company:
+            return InsurancePolicy.objects.none()
+        company = current_role.company
+        return InsurancePolicy.objects.filter(insured=company) | InsurancePolicy.objects.filter(insurer=company)
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateInsurancePolicySerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                policy = InsuranceService.create_policy(user=request.user, **serializer.validated_data)
+                return Response({
+                    'code': 0, 'message': '投保成功',
+                    'data': InsurancePolicySerializer(policy).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'code': 3002, 'message': '参数格式错误', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'message': 'success', 'data': self.get_serializer(self.get_object()).data})
+
+    @action(detail=True, methods=['post'])
+    def underwrite(self, request, pk=None):
+        try:
+            result = InsuranceService.underwrite(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '承保成功', 'data': InsurancePolicySerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def issue(self, request, pk=None):
+        try:
+            result = InsuranceService.issue(self.get_object().id, request.user)
+            return Response({'code': 0, 'message': '保单已签发', 'data': InsurancePolicySerializer(result).data})
+        except Exception as e:
+            return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        try:
+            result = InsuranceService.cancel(
+                self.get_object().id, request.user,
+                reason=request.data.get('reason', '')
+            )
+            return Response({'code': 0, 'message': '已取消', 'data': InsurancePolicySerializer(result).data})
         except Exception as e:
             return Response({'code': 5005, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
