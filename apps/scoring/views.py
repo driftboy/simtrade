@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -55,7 +57,7 @@ class ScoreSheetViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         sheet = self.get_object()
-        adjustment = request.data.get('adjustment', 0)
+        adjustment = Decimal(str(request.data.get('adjustment', 0)))
         comment = request.data.get('comment', '')
 
         try:
