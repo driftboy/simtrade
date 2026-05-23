@@ -525,3 +525,78 @@ class PurchaseOrder(models.Model):
             if not PurchaseOrder.objects.filter(order_no=order_no).exists():
                 return order_no
         raise RuntimeError('无法生成唯一订单编号，请重试')
+
+
+class Shipment(models.Model):
+    """货运订单"""
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', '草稿'
+        BOOKED = 'booked', '已订舱'
+        LOADED = 'loaded', '已装船'
+        SHIPPED = 'shipped', '已签发提单'
+        ARRIVED = 'arrived', '已到港'
+        CANCELLED = 'cancelled', '已取消'
+
+    contract = models.OneToOneField(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name='shipment'
+    )
+    shipper = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='outgoing_shipments'
+    )
+    carrier = models.ForeignKey(
+        'roles.Company',
+        on_delete=models.PROTECT,
+        related_name='incoming_shipments'
+    )
+    shipment_no = models.CharField('货运编号', max_length=50, unique=True, editable=False)
+    booking_no = models.CharField('订舱号', max_length=50, blank=True)
+    bl_no = models.CharField('提单号', max_length=50, blank=True)
+    vessel_name = models.CharField('船名/航班号', max_length=100, blank=True)
+    port_of_loading = models.CharField('装运港', max_length=100)
+    port_of_discharge = models.CharField('目的港', max_length=100)
+    etd = models.DateField('预计出发日期', null=True, blank=True)
+    eta = models.DateField('预计到达日期', null=True, blank=True)
+    container_no = models.CharField('集装箱号', max_length=50, blank=True)
+    freight_amount = models.DecimalField('运费金额', max_digits=14, decimal_places=2, default=0)
+    freight_currency = models.CharField('运费币种', max_length=10, default='USD')
+    status = models.CharField('状态', max_length=20, choices=Status.choices, default=Status.DRAFT)
+    notes = models.TextField('备注', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_shipments'
+    )
+    booked_at = models.DateTimeField('订舱时间', null=True, blank=True)
+    loaded_at = models.DateTimeField('装船时间', null=True, blank=True)
+    shipped_at = models.DateTimeField('签发提单时间', null=True, blank=True)
+    arrived_at = models.DateTimeField('到港时间', null=True, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'shipments'
+        verbose_name = '货运订单'
+        verbose_name_plural = '货运订单'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.shipment_no
+
+    def save(self, *args, **kwargs):
+        if not self.shipment_no:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            for _ in range(10):
+                rand_str = f'{random.randint(100000, 999999)}'
+                no = f'SH{date_str}{rand_str}'
+                if not Shipment.objects.filter(shipment_no=no).exists():
+                    self.shipment_no = no
+                    break
+            else:
+                raise RuntimeError('无法生成唯一货运编号，请重试')
+        super().save(*args, **kwargs)
