@@ -48,6 +48,7 @@ class ScoreSheetSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'auto_score', 'final_score',
+            'status', 'teacher_adjustment', 'teacher_comment',
             'reviewed_by', 'reviewed_at', 'created_at', 'updated_at',
         ]
 

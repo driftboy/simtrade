@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from apps.scoring.calculators import get_calculator
 from apps.scoring.models import (
+    Experiment,
     ExperimentScoringConfig,
     MetricScore,
     ScoreSheet,
@@ -43,6 +44,8 @@ class ScoreAggregator:
 class ScoringService:
     """评分总调度"""
 
+    MAX_ADJUSTMENT_DEFAULT = Decimal('20')
+
     @staticmethod
     def calculate_role_score(user_company_role, experiment, calculator_kwargs=None):
         kwargs = calculator_kwargs or {}
@@ -72,6 +75,7 @@ class ScoringService:
                 user_company_role, experiment, metric, **method_kwargs,
             )
 
+            # 只纳入有数据的指标（raw_value is not None）
             MetricScore.objects.update_or_create(
                 score_sheet=sheet, metric=metric,
                 defaults={
@@ -80,7 +84,8 @@ class ScoringService:
                     'details': details,
                 },
             )
-            scores.append((metric, score))
+            if raw_value is not None:
+                scores.append((metric, score))
 
         configs = list(ExperimentScoringConfig.objects.filter(experiment=experiment))
         auto_score = ScoreAggregator.aggregate(scores, configs)
@@ -92,13 +97,24 @@ class ScoringService:
 
     @staticmethod
     def calculate_experiment_scores(experiment_id, calculator_kwargs=None):
-        from apps.scoring.models import Experiment
         from apps.roles.models import UserCompanyRole
 
-        experiment = Experiment.objects.get(id=experiment_id)
+        try:
+            experiment = Experiment.objects.get(id=experiment_id)
+        except Experiment.DoesNotExist:
+            raise ValueError(f'实验不存在: {experiment_id}')
+
         ucrs = UserCompanyRole.objects.filter(
+            company__id__in=experiment.score_sheets.values_list(
+                'user_company_role__company_id', flat=True,
+            ).distinct(),
             status__in=['active', 'approved'],
         )
+
+        if not ucrs.exists():
+            ucrs = UserCompanyRole.objects.filter(
+                status__in=['active', 'approved'],
+            )
 
         results = []
         for ucr in ucrs:
@@ -110,15 +126,15 @@ class ScoringService:
 
     @staticmethod
     def teacher_review(sheet_id, teacher, adjustment=Decimal('0'), comment=''):
-        sheet = ScoreSheet.objects.get(id=sheet_id)
+        try:
+            sheet = ScoreSheet.objects.get(id=sheet_id)
+        except ScoreSheet.DoesNotExist:
+            raise ValueError(f'评分表不存在: {sheet_id}')
 
         if sheet.status == 'draft':
             raise ValueError('评分表尚未自动评分')
 
-        config = ExperimentScoringConfig.objects.filter(
-            experiment=sheet.experiment,
-        ).first()
-        max_adj = config.max_adjustment if config else Decimal('20')
+        max_adj = ScoringService._get_max_adjustment(sheet.experiment_id)
 
         if abs(adjustment) > max_adj:
             raise ValueError(f'加减分不能超过 ±{max_adj}，当前: {adjustment}')
@@ -134,10 +150,24 @@ class ScoringService:
 
     @staticmethod
     def recalculate(sheet_id, calculator_kwargs=None):
-        sheet = ScoreSheet.objects.get(id=sheet_id)
+        try:
+            sheet = ScoreSheet.objects.get(id=sheet_id)
+        except ScoreSheet.DoesNotExist:
+            raise ValueError(f'评分表不存在: {sheet_id}')
+
         result = ScoringService.calculate_role_score(
             sheet.user_company_role, sheet.experiment, calculator_kwargs,
         )
         result.final_score = result.auto_score + result.teacher_adjustment
         result.save()
         return result
+
+    @staticmethod
+    def _get_max_adjustment(experiment_id):
+        """获取实验的最大加减分上限（取所有配置中的最大值）"""
+        configs = ExperimentScoringConfig.objects.filter(
+            experiment_id=experiment_id,
+        )
+        if not configs.exists():
+            return ScoringService.MAX_ADJUSTMENT_DEFAULT
+        return max(cfg.max_adjustment for cfg in configs)

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from apps.scoring.models import (
     Experiment, ScoringMetric, ScoreSheet, ExperimentScoringConfig,
@@ -12,6 +12,11 @@ from apps.scoring.serializers import (
     ScoreSheetSerializer, ExperimentScoringConfigSerializer,
 )
 from apps.scoring.services import ScoringService
+
+
+class IsTeacherOrAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.user_type in ('teacher', 'admin')
 
 
 class ExperimentViewSet(viewsets.ModelViewSet):
@@ -24,6 +29,11 @@ class ExperimentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(status='active')
         return qs
 
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsAuthenticated(), IsTeacherOrAdmin()]
+        return [IsAuthenticated()]
+
 
 class ScoringMetricViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ScoringMetric.objects.filter(is_active=True)
@@ -31,7 +41,8 @@ class ScoringMetricViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-class ScoreSheetViewSet(viewsets.ModelViewSet):
+class ScoreSheetViewSet(viewsets.ReadOnlyModelViewSet):
+    """评分表只读，写操作通过 review/recalculate action"""
     serializer_class = ScoreSheetSerializer
     permission_classes = [IsAuthenticated]
 
@@ -93,7 +104,7 @@ class ScoreSheetViewSet(viewsets.ModelViewSet):
 
 class ExperimentScoringConfigViewSet(viewsets.ModelViewSet):
     serializer_class = ExperimentScoringConfigSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def get_queryset(self):
         qs = ExperimentScoringConfig.objects.select_related('metric')
@@ -101,19 +112,3 @@ class ExperimentScoringConfigViewSet(viewsets.ModelViewSet):
         if experiment_id:
             qs = qs.filter(experiment_id=experiment_id)
         return qs
-
-    def create(self, request, *args, **kwargs):
-        if request.user.user_type not in ('teacher', 'admin'):
-            return Response(
-                {'code': 1, 'message': '只有教师才能配置权重'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().create(request, *args, **kwargs)
-
-    def update(self, request, *args, **kwargs):
-        if request.user.user_type not in ('teacher', 'admin'):
-            return Response(
-                {'code': 1, 'message': '只有教师才能配置权重'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().update(request, *args, **kwargs)
