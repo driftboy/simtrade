@@ -3,7 +3,8 @@ from apps.transactions.models import (
     Transaction, InquiryMessage, Contract,
     ContractSignature, TransactionLog, ContractAmendment,
     LetterOfCredit, LcAmendment, BankOperation,
-    PurchaseOrder, Shipment, InsurancePolicy
+    PurchaseOrder, Shipment, InsurancePolicy,
+    CustomsDeclaration, InspectionApplication
 )
 
 
@@ -133,4 +134,34 @@ class InsurancePolicyAdmin(admin.ModelAdmin):
     readonly_fields = [
         'created_at', 'updated_at',
         'underwritten_at', 'issued_at'
+    ]
+
+
+@admin.register(CustomsDeclaration)
+class CustomsDeclarationAdmin(admin.ModelAdmin):
+    list_display = [
+        'declaration_no', 'declarant', 'customs_office',
+        'hs_code', 'goods_name', 'total_value',
+        'duty_amount', 'vat_amount', 'status', 'created_at'
+    ]
+    list_filter = ['status', 'currency', 'created_at']
+    search_fields = ['declaration_no', 'hs_code', 'goods_name']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'reviewed_at', 'assessed_at', 'cleared_at', 'rejected_at'
+    ]
+
+
+@admin.register(InspectionApplication)
+class InspectionApplicationAdmin(admin.ModelAdmin):
+    list_display = [
+        'application_no', 'applicant', 'inspector',
+        'product_name', 'inspection_type',
+        'fee', 'status', 'created_at'
+    ]
+    list_filter = ['status', 'inspection_type', 'created_at']
+    search_fields = ['application_no', 'product_name', 'certificate_no']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'inspecting_at', 'passed_at', 'certified_at', 'failed_at'
     ]
