@@ -1,5 +1,5 @@
 from django.contrib import admin
-from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
+from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment, Assignment, AssignmentSubmission, ExperimentTemplate, ExperimentGroup
 
 
 class CourseTeacherInline(admin.TabularInline):
@@ -38,3 +38,32 @@ class StudentEnrollmentAdmin(admin.ModelAdmin):
     list_filter = ['status', 'role']
     search_fields = ['student__username', 'teaching_class__name']
     readonly_fields = ['enrolled_at']
+
+
+@admin.register(ExperimentTemplate)
+class ExperimentTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'is_public', 'use_count', 'created_by']
+    list_filter = ['is_public']
+    search_fields = ['name']
+    readonly_fields = ['use_count', 'created_at', 'updated_at']
+
+
+@admin.register(ExperimentGroup)
+class ExperimentGroupAdmin(admin.ModelAdmin):
+    list_display = ['group_name', 'experiment', 'company']
+    search_fields = ['group_name']
+
+
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+    list_display = ['title', 'teaching_class', 'assignment_type', 'max_score', 'due_date']
+    list_filter = ['assignment_type', 'teaching_class']
+    search_fields = ['title']
+
+
+@admin.register(AssignmentSubmission)
+class AssignmentSubmissionAdmin(admin.ModelAdmin):
+    list_display = ['assignment', 'student', 'status', 'score', 'submitted_at']
+    list_filter = ['status']
+    search_fields = ['student__username', 'assignment__title']
+    readonly_fields = ['submitted_at', 'graded_at']

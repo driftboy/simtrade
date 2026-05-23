@@ -4,7 +4,7 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from apps.teaching.models import (
     Semester, Course, TeachingClass, StudentEnrollment,
-    ExperimentTemplate, ExperimentGroup,
+    ExperimentTemplate, ExperimentGroup, Assignment, AssignmentSubmission,
 )
 from apps.users.models import User
 
@@ -188,3 +188,54 @@ def test_create_experiment_group():
         experiment=experiment, company=company, group_name='A 组',
     )
     assert group.group_name == 'A 组'
+
+
+# === Assignment + AssignmentSubmission ===
+
+
+def _make_assignment():
+    semester = Semester.objects.create(
+        name='学期', code=f'ASM-SEM-{random.randint(10000,99999)}',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='课', code=f'ASM-C-{random.randint(10000,99999)}',
+    )
+    cls = TeachingClass.objects.create(course=course, name='作业班')
+    return Assignment.objects.create(
+        teaching_class=cls, title='第一次作业',
+        description='完成案例分析', assignment_type='homework',
+        max_score=100, due_date=date(2026, 4, 1),
+    )
+
+
+@pytest.mark.django_db
+def test_create_assignment():
+    assignment = _make_assignment()
+    assert assignment.title == '第一次作业'
+    assert assignment.assignment_type == 'homework'
+    assert assignment.allow_late is False
+
+
+@pytest.mark.django_db
+def test_create_submission():
+    assignment = _make_assignment()
+    student = User.objects.create_user(
+        username='substu', password='pass', email='substu@test.com',
+    )
+    submission = AssignmentSubmission.objects.create(
+        assignment=assignment, student=student, content='我的作业内容',
+    )
+    assert submission.status == 'not_submitted'
+    assert submission.score is None
+
+
+@pytest.mark.django_db
+def test_submission_unique():
+    assignment = _make_assignment()
+    student = User.objects.create_user(
+        username='substu2', password='pass', email='substu2@test.com',
+    )
+    AssignmentSubmission.objects.create(assignment=assignment, student=student)
+    with pytest.raises(Exception):
+        AssignmentSubmission.objects.create(assignment=assignment, student=student)

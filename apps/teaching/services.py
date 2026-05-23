@@ -1,12 +1,13 @@
 import string
 
+from django.db.models import Avg
 from django.utils import timezone
 from apps.teaching.models import (
     Semester, Course, TeachingClass, StudentEnrollment,
-    ExperimentGroup, ExperimentTemplate,
+    ExperimentGroup, ExperimentTemplate, Assignment, AssignmentSubmission,
 )
 from apps.roles.models import Company, TradeRole, UserCompanyRole
-from apps.scoring.models import Experiment
+from apps.scoring.models import Experiment, ScoreSheet
 
 
 class SemesterService:
@@ -205,3 +206,142 @@ class ExperimentOrchestrationService:
         return ExperimentGroup.objects.filter(
             experiment_id=experiment_id,
         ).select_related('company')
+
+
+class AssignmentService:
+
+    @staticmethod
+    def create_assignment(user, teaching_class_id, **kwargs):
+        return Assignment.objects.create(
+            teaching_class_id=teaching_class_id,
+            created_by=user,
+            **kwargs,
+        )
+
+    @staticmethod
+    def submit(assignment_id, student, content='', attachment=None):
+        submission, _ = AssignmentSubmission.objects.get_or_create(
+            assignment_id=assignment_id,
+            student=student,
+            defaults={'status': 'not_submitted'},
+        )
+        submission.content = content
+        if attachment:
+            submission.attachment = attachment
+        submission.status = 'submitted'
+        submission.submitted_at = timezone.now()
+        submission.save()
+        return submission
+
+    @staticmethod
+    def grade(submission_id, teacher, score, feedback=''):
+        submission = AssignmentSubmission.objects.get(id=submission_id)
+        submission.score = score
+        submission.feedback = feedback
+        submission.status = 'graded'
+        submission.graded_by = teacher
+        submission.graded_at = timezone.now()
+        submission.save()
+        return submission
+
+
+class GradeReportService:
+
+    @staticmethod
+    def get_student_report(student, teaching_class_id):
+        teaching_class = TeachingClass.objects.select_related(
+            'course',
+        ).get(id=teaching_class_id)
+        course = teaching_class.course
+
+        # 实验成绩
+        experiment_ids = Experiment.objects.filter(
+            teaching_class=teaching_class,
+        ).values_list('id', flat=True)
+        score_sheets = ScoreSheet.objects.filter(
+            experiment_id__in=experiment_ids,
+            user=student, status='finalized',
+        )
+        experiment_score = (
+            score_sheets.aggregate(avg=Avg('final_score'))['avg'] or 0
+        )
+
+        # 作业成绩
+        assignment_ids = Assignment.objects.filter(
+            teaching_class=teaching_class,
+        ).values_list('id', flat=True)
+        submissions = AssignmentSubmission.objects.filter(
+            assignment_id__in=assignment_ids,
+            student=student, status='graded',
+        )
+        assignment_score = (
+            submissions.aggregate(avg=Avg('score'))['avg'] or 0
+        )
+
+        # 加权总分
+        total_score = (
+            float(experiment_score) * float(course.experiment_weight)
+            + float(assignment_score) * float(course.assignment_weight)
+        )
+
+        return {
+            'student_id': student.id,
+            'student_username': student.username,
+            'teaching_class_id': teaching_class_id,
+            'experiment_score': round(experiment_score, 2),
+            'assignment_score': round(assignment_score, 2),
+            'total_score': round(total_score, 2),
+            'experiment_weight': float(course.experiment_weight),
+            'assignment_weight': float(course.assignment_weight),
+            'experiment_count': score_sheets.count(),
+            'assignment_count': submissions.count(),
+        }
+
+    @staticmethod
+    def get_class_report(teaching_class_id):
+        teaching_class = TeachingClass.objects.select_related(
+            'course',
+        ).get(id=teaching_class_id)
+        enrollments = StudentEnrollment.objects.filter(
+            teaching_class=teaching_class, status='enrolled',
+        ).select_related('student')
+
+        scores = []
+        for enrollment in enrollments:
+            report = GradeReportService.get_student_report(
+                enrollment.student, teaching_class_id,
+            )
+            scores.append(report)
+
+        if not scores:
+            return {
+                'teaching_class_id': teaching_class_id,
+                'student_count': 0,
+                'avg_score': 0, 'max_score': 0, 'min_score': 0,
+                'students': [],
+            }
+
+        total_scores = [s['total_score'] for s in scores]
+        return {
+            'teaching_class_id': teaching_class_id,
+            'student_count': len(scores),
+            'avg_score': round(sum(total_scores) / len(total_scores), 2),
+            'max_score': round(max(total_scores), 2),
+            'min_score': round(min(total_scores), 2),
+            'students': scores,
+        }
+
+    @staticmethod
+    def get_course_report(course_id):
+        course = Course.objects.get(id=course_id)
+        classes = TeachingClass.objects.filter(course=course)
+        class_reports = []
+        for cls in classes:
+            report = GradeReportService.get_class_report(cls.id)
+            class_reports.append(report)
+        return {
+            'course_id': course_id,
+            'course_name': course.name,
+            'class_count': len(class_reports),
+            'class_reports': class_reports,
+        }

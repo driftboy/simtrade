@@ -242,3 +242,84 @@ class ExperimentGroup(models.Model):
 
     def __str__(self):
         return f'{self.experiment.name} - {self.group_name}'
+
+
+class Assignment(models.Model):
+    """作业/任务"""
+    class AssignmentType(models.TextChoices):
+        HOMEWORK = 'homework', '作业'
+        QUIZ = 'quiz', '测验'
+        REPORT = 'report', '报告'
+
+    teaching_class = models.ForeignKey(
+        TeachingClass, on_delete=models.CASCADE, related_name='assignments',
+    )
+    title = models.CharField('标题', max_length=200)
+    description = models.TextField('要求说明', blank=True)
+    assignment_type = models.CharField(
+        '类型', max_length=20,
+        choices=AssignmentType.choices, default=AssignmentType.HOMEWORK,
+    )
+    max_score = models.DecimalField('满分', max_digits=6, decimal_places=2, default=100)
+    due_date = models.DateTimeField('截止时间')
+    allow_late = models.BooleanField('允许迟交', default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True,
+        related_name='created_assignments',
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'assignments'
+        verbose_name = '作业'
+        verbose_name_plural = '作业'
+        ordering = ['-due_date']
+
+    def __str__(self):
+        return f'{self.teaching_class.name} - {self.title}'
+
+
+class AssignmentSubmission(models.Model):
+    """学生作业提交"""
+    class Status(models.TextChoices):
+        NOT_SUBMITTED = 'not_submitted', '未提交'
+        SUBMITTED = 'submitted', '已提交'
+        GRADED = 'graded', '已评分'
+        LATE = 'late', '迟交'
+
+    assignment = models.ForeignKey(
+        Assignment, on_delete=models.CASCADE, related_name='submissions',
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE, related_name='assignment_submissions',
+    )
+    content = models.TextField('文字提交', blank=True)
+    attachment = models.FileField('附件', upload_to='assignment_submissions/', blank=True)
+    score = models.DecimalField('得分', max_digits=6, decimal_places=2, null=True, blank=True)
+    feedback = models.TextField('教师反馈', blank=True)
+    status = models.CharField(
+        '状态', max_length=20,
+        choices=Status.choices, default=Status.NOT_SUBMITTED,
+    )
+    submitted_at = models.DateTimeField('提交时间', null=True, blank=True)
+    graded_at = models.DateTimeField('评分时间', null=True, blank=True)
+    graded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='graded_submissions',
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'assignment_submissions'
+        verbose_name = '作业提交'
+        verbose_name_plural = '作业提交'
+        ordering = ['-submitted_at']
+        unique_together = [['assignment', 'student']]
+
+    def __str__(self):
+        return f'{self.student.username} - {self.assignment.title}'

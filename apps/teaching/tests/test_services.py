@@ -2,10 +2,10 @@ import pytest
 import random
 from datetime import date
 from apps.users.models import User
-from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
+from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment, Assignment
 from apps.teaching.services import (
     SemesterService, CourseService, TeachingClassService,
-    ExperimentOrchestrationService,
+    ExperimentOrchestrationService, AssignmentService,
 )
 
 
@@ -257,3 +257,73 @@ def test_batch_assign_roles():
     assert len(assignments) == 5
     role_codes = set(a.role.code for a in assignments)
     assert len(role_codes) == 5
+
+
+# === AssignmentService ===
+
+
+@pytest.mark.django_db
+def test_create_assignment_svc(teacher):
+    semester = Semester.objects.create(
+        name='学期', code=f'ASSEM-{random.randint(10000,99999)}',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='课', code=f'ASC-{random.randint(10000,99999)}',
+    )
+    cls = TeachingClass.objects.create(course=course, name='班')
+    assignment = AssignmentService.create_assignment(
+        user=teacher, teaching_class_id=cls.id,
+        title='作业1', max_score=100, due_date='2026-04-01T23:59:59Z',
+    )
+    assert assignment.title == '作业1'
+    assert assignment.created_by == teacher
+
+
+@pytest.mark.django_db
+def test_submit_assignment(student):
+    semester = Semester.objects.create(
+        name='学期', code=f'ASSEM2-{random.randint(10000,99999)}',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='课', code=f'ASC2-{random.randint(10000,99999)}',
+    )
+    cls = TeachingClass.objects.create(course=course, name='班')
+    assignment = Assignment.objects.create(
+        teaching_class=cls, title='作业', max_score=100,
+        due_date='2026-04-01T23:59:59Z',
+    )
+    submission = AssignmentService.submit(
+        assignment_id=assignment.id, student=student, content='我的答案',
+    )
+    assert submission.status == 'submitted'
+    assert submission.content == '我的答案'
+    assert submission.submitted_at is not None
+
+
+@pytest.mark.django_db
+def test_grade_submission(teacher, student):
+    semester = Semester.objects.create(
+        name='学期', code=f'ASSEM3-{random.randint(10000,99999)}',
+        start_date=date(2026, 2, 1), end_date=date(2026, 6, 30),
+    )
+    course = Course.objects.create(
+        semester=semester, name='课', code=f'ASC3-{random.randint(10000,99999)}',
+    )
+    cls = TeachingClass.objects.create(course=course, name='班')
+    assignment = Assignment.objects.create(
+        teaching_class=cls, title='作业', max_score=100,
+        due_date='2026-04-01T23:59:59Z',
+    )
+    submission = AssignmentService.submit(
+        assignment_id=assignment.id, student=student, content='答案',
+    )
+    graded = AssignmentService.grade(
+        submission_id=submission.id, teacher=teacher,
+        score=85.5, feedback='做得不错',
+    )
+    assert graded.score == 85.5
+    assert graded.status == 'graded'
+    assert graded.graded_by == teacher
+    assert graded.feedback == '做得不错'
