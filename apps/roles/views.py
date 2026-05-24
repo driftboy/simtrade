@@ -151,7 +151,7 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
             400: Invalid parameters or business logic error
             403: Permission denied
         """
-        if not request.user.is_staff:
+        if not (request.user.is_staff or request.user.user_type == 'teacher'):
             return Response({
                 'code': 2001,
                 'message': '无权限操作'
@@ -197,7 +197,7 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
             400: Invalid parameters or business logic error
             403: Permission denied
         """
-        if not request.user.is_staff:
+        if not (request.user.is_staff or request.user.user_type == 'teacher'):
             return Response({
                 'code': 2001,
                 'message': '无权限操作'
@@ -238,7 +238,7 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
             200: List of pending requests
             403: Permission denied
         """
-        if not request.user.is_staff:
+        if not (request.user.is_staff or request.user.user_type == 'teacher'):
             return Response({
                 'code': 2001,
                 'message': '无权限操作'
