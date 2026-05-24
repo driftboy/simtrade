@@ -226,17 +226,13 @@ ROLE_CONFIGS = {
 
 @login_required
 def dashboard_view(request):
-    """Dashboard / home page"""
-    current_role = RoleService.get_current_role(request.user)
-    context = {
-        'current_role': current_role,
-        'user': request.user,
-    }
-    if current_role:
-        role_code = current_role.role.code
-        context['role_code'] = role_code
-        context['role_config'] = ROLE_CONFIGS.get(role_code, {})
-    return render(request, 'dashboard.html', context)
+    """根据用户类型分发仪表盘"""
+    user_type = request.user.user_type
+    if user_type == 'admin':
+        return render(request, 'dashboard/admin.html', {'user': request.user})
+    elif user_type == 'teacher':
+        return render(request, 'dashboard/teacher.html', {'user': request.user})
+    return render(request, 'dashboard/student.html', {'user': request.user})
 
 
 @login_required
@@ -250,7 +246,7 @@ def workspace_view(request, role_code=None):
 
     # No role at all
     if not role_code and not current_role:
-        return render(request, 'workspace.html', {
+        return render(request, 'workspace/workspace.html', {
             'no_role': True,
             'user': request.user,
         })
@@ -258,7 +254,7 @@ def workspace_view(request, role_code=None):
     # Validate role_code exists in config
     role_config = ROLE_CONFIGS.get(role_code)
     if not role_config:
-        return render(request, 'workspace.html', {
+        return render(request, 'workspace/workspace.html', {
             'no_role': True,
             'user': request.user,
             'invalid_role': role_code,
@@ -279,7 +275,7 @@ def workspace_view(request, role_code=None):
         'actions': role_config.get('actions', []),
         'nav_items': role_config.get('nav_items', []),
     }
-    return render(request, 'workspace.html', context)
+    return render(request, 'workspace/workspace.html', context)
 
 
 @login_required
@@ -339,7 +335,7 @@ def admin_panel_users(request):
     """Admin panel user management"""
     if not request.user.is_staff:
         return redirect('dashboard')
-    return render(request, 'admin_panel/users.html', {'user': request.user})
+    return render(request, 'admin_panel/user_list.html', {'user': request.user})
 
 
 @login_required
