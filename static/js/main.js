@@ -291,6 +291,18 @@
         return false;
     }
 
+    /**
+     * HTML 转义
+     * @param {string} text - 要转义的文本
+     * @returns {string} 转义后的安全 HTML
+     */
+    function escapeHtml(text) {
+        if (!text) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
     // ==========================================
     // 全局初始化
     // ==========================================
@@ -338,6 +350,7 @@
         throttle: throttle,
         deepClone: deepClone,
         isEmpty: isEmpty,
+        escapeHtml: escapeHtml,
         getCSRFToken: getCSRFToken
     };
 
