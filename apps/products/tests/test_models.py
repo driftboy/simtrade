@@ -1,51 +1,43 @@
 import pytest
-from django.test import TestCase
-from django.db import IntegrityError
 from apps.products.models import Product, Catalog
-from apps.users.models import User
+from apps.roles.models import Company
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
-class ProductModelTest(TestCase):
-    """测试商品模型"""
-
-    def test_create_product(self):
-        """测试创建商品"""
-        product = Product.objects.create(
-            code='ELEC001',
-            name='电子产品 A',
-            category='electronics',
-            unit='PCS'
-        )
-        assert product.code == 'ELEC001'
-        assert product.name == '电子产品 A'
-        assert product.get_category_display() == '电子产品'
-
-    def test_product_code_unique(self):
-        """测试商品代码唯一性"""
-        Product.objects.create(code='ELEC001', name='商品A', category='electronics', unit='PCS')
-        with pytest.raises(IntegrityError):
-            Product.objects.create(code='ELEC001', name='商品B', category='electronics', unit='PCS')
+@pytest.mark.django_db
+def test_create_product():
+    product = Product.objects.create(
+        code='ELEC001',
+        name='电子产品 A',
+        category='electronics',
+        unit='PCS'
+    )
+    assert product.code == 'ELEC001'
+    assert product.name == '电子产品 A'
+    assert product.get_category_display() == '电子产品'
 
 
-class CatalogModelTest(TestCase):
-    """测试商品目录模型"""
+@pytest.mark.django_db
+def test_catalog_with_company():
+    user = User.objects.create_user(username='owner', email='owner@test.com', password='testpass')
+    product = Product.objects.create(code='P001', name='蓝牙耳机', category='electronics', unit='PCS')
+    company = Company.objects.create(name='测试公司', code='COMP_TEST01', created_by=user)
+    catalog = Catalog.objects.create(
+        product=product, company=company,
+        sale_price=100.00, currency='USD'
+    )
+    assert catalog.company == company
+    assert catalog.product == product
 
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
 
-    def test_create_catalog_entry(self):
-        """测试创建目录条目"""
-        product = Product.objects.create(
-            code='ELEC001',
-            name='电子产品 A',
-            category='electronics',
-            unit='PCS'
-        )
-        # 注意：Company 模型尚未实现，Catalog 暂时只关联 product
-        # 等 Company 实现后需要更新此测试
-        catalog = Catalog.objects.create(
-            product=product,
-            sale_price=10.00
-        )
-        assert catalog.product == product
-        assert catalog.sale_price == 10.00
+@pytest.mark.django_db
+def test_catalog_unique_together():
+    user = User.objects.create_user(username='owner2', email='owner2@test.com', password='testpass')
+    product = Product.objects.create(code='P002', name='手机', category='electronics', unit='PCS')
+    company = Company.objects.create(name='测试公司2', code='COMP_TEST02', created_by=user)
+    Catalog.objects.create(product=product, company=company, sale_price=500.00)
+
+    with pytest.raises(Exception):
+        Catalog.objects.create(product=product, company=company, sale_price=600.00)

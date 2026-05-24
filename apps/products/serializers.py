@@ -18,9 +18,11 @@ class CatalogSerializer(serializers.ModelSerializer):
     """商品目录序列化器"""
 
     product_detail = ProductSerializer(source='product', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
 
     class Meta:
         model = Catalog
-        fields = ['id', 'product', 'product_detail', 'sale_price', 'currency',
-                  'min_order', 'max_order', 'lead_time', 'is_available', 'created_at']
+        fields = ['id', 'product', 'product_detail', 'company', 'company_name',
+                  'sale_price', 'currency', 'min_order', 'max_order', 'lead_time',
+                  'is_available', 'created_at']
         read_only_fields = ['id', 'created_at']
