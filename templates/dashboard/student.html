@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}学生仪表盘 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>欢迎回来，{{ user.username }}</h2>
+    <p class="text-muted">当前角色：<span id="stat-active-role">加载中...</span></p>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row dashboard-stats">
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-transfer"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-active-transactions">-</div>
+            <div class="dash-stat-label">活跃交易</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-file"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-pending-documents">-</div>
+            <div class="dash-stat-label">待处理单证</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-envelope"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-unread-count">-</div>
+            <div class="dash-stat-label">未读通知</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-user"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-active-role">-</div>
+            <div class="dash-stat-label">已激活角色</div>
+        </div>
+    </div>
+</div>
+
+<!-- 两栏内容 -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="dash-section">
+            <h3>最近交易动态</h3>
+            <div id="recent-activity">
+                <div class="text-muted">加载中...</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="dash-section">
+            <h3>待办事项</h3>
+            <div id="todo-list">
+                <div class="dash-todo-item">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                    检查待处理的交易询盘
+                </div>
+                <div class="dash-todo-item todo-warning">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                    完成到期单证的填制
+                </div>
+                <div class="dash-todo-item todo-danger">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                    确认信用证条款
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快捷操作 -->
+<div class="dash-quick-actions">
+    <h3>快捷操作</h3>
+    <a href="/workspace/" class="btn btn-primary">
+        <span class="glyphicon glyphicon-briefcase"></span> 进入工作台
+    </a>
+    <a href="/market/" class="btn btn-success">
+        <span class="glyphicon glyphicon-shopping-cart"></span> 浏览市场
+    </a>
+    <a href="/transactions/" class="btn btn-info">
+        <span class="glyphicon glyphicon-list"></span> 我的交易
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+window.dashboardUserType = 'student';
+</script>
+{% endblock %}

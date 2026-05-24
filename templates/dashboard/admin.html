@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}管理员仪表盘 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>系统管理面板</h2>
+    <p class="text-muted">欢迎回来，{{ user.username }}</p>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row dashboard-stats">
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-user"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-users">-</div>
+            <div class="dash-stat-label">注册用户</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-calendar"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-active-semesters">-</div>
+            <div class="dash-stat-label">活跃学期</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-home"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-companies">-</div>
+            <div class="dash-stat-label">虚拟公司</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">
+                <span class="glyphicon glyphicon-transfer"></span>
+            </div>
+            <div class="dash-stat-value" id="stat-transactions">-</div>
+            <div class="dash-stat-label">交易总量</div>
+        </div>
+    </div>
+</div>
+
+<!-- 两栏内容 -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="dash-section">
+            <h3>系统状态</h3>
+            <div id="system-status">
+                <div class="dash-todo-item">
+                    <span class="glyphicon glyphicon-ok-sign text-success"></span>
+                    系统运行正常
+                </div>
+                <div class="dash-todo-item">
+                    <span class="glyphicon glyphicon-hdd text-info"></span>
+                    数据库连接正常
+                </div>
+                <div class="dash-todo-item todo-warning">
+                    <span class="glyphicon glyphicon-time"></span>
+                    最近备份：待检查
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="dash-section">
+            <h3>最近活动</h3>
+            <div id="recent-admin-activity">
+                <div class="text-muted">加载中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快捷操作 -->
+<div class="dash-quick-actions">
+    <h3>快捷操作</h3>
+    <a href="/admin-panel/users/" class="btn btn-primary">
+        <span class="glyphicon glyphicon-user"></span> 用户管理
+    </a>
+    <a href="/admin-panel/settings/" class="btn btn-warning">
+        <span class="glyphicon glyphicon-cog"></span> 系统配置
+    </a>
+    <a href="/teaching/" class="btn btn-info">
+        <span class="glyphicon glyphicon-education"></span> 教学管理
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+window.dashboardUserType = 'admin';
+</script>
+{% endblock %}
