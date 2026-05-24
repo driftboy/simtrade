@@ -281,6 +281,29 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
                 'message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='current')
+    def current(self, request):
+        """
+        Get current active role context.
+
+        Returns:
+            200: Current role data or null
+        """
+        assignment = RoleService.get_current_role(request.user)
+        if not assignment:
+            return Response({
+                'code': 0,
+                'message': 'success',
+                'data': None
+            }, status=status.HTTP_200_OK)
+
+        serializer = UserCompanyRoleSerializer(assignment)
+        return Response({
+            'code': 0,
+            'message': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
 
 class CompanyViewSet(viewsets.ModelViewSet):
     """

@@ -425,6 +425,36 @@ class TestUserCompanyRoleAPI:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data['code'] == 5005
 
+    def test_get_current_role(self, db):
+        """Test getting current active role."""
+        UserCompanyRole.objects.create(
+            user=self.student,
+            company=self.company,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.ACTIVE,
+            is_active=True
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get('/api/v1/my-roles/current/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['code'] == 0
+        assert response.data['data'] is not None
+        assert response.data['data']['company_name'] == '测试贸易公司'
+        assert response.data['data']['role_code'] == 'exporter'
+        assert response.data['data']['role_name'] == '出口商'
+        assert response.data['data']['is_active'] is True
+
+    def test_get_current_role_none(self, db):
+        """Test getting current role when user has no active role."""
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get('/api/v1/my-roles/current/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['code'] == 0
+        assert response.data['data'] is None
+
 
 class TestCompanyAPI:
     """Test cases for Company API."""
