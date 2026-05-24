@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}用户管理 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>用户管理</h2>
+        <hr>
+    </div>
+</div>
+
+<!-- 筛选和搜索 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <select id="filter-user-type" class="form-control">
+                            <option value="">所有类型</option>
+                            <option value="student">学生</option>
+                            <option value="teacher">教师</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" id="search-user" class="form-control" placeholder="搜索用户名或邮箱...">
+                    </div>
+                    <div class="col-md-3">
+                        <button id="btn-search-user" class="btn btn-primary btn-block">搜索</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户表格 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">用户列表</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>类型</th>
+                            <th>修改类型</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <tr><td colspan="6" class="text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/admin.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    loadUsers();
+
+    // 搜索按钮
+    $('#btn-search-user').on('click', function() {
+        loadUsers();
+    });
+
+    // 回车搜索
+    $('#search-user').keypress(function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            loadUsers();
+        }
+    });
+});
+</script>
+{% endblock %}

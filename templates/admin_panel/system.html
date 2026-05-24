@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}系统设置 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+<link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>系统设置</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 左栏: 学期管理 -->
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">学期管理</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>学期名称</th>
+                            <th>开始日期</th>
+                            <th>结束日期</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="semester-table-body">
+                        <tr><td colspan="5" class="text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右栏: 数据初始化 -->
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">数据初始化</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>命令</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>init_data</code></td>
+                            <td>初始化基础数据（角色、国家等）</td>
+                        </tr>
+                        <tr>
+                            <td><code>init_products</code></td>
+                            <td>初始化商品目录数据</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="text-muted">
+                    <small>请在 Django 管理命令行中执行上述命令进行数据初始化。例如: <code>python manage.py init_data</code></small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/admin.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    loadSemesters();
+});
+</script>
+{% endblock %}
