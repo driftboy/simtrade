@@ -37,10 +37,37 @@
                 <form id="create-course-form">
                     <div class="form-group">
                         <label for="course-semester">学期 <span class="text-danger">*</span></label>
-                        <select class="form-control" id="course-semester" name="semester" required>
-                            <option value="">请选择学期</option>
-                        </select>
+                        <div class="input-group">
+                            <select class="form-control" id="course-semester" name="semester" required>
+                                <option value="">请选择学期</option>
+                            </select>
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-success" id="btn-new-semester" title="新建学期">+</button>
+                            </span>
+                        </div>
                     </div>
+
+                    <!-- 新建学期表单（默认隐藏） -->
+                    <div id="new-semester-form" style="display:none; margin-bottom:15px; padding:10px; background:#f9f9f9; border:1px solid #ddd; border-radius:4px;">
+                        <h5 style="margin-top:0;">新建学期</h5>
+                        <div class="form-group">
+                            <input type="text" class="form-control input-sm" id="new-sem-name" placeholder="学期名称，如：2026春季学期">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-control input-sm" id="new-sem-code" placeholder="学期代码，如：2026-SPRING">
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-6">
+                                <input type="date" class="form-control input-sm" id="new-sem-start" placeholder="开始日期">
+                            </div>
+                            <div class="col-xs-6">
+                                <input type="date" class="form-control input-sm" id="new-sem-end" placeholder="结束日期">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" id="btn-submit-semester" style="margin-top:8px;">创建学期</button>
+                        <button type="button" class="btn btn-sm btn-default" id="btn-cancel-semester" style="margin-top:8px;">取消</button>
+                    </div>
+
                     <div class="form-group">
                         <label for="course-name">课程名称 <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="course-name" name="name" placeholder="请输入课程名称" required>
@@ -72,8 +99,7 @@ $(document).ready(function() {
 
     loadCourses();
 
-    // 加载学期下拉
-    $('#createCourseModal').on('show.bs.modal', function() {
+    function loadSemesters() {
         $.get('/api/v1/teaching/semesters/', function(resp) {
             var semesters = resp.data || [];
             var html = '<option value="">请选择学期</option>';
@@ -82,11 +108,69 @@ $(document).ready(function() {
             });
             $('#course-semester').html(html);
         });
+    }
+
+    // 打开模态框时加载学期
+    $('#createCourseModal').on('show.bs.modal', function() {
+        loadSemesters();
+        $('#new-semester-form').hide();
+    });
+
+    // 显示/隐藏新建学期表单
+    $('#btn-new-semester').on('click', function() {
+        $('#new-semester-form').toggle();
+    });
+    $('#btn-cancel-semester').on('click', function() {
+        $('#new-semester-form').hide();
+    });
+
+    // 提交新建学期
+    $('#btn-submit-semester').on('click', function() {
+        var name = $('#new-sem-name').val().trim();
+        var code = $('#new-sem-code').val().trim();
+        var startDate = $('#new-sem-start').val();
+        var endDate = $('#new-sem-end').val();
+
+        if (!name || !code || !startDate || !endDate) {
+            alert('请填写完整学期信息');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/v1/teaching/semesters/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                name: name, code: code,
+                start_date: startDate, end_date: endDate
+            }),
+            success: function(resp) {
+                var newId = resp.data ? resp.data.id : resp.id;
+                loadSemesters();
+                // 自动选中新创建的学期
+                setTimeout(function() {
+                    $('#course-semester').val(newId);
+                }, 200);
+                $('#new-semester-form').hide();
+                $('#new-sem-name, #new-sem-code, #new-sem-start, #new-sem-end').val('');
+                if (typeof SimTrade !== 'undefined' && SimTrade.showSuccess) {
+                    SimTrade.showSuccess('学期创建成功');
+                }
+            },
+            error: function(xhr) {
+                var msg = '创建学期失败';
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    else if (xhr.responseJSON.name) msg = '学期名称：' + xhr.responseJSON.name.join('; ');
+                    else if (xhr.responseJSON.code) msg = '学期代码：' + xhr.responseJSON.code.join('; ');
+                }
+                alert(msg);
+            }
+        });
     });
 
     // 提交创建课程
     $('#btn-submit-course').on('click', function() {
-        var $form = $('#create-course-form');
         var semester = $('#course-semester').val();
         var name = $('#course-name').val().trim();
         var code = $('#course-code').val().trim();
@@ -102,7 +186,7 @@ $(document).ready(function() {
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                semester: semester,
+                semester: parseInt(semester),
                 name: name,
                 code: code,
                 description: description
