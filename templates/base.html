@@ -41,7 +41,22 @@
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    <li><a href="/">首页</a></li>
+                    <li><a href="/dashboard/">仪表盘</a></li>
+                    {% if user.is_authenticated %}
+                        {% if user.user_type == 'student' %}
+                        <li><a href="/workspace/">工作台</a></li>
+                        {% endif %}
+                        {% if user.user_type == 'teacher' %}
+                        <li><a href="/teaching/">教学管理</a></li>
+                        {% endif %}
+                        {% if user.user_type == 'admin' %}
+                        <li><a href="/admin-panel/">管理后台</a></li>
+                        <li><a href="/teaching/">教学管理</a></li>
+                        {% endif %}
+                        <li><a href="/market/">市场</a></li>
+                        <li><a href="/transactions/">交易</a></li>
+                        <li><a href="/documents/">单证</a></li>
+                    {% endif %}
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     {% if user.is_authenticated %}
