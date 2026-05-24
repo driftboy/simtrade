@@ -153,15 +153,15 @@ ROLE_CONFIGS = {
             {'label': 'Production', 'icon': 'bi-gear', 'href': '/workspace/factory/'},
         ],
         'actions': [
-            {'label': 'Add Product', 'icon': 'bi-plus-circle', 'api': '/api/v1/products/', 'method': 'POST'},
-            {'label': 'Update Catalog', 'icon': 'bi-pencil', 'api': '/api/v1/catalogs/', 'method': 'POST'},
+            {'label': 'Add Product', 'icon': 'bi-plus-circle', 'api': '/api/v1/products/products/', 'method': 'POST'},
+            {'label': 'Update Catalog', 'icon': 'bi-pencil', 'api': '/api/v1/products/catalogs/', 'method': 'POST'},
         ],
         'stats': [
-            {'label': 'Products', 'icon': 'bi-boxes', 'api': '/api/v1/products/', 'color': 'primary'},
-            {'label': 'Catalogs', 'icon': 'bi-book', 'api': '/api/v1/catalogs/', 'color': 'success'},
+            {'label': 'Products', 'icon': 'bi-boxes', 'api': '/api/v1/products/products/', 'color': 'primary'},
+            {'label': 'Catalogs', 'icon': 'bi-book', 'api': '/api/v1/products/catalogs/', 'color': 'success'},
             {'label': 'Active Orders', 'icon': 'bi-bag', 'api': '/api/v1/purchase-orders/', 'color': 'info'},
         ],
-        'list_api': '/api/v1/products/',
+        'list_api': '/api/v1/products/products/',
         'panel': 'provider',
     },
     'bank': {

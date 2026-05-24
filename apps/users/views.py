@@ -2,10 +2,11 @@
 API views for user authentication.
 """
 from django.contrib.auth import login, logout
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed
 
 from django.contrib.auth import get_user_model
@@ -152,3 +153,47 @@ class RegisterView(APIView):
 
         user = User.objects.create_user(username=username, password=password, email=email, user_type='student', student_id=student_id or '')
         return Response({'code': 0, 'message': '注册成功', 'data': {'id': user.id, 'username': user.username, 'user_type': user.user_type}}, status=status.HTTP_201_CREATED)
+
+
+class UserManagementViewSet(viewsets.ModelViewSet):
+    """Admin user management ViewSet."""
+    permission_classes = [IsAdminUser]
+    serializer_class = UserSerializer
+    queryset = User.objects.all().order_by('-id')
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user_type = self.request.query_params.get('user_type')
+        if user_type:
+            qs = qs.filter(user_type=user_type)
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(username__icontains=search) | qs.filter(email__icontains=search)
+        return qs
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def retrieve(self, request, pk=None):
+        user = self.get_object()
+        serializer = self.get_serializer(user)
+        return Response({'code': 0, 'message': 'success', 'data': serializer.data})
+
+    def partial_update(self, request, pk=None):
+        user = self.get_object()
+        user_type = request.data.get('user_type')
+        if user_type and user_type in ('student', 'teacher', 'admin'):
+            user.user_type = user_type
+            user.save(update_fields=['user_type'])
+        serializer = self.get_serializer(user)
+        return Response({'code': 0, 'message': '更新成功', 'data': serializer.data})
+
+    @action(detail=True, methods=['post'], url_path='reset-password')
+    def reset_password(self, request, pk=None):
+        user = self.get_object()
+        new_password = request.data.get('new_password', '123456')
+        user.set_password(new_password)
+        user.save()
+        return Response({'code': 0, 'message': '密码已重置'})

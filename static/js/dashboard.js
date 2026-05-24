@@ -20,10 +20,10 @@
             $('#stat-unread-count').text('-');
         });
 
-        $.get('/api/v1/roles/active/', function(resp) {
+        $.get('/api/v1/my-roles/current/', function(resp) {
             var role = resp.data;
-            if (role && role.name) {
-                $('#stat-active-role').text(role.name);
+            if (role && role.role_display) {
+                $('#stat-active-role').text(role.role_display);
             } else {
                 $('#stat-active-role').text('未选择');
             }
@@ -49,7 +49,7 @@
         });
 
         // 加载待处理单证数
-        $.get('/api/v1/documents/', {status: 'pending'}, function(resp) {
+        $.get('/api/v1/documents/documents/', {status: 'pending'}, function(resp) {
             var count = (resp.data && resp.data.length) || 0;
             $('#stat-pending-documents').text(count);
         }).fail(function() {
@@ -99,7 +99,7 @@
         });
 
         // 加载待审核角色
-        $.get('/api/v1/roles/', {status: 'pending'}, function(resp) {
+        $.get('/api/v1/my-roles/pending/', function(resp) {
             var count = (resp.data && resp.data.length) || 0;
             $('#stat-pending-roles').text(count);
         }).fail(function() {
@@ -116,7 +116,7 @@
      */
     function loadAdminData() {
         // 加载学期数据
-        $.get('/api/v1/admin/semesters/', function(resp) {
+        $.get('/api/v1/teaching/semesters/', function(resp) {
             var data = resp.data || [];
             var activeCount = 0;
             for (var i = 0; i < data.length; i++) {
