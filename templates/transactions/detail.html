@@ -48,7 +48,7 @@ $(document).ready(function() {
 
     function loadTransactionDetail() {
         $.ajax({
-            url: '/api/v1/transactions/transactions/' + transactionId + '/',
+            url: '/api/v1/transactions/' + transactionId + '/',
             method: 'GET',
             success: function(response) {
                 var tx = response.data;
@@ -82,7 +82,7 @@ $(document).ready(function() {
 
     function loadMessages() {
         $.ajax({
-            url: '/api/v1/transactions/transactions/' + transactionId + '/messages/',
+            url: '/api/v1/transactions/' + transactionId + '/messages/',
             method: 'GET',
             success: function(response) {
                 var html = '<div class="clearfix">';
@@ -124,7 +124,7 @@ $(document).ready(function() {
         };
 
         $.ajax({
-            url: '/api/v1/transactions/transactions/' + transactionId + '/send_message/',
+            url: '/api/v1/transactions/' + transactionId + '/send_message/',
             method: 'POST',
             data: JSON.stringify(data),
             contentType: 'application/json',
