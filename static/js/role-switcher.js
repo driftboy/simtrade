@@ -102,7 +102,7 @@
             url: '/api/v1/my-roles/' + assignmentId + '/activate/',
             type: 'POST',
             success: function() {
-                window.location.reload();
+                window.location.href = '/workspace/';
             },
             error: function(xhr) {
                 var msg = '角色切换失败';
