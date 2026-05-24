@@ -15,18 +15,15 @@ class Transaction(models.Model):
         COMPLETED = 'completed', '已完成'
         CANCELLED = 'cancelled', '已取消'
 
-    # 迁移过渡期：允许 NULL，之后改为非空
     buyer = models.ForeignKey(
         'roles.Company',
         on_delete=models.PROTECT,
-        related_name='buying_transactions',
-        null=True
+        related_name='buying_transactions'
     )
     seller = models.ForeignKey(
         'roles.Company',
         on_delete=models.PROTECT,
-        related_name='selling_transactions',
-        null=True
+        related_name='selling_transactions'
     )
     product_id = models.IntegerField('商品ID')  # 外键待 Product 表确定后调整
     status = models.CharField(
