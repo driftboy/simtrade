@@ -10,6 +10,7 @@ from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.roles.models import TradeRole, UserCompanyRole
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -55,9 +56,10 @@ class ShipmentInsuranceAPITest(TestCase):
         setup_role(self.carrier_user, self.carrier_company, 'shipping')
         setup_role(self.insurer_user, self.insurer_company, 'insurance')
 
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company, seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.contract = Contract.objects.create(

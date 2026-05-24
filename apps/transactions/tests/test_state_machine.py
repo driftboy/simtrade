@@ -5,6 +5,7 @@ from apps.users.models import User
 from apps.transactions.services import TransactionService
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -39,13 +40,14 @@ class TransactionStateMachineTest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
         self.buyer_company = create_company_for_user(self.buyer, '_状态机买方')
         self.seller_company = create_company_for_user(self.seller, '_状态机卖方')
+        self.product = Product.objects.create(code='SM-P001', name='State Machine Product', category='electronics', unit='PCS')
 
     def test_inquiring_to_negotiating(self):
         """测试从询盘到还盘的状态转换"""
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='inquiring'
@@ -67,7 +69,7 @@ class TransactionStateMachineTest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='negotiating'
@@ -89,7 +91,7 @@ class TransactionStateMachineTest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='inquiring'

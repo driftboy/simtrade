@@ -6,6 +6,7 @@ from apps.transactions.models import Transaction, PurchaseOrder
 from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -38,10 +39,11 @@ class PurchaseOrderModelTest(TestCase):
         )
         self.exporter_company = create_company_for_user(self.exporter, '_出口商')
         self.factory_company = create_company_for_user(self.factory_user, '_工厂')
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.exporter_company,
             seller=self.factory_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='in_progress',

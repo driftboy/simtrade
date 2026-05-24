@@ -6,6 +6,7 @@ from apps.transactions.models import Transaction, Contract, Shipment
 from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -34,10 +35,11 @@ class ShipmentModelTest(TestCase):
         self.exporter_company = create_company_for_user(self.exporter, '_货运出口商')
         self.carrier_company = create_company_for_user(self.carrier_user, '_货运公司')
         self.buyer_company = create_company_for_user(self.buyer_user, '_货运买方')
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.contract = Contract.objects.create(
@@ -78,9 +80,11 @@ class ShipmentModelTest(TestCase):
             created_by=self.exporter
         )
         # 需要另一个合同因为 OneToOne
+        self.product = Product.objects.create(code='FIX-P0002', name='Test Product', category='electronics', unit='PCS')
+        self.product2 = Product.objects.create(code='FIX-Q0002', name='Test Product 2', category='electronics', unit='PCS')
         txn2 = Transaction.objects.create(
             buyer=self.buyer_company, seller=self.exporter_company,
-            product_id=2, quantity=100, unit_price=5.00,
+            product=self.product2, quantity=100, unit_price=5.00,
             created_by=self.exporter
         )
         c2 = Contract.objects.create(

@@ -9,6 +9,7 @@ from apps.users.models import User
 from apps.transactions.services import TransactionService, ContractService, LetterOfCreditService
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -43,6 +44,7 @@ class TransactionIntegrationTest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
         self.buyer_company = create_company_for_user(self.buyer, '_集成买方')
         self.seller_company = create_company_for_user(self.seller, '_集成卖方')
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
 
     def test_complete_negotiation_flow(self):
         """测试完整磋商流程：询盘 -> 发盘 -> 还盘 -> 接受 -> 待签约"""
@@ -50,7 +52,7 @@ class TransactionIntegrationTest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='inquiring'
@@ -124,10 +126,11 @@ class ContractIntegrationTest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
         self.buyer_company = create_company_for_user(self.buyer, '_集成合同买方')
         self.seller_company = create_company_for_user(self.seller, '_集成合同卖方')
+        self.product = Product.objects.create(code='FIX-P0002', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -215,10 +218,11 @@ class LetterOfCreditIntegrationTest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
         self.buyer_company = create_company_for_user(self.buyer, '_集成LC买方')
         self.seller_company = create_company_for_user(self.seller, '_集成LC卖方')
+        self.product = Product.objects.create(code='FIX-P0003', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='contracted'
@@ -335,6 +339,7 @@ class CompleteWorkflowTest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
         self.buyer_company = create_company_for_user(self.buyer, '_集成完整买方')
         self.seller_company = create_company_for_user(self.seller, '_集成完整卖方')
+        self.product = Product.objects.create(code='FIX-P0004', name='Test Product', category='electronics', unit='PCS')
 
     def test_complete_trade_workflow(self):
         """测试完整贸易流程：询盘 -> 合同 -> 信用证 -> 结算"""
@@ -342,7 +347,7 @@ class CompleteWorkflowTest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'

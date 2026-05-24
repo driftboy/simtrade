@@ -10,6 +10,7 @@ from apps.transactions.services import ContractService, LetterOfCreditService, S
 from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -53,10 +54,11 @@ class ContractServiceTest(TestCase):
         )
         self.buyer_company = create_company_for_user(self.buyer, '_服务买方')
         self.seller_company = create_company_for_user(self.seller, '_服务卖方')
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract',
@@ -532,10 +534,11 @@ class LetterOfCreditServiceTest(TestCase):
         )
         self.buyer_company = create_company_for_user(self.buyer, '_服务LC买方')
         self.seller_company = create_company_for_user(self.seller, '_服务LC卖方')
+        self.product = Product.objects.create(code='FIX-P0002', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract',
@@ -1119,10 +1122,11 @@ class StateTransitionServiceTest(TestCase):
         )
         self.buyer_company = create_company_for_user(self.buyer, '_服务状态买方')
         self.seller_company = create_company_for_user(self.seller, '_服务状态卖方')
+        self.product = Product.objects.create(code='FIX-P0003', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='contracted',

@@ -9,6 +9,7 @@ from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.roles.models import TradeRole, UserCompanyRole
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -50,9 +51,10 @@ class PurchaseOrderAPITest(TestCase):
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
         setup_role(self.importer, self.importer_company, 'importer')
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.importer_company, seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.importer
         )
         self.client = APIClient()

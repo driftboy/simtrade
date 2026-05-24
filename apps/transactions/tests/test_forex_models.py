@@ -7,6 +7,7 @@ from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.roles.models import TradeRole, UserCompanyRole
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -37,9 +38,10 @@ def setup_role(user, company, role_code):
 def create_cleared_declaration(seller_company, buyer_company, carrier_company,
                                 customs_company, seller_user, carrier_user, customs_user):
     from apps.transactions.models import Transaction, Contract
+    product = Product.objects.get_or_create(code='HLP-P01', defaults={'name': 'Helper Product', 'category': 'electronics', 'unit': 'PCS'})[0]
     transaction = Transaction.objects.create(
         buyer=buyer_company, seller=seller_company,
-        product_id=1, quantity=1000, unit_price=10.00,
+        product=product, quantity=1000, unit_price=10.00,
         status='in_progress', created_by=seller_user
     )
     contract = Contract.objects.create(

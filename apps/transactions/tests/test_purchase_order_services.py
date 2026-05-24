@@ -7,6 +7,7 @@ from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.roles.models import TradeRole, UserCompanyRole
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -54,9 +55,11 @@ class PurchaseOrderServiceCreateTest(TestCase):
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
         setup_role(self.importer, self.importer_company, 'importer')
+        self.product = Product.objects.create(code='POS-P0001', name='Test Product', category='electronics', unit='PCS')
+        self.product2 = Product.objects.create(code='POS-Q0001', name='Test Product 2', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.importer_company, seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.importer
         )
 
@@ -83,7 +86,7 @@ class PurchaseOrderServiceCreateTest(TestCase):
     def test_create_order_wrong_company_rejected(self):
         other_txn = Transaction.objects.create(
             buyer=self.importer_company, seller=self.factory_company,
-            product_id=2, quantity=100, unit_price=5.00, created_by=self.importer
+            product=self.product2, quantity=100, unit_price=5.00, created_by=self.importer
         )
         with pytest.raises(ValueError, match='只能为自己的出口交易创建采购订单'):
             PurchaseOrderService.create_order(
@@ -104,9 +107,10 @@ class PurchaseOrderServiceConfirmTest(TestCase):
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
         imp = User.objects.create_user('cf_imp', 'p', 'ci@t.com')
+        self.product = Product.objects.create(code='POS-P0002', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=create_company_for_user(imp, '_确认进口商'), seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.po = PurchaseOrderService.create_order(
@@ -142,9 +146,10 @@ class PurchaseOrderServiceShipTest(TestCase):
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
         imp = User.objects.create_user('sh_imp', 'p', 'shi@t.com')
+        self.product = Product.objects.create(code='POS-P0003', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=create_company_for_user(imp, '_发货进口商'), seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.po = PurchaseOrderService.create_order(
@@ -175,9 +180,10 @@ class PurchaseOrderServiceInvoiceTest(TestCase):
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
         imp = User.objects.create_user('inv_imp', 'p', 'ii@t.com')
+        self.product = Product.objects.create(code='POS-P0004', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=create_company_for_user(imp, '_开票进口商'), seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.po = PurchaseOrderService.create_order(
@@ -205,9 +211,10 @@ class PurchaseOrderServiceCompleteTest(TestCase):
         setup_role(self.exporter, self.exporter_company, 'exporter')
         setup_role(self.factory_user, self.factory_company, 'factory')
         imp = User.objects.create_user('cp_imp', 'p', 'cpi@t.com')
+        self.product = Product.objects.create(code='POS-P0005', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=create_company_for_user(imp, '_完成进口商'), seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.po = PurchaseOrderService.create_order(
@@ -241,9 +248,10 @@ class PurchaseOrderServiceCancelTest(TestCase):
         setup_role(self.factory_user, self.factory_company, 'factory')
         self.importer = User.objects.create_user('cx_imp', 'p', 'cai@t.com')
         self.importer_company = create_company_for_user(self.importer, '_取消进口商')
+        self.product = Product.objects.create(code='POS-P0006', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.importer_company, seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
 
