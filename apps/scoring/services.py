@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Dict, List, Tuple
 
 from django.utils import timezone
 
@@ -17,13 +18,13 @@ class ScoreAggregator:
 
     @staticmethod
     def aggregate(
-        scores: list[tuple[ScoringMetric, Decimal]],
-        configs: list[ExperimentScoringConfig],
+        scores: List[Tuple[ScoringMetric, Decimal]],
+        configs: List[ExperimentScoringConfig],
     ) -> Decimal:
         if not scores:
             return Decimal('0')
 
-        config_map: dict[int, Decimal] = {}
+        config_map: Dict[int, Decimal] = {}
         for cfg in configs:
             config_map[cfg.metric_id] = cfg.custom_weight
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
-from typing import Tuple, Optional
+from typing import Dict, Optional, Tuple, Type
 
 
 MetricResult = Tuple[Optional[Decimal], Decimal, dict]
@@ -265,7 +265,7 @@ class NegotiationEfficiencyCalculator(MetricCalculator):
 
 
 # 注册表：calculation_method -> Calculator 类
-CALCULATOR_REGISTRY: dict[str, type[MetricCalculator]] = {
+CALCULATOR_REGISTRY: Dict[str, Type[MetricCalculator]] = {
     'profit_margin': ProfitMarginCalculator,
     'cost_control': CostControlCalculator,
     'document_accuracy': DocumentAccuracyCalculator,
@@ -279,7 +279,7 @@ CALCULATOR_REGISTRY: dict[str, type[MetricCalculator]] = {
 }
 
 
-def get_calculator(method: str) -> type[MetricCalculator]:
+def get_calculator(method: str) -> Type[MetricCalculator]:
     cls = CALCULATOR_REGISTRY.get(method)
     if cls is None:
         raise ValueError(f'未注册的计算方法: {method}')
