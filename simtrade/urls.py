@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -409,6 +410,8 @@ urlpatterns += [
     path('admin-panel/users/', admin_panel_users, name='admin-users'),
     path('admin-panel/system/', admin_panel_system, name='admin-system'),
     # Auth & profile
+    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('register/', register_view, name='register'),
     path('profile/', profile_view, name='profile'),
 ]
