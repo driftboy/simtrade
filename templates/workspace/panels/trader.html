@@ -1,0 +1,8 @@
+{# 交易员操作按钮模板 (出口商 / 进口商) #}
+<script id="tmpl-trader-actions" type="text/template">
+{{#each actions}}
+<button class="action-btn {{btnClass}}" data-action="{{action}}" data-api="{{api}}" data-item-id="{{id}}">
+    {{label}}
+</button>
+{{/each}}
+</script>

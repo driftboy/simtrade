@@ -1,0 +1,8 @@
+{# 服务商操作按钮模板 (工厂 / 银行 / 货运 / 保险) #}
+<script id="tmpl-provider-actions" type="text/template">
+{{#each actions}}
+<button class="action-btn {{btnClass}}" data-action="{{action}}" data-api="{{api}}" data-item-id="{{id}}">
+    {{label}}
+</button>
+{{/each}}
+</script>

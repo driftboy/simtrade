@@ -1,0 +1,59 @@
+{% extends "workspace/base.html" %}
+{% load static %}
+
+{% block title %}角色工作台 - SimTrade{% endblock %}
+
+{% block workspace_content %}
+{% if no_role %}
+    <div class="no-role-hint">
+        <span class="glyphicon glyphicon-user"></span>
+        <h3>暂无活跃角色</h3>
+        <p>请先选择一个角色，或联系教师分配角色</p>
+        <a href="/market/" class="btn btn-primary">浏览市场</a>
+    </div>
+{% else %}
+    <!-- 统计卡片行 -->
+    <div class="row" id="stats-row">
+        {% for stat in role_config.stats %}
+        <div class="col-sm-3">
+            <div class="stat-card{% if stat.color %} stat-{{ stat.color }}{% endif %}" data-api="{{ stat.api }}">
+                <div class="stat-number" data-stat-api="{{ stat.api }}">-</div>
+                <div class="stat-label">{{ stat.label }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Tab 导航 + 数据列表面板 -->
+    <div class="workspace-tabs">
+        <ul class="nav nav-tabs" id="workspace-tab-nav" role="tablist">
+            {% for nav in role_config.nav_items %}
+            <li role="presentation"{% if forloop.first %} class="active"{% endif %}>
+                <a href="#list-{{ forloop.counter }}" data-tab="{{ forloop.counter }}" aria-controls="list-{{ forloop.counter }}" role="tab" data-toggle="tab">{{ nav.label }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content" id="workspace-tab-content">
+            {% for nav in role_config.nav_items %}
+            <div role="tabpanel" class="tab-pane{% if forloop.first %} active{% endif %}" id="list-{{ forloop.counter }}">
+                <div class="text-center" style="padding: 40px; color: #999;">
+                    <span class="spinner"></span> 加载中...
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/workspace.js' %}"></script>
+<script>
+window.workspaceConfig = {
+    roleCode: '{{ role_code }}',
+    panel: '{{ role_config.panel }}',
+    listApi: '{{ role_config.list_api }}'
+};
+</script>
+{% endblock %}

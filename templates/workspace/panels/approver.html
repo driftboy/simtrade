@@ -1,0 +1,8 @@
+{# 审批员操作按钮模板 (海关 / 商检 / 外汇 / 税务) #}
+<script id="tmpl-approver-actions" type="text/template">
+{{#each actions}}
+<button class="action-btn {{btnClass}}" data-action="{{action}}" data-api="{{api}}" data-item-id="{{id}}">
+    {{label}}
+</button>
+{{/each}}
+</script>
