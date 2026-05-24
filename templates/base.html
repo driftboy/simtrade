@@ -16,6 +16,7 @@
     <!-- Custom CSS -->
     <link href="{% static 'css/custom.css' %}" rel="stylesheet">
     <link href="{% static 'css/role-switcher.css' %}" rel="stylesheet">
+    <link href="{% static 'css/notifications.css' %}" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -44,6 +45,16 @@
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     {% if user.is_authenticated %}
+                        <!-- 通知铃铛 -->
+                        <li class="dropdown notification-bell" id="notif-dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                <span class="glyphicon glyphicon-bell"></span>
+                                <span class="badge-count" id="notif-badge" style="display:none">0</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-right" id="notif-dropdown-menu">
+                                <li class="notification-empty">加载中...</li>
+                            </ul>
+                        </li>
                         <!-- 角色切换器 -->
                         <li class="dropdown role-switcher" id="role-dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
@@ -105,6 +116,7 @@
 
     <!-- Custom JS -->
     <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
     <script src="{% static 'js/role-switcher.js' %}"></script>
 
     {% block extra_js %}{% endblock %}

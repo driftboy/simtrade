@@ -1,0 +1,18 @@
+.notification-bell .dropdown-toggle { padding: 8px 12px; color: #9d9d9d; cursor: pointer; }
+.notification-bell .dropdown-toggle:hover { color: #fff; background-color: transparent; }
+.notification-bell .badge-count {
+    position: absolute; top: 4px; right: 4px;
+    background-color: #d9534f; color: #fff;
+    font-size: 10px; padding: 1px 5px; border-radius: 8px;
+    min-width: 16px; text-align: center;
+}
+.notification-bell .dropdown-menu { width: 320px; max-height: 400px; overflow-y: auto; }
+.notification-item { padding: 8px 15px !important; border-bottom: 1px solid #f0f0f0; }
+.notification-item:last-child { border-bottom: none; }
+.notification-item.unread { background-color: #eef7ff; font-weight: bold; }
+.notification-item .notif-title { font-size: 13px; margin-bottom: 2px; }
+.notification-item .notif-time { font-size: 11px; color: #999; }
+.notification-item .notif-type { font-size: 10px; color: #337ab7; }
+.notification-empty { padding: 20px; text-align: center; color: #999; }
+.notif-footer { text-align: center; padding: 8px; border-top: 1px solid #ddd; }
+.notif-footer a { color: #337ab7; font-size: 13px; }
