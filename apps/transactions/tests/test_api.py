@@ -6,6 +6,7 @@ from apps.transactions.models import Transaction, InquiryMessage
 from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -40,6 +41,7 @@ class TransactionAPITest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@example.com')
         self.buyer_company = create_company_for_user(self.buyer, '_API买方')
         self.seller_company = create_company_for_user(self.seller, '_API卖方')
+        self.product = Product.objects.create(code='API-P001', name='Test Product', category='electronics', unit='PCS')
         self.client = APIClient()
 
     def test_create_transaction(self):
@@ -48,7 +50,7 @@ class TransactionAPITest(TestCase):
         url = reverse('transactions:transaction-list')
         data = {
             'seller': self.seller.id,
-            'product_id': 1,
+            'product': self.product.id,
             'quantity': 1000,
             'unit_price': 10.00,
             'currency': 'USD'
@@ -64,7 +66,7 @@ class TransactionAPITest(TestCase):
         Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00
         )
@@ -79,7 +81,7 @@ class TransactionAPITest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00
         )
@@ -95,7 +97,7 @@ class TransactionAPITest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00
         )
@@ -114,7 +116,7 @@ class TransactionAPITest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00
         )
@@ -136,7 +138,7 @@ class TransactionAPITest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='inquiring'

@@ -34,16 +34,13 @@ class Product(models.Model):
 class Catalog(models.Model):
     """公司商品目录 - 每个公司销售的商品"""
 
-    # 注意：这里需要先实现 Company 模型
-    # 暂时注释掉，后续实现 Company 后再启用
-    # company = models.ForeignKey(
-    #     'users.Company',
-    #     on_delete=models.CASCADE,
-    #     related_name='catalogs'
-    # )
-
     product = models.ForeignKey(
         Product,
+        on_delete=models.CASCADE,
+        related_name='catalogs'
+    )
+    company = models.ForeignKey(
+        'roles.Company',
         on_delete=models.CASCADE,
         related_name='catalogs'
     )
@@ -60,7 +57,7 @@ class Catalog(models.Model):
         db_table = 'catalogs'
         verbose_name = '商品目录'
         verbose_name_plural = '商品目录'
-        # unique_together = [['company', 'product']]  # 等 Company 实现后启用
+        unique_together = [['company', 'product']]
 
     def __str__(self):
         return f"{self.product.name} - {self.sale_price} {self.currency}"

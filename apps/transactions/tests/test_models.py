@@ -9,6 +9,7 @@ from apps.transactions.models import (
 from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -43,13 +44,14 @@ class TransactionModelTest(TestCase):
         self.seller = User.objects.create_user(username='seller', password='testpass', email='seller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_买方')
         self.seller_company = create_company_for_user(self.seller, '_卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
 
     def test_create_transaction(self):
         """测试创建交易"""
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,  # 假设存在商品
+            product=self.product,  # 假设存在商品
             quantity=1000,
             unit_price=10.00,
             status='inquiring'
@@ -62,7 +64,7 @@ class TransactionModelTest(TestCase):
         transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00
         )
@@ -80,10 +82,11 @@ class InquiryMessageTest(TestCase):
         self.seller = User.objects.create_user(username='seller2', password='testpass', email='seller2@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_买方2')
         self.seller_company = create_company_for_user(self.seller, '_卖方2')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00
         )
@@ -109,10 +112,11 @@ class ContractModelTest(TestCase):
         self.seller = User.objects.create_user(username='contract_seller', password='testpass', email='cseller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_合同买方')
         self.seller_company = create_company_for_user(self.seller, '_合同卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -252,10 +256,11 @@ class ContractSignatureModelTest(TestCase):
         self.seller = User.objects.create_user(username='sig_seller', password='testpass', email='sseller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_签字买方')
         self.seller_company = create_company_for_user(self.seller, '_签字卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -335,10 +340,11 @@ class TransactionLogModelTest(TestCase):
         self.seller = User.objects.create_user(username='log_seller', password='testpass', email='lseller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_日志买方')
         self.seller_company = create_company_for_user(self.seller, '_日志卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='inquiring'
@@ -432,10 +438,11 @@ class ContractStatusExpansionTest(TestCase):
         self.seller = User.objects.create_user(username='status_seller', password='testpass', email='sseller2@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_状态买方')
         self.seller_company = create_company_for_user(self.seller, '_状态卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -478,10 +485,12 @@ class ContractAmendmentModelTest(TestCase):
         self.seller = User.objects.create_user(username='amend_seller', password='testpass', email='aseller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_修改买方')
         self.seller_company = create_company_for_user(self.seller, '_修改卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
+        self.product2 = Product.objects.create(code=f'MOD-P20001', name='Test Product 2', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -662,7 +671,7 @@ class ContractAmendmentModelTest(TestCase):
         transaction2 = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=2,
+            product=self.product2,
             quantity=500,
             unit_price=20.00,
             status='pending_contract'
@@ -711,10 +720,12 @@ class LetterOfCreditModelTest(TestCase):
         self.seller = User.objects.create_user(username='lc_seller', password='testpass', email='lc_seller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_LC买方')
         self.seller_company = create_company_for_user(self.seller, '_LC卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
+        self.product2 = Product.objects.create(code=f'MOD-P20001', name='Test Product 2', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -955,7 +966,7 @@ class LetterOfCreditModelTest(TestCase):
         transaction2 = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=2,
+            product=self.product2,
             quantity=2000,
             unit_price=15.00,
             status='pending_contract'
@@ -1024,10 +1035,12 @@ class LcAmendmentModelTest(TestCase):
         self.seller = User.objects.create_user(username='lca_seller', password='testpass', email='lca_seller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_LCA买方')
         self.seller_company = create_company_for_user(self.seller, '_LCA卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
+        self.product2 = Product.objects.create(code=f'MOD-P20001', name='Test Product 2', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'
@@ -1236,7 +1249,7 @@ class LcAmendmentModelTest(TestCase):
         transaction2 = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=2,
+            product=self.product2,
             quantity=500,
             unit_price=20.00,
             status='pending_contract'
@@ -1300,10 +1313,11 @@ class BankOperationModelTest(TestCase):
         self.seller = User.objects.create_user(username='bo_seller', password='testpass', email='bo_seller@test.com')
         self.buyer_company = create_company_for_user(self.buyer, '_BO买方')
         self.seller_company = create_company_for_user(self.seller, '_BO卖方')
+        self.product = Product.objects.create(code=f'MOD-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company,
             seller=self.seller_company,
-            product_id=1,
+            product=self.product,
             quantity=1000,
             unit_price=10.00,
             status='pending_contract'

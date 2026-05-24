@@ -10,6 +10,7 @@ from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.roles.models import TradeRole, UserCompanyRole
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -49,9 +50,10 @@ def create_cleared_declaration(seller_company, buyer_company, carrier_company,
     """
     from django.utils import timezone
 
+    product = Product.objects.get_or_create(code='HLP-P01', defaults={'name': 'Helper Product', 'category': 'electronics', 'unit': 'PCS'})[0]
     transaction = Transaction.objects.create(
         buyer=buyer_company, seller=seller_company,
-        product_id=1, quantity=1000, unit_price=10.00,
+        product=product, quantity=1000, unit_price=10.00,
         status='in_progress', created_by=seller_user
     )
     contract = Contract.objects.create(
@@ -152,11 +154,12 @@ class ForexServiceTest(TestCase):
             )
 
     def test_create_settlement_not_cleared_rejected(self):
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         contract = Contract.objects.create(
             contract_no='FS-NC-001',
             transaction=Transaction.objects.create(
                 buyer=self.buyer_company, seller=self.exporter_company,
-                product_id=1, quantity=1000, unit_price=10.00,
+                product=self.product, quantity=1000, unit_price=10.00,
                 status='in_progress', created_by=self.exporter
             ),
             trade_term='CIF', payment_term='L/C at sight',

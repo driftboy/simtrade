@@ -16,6 +16,6 @@ class ProductAdmin(admin.ModelAdmin):
 class CatalogAdmin(admin.ModelAdmin):
     """商品目录管理"""
 
-    list_display = ['product', 'sale_price', 'currency', 'min_order', 'is_available']
-    list_filter = ['is_available', 'created_at']
+    list_display = ['product', 'company', 'sale_price', 'currency', 'min_order', 'is_available']
+    list_filter = ['company', 'is_available', 'created_at']
     search_fields = ['product__code', 'product__name']

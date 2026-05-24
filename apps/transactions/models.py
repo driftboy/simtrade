@@ -25,7 +25,11 @@ class Transaction(models.Model):
         on_delete=models.PROTECT,
         related_name='selling_transactions'
     )
-    product_id = models.IntegerField('商品ID')  # 外键待 Product 表确定后调整
+    product = models.ForeignKey(
+        'products.Product',
+        on_delete=models.PROTECT,
+        related_name='transactions'
+    )
     status = models.CharField(
         '状态',
         max_length=20,

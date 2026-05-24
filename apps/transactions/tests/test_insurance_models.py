@@ -6,6 +6,7 @@ from apps.transactions.models import Transaction, Contract, Shipment, InsuranceP
 from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -33,9 +34,10 @@ class InsurancePolicyModelTest(TestCase):
         self.exporter_company = create_company_for_user(self.exporter, '_保险出口商')
         self.insurer_company = create_company_for_user(self.insurer_user, '_保险公司')
         self.buyer_company = create_company_for_user(self.buyer_user, '_保险买方')
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         self.transaction = Transaction.objects.create(
             buyer=self.buyer_company, seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         self.contract = Contract.objects.create(

@@ -10,6 +10,7 @@ from apps.users.models import User
 from apps.roles.services import CompanyService
 from apps.roles.models import TradeRole, UserCompanyRole
 from apps.core.models import Country
+from apps.products.models import Product
 
 
 def get_or_create_country():
@@ -40,9 +41,10 @@ def setup_role(user, company, role_code):
 def create_cleared_and_forex_verified(seller_company, buyer_company, carrier_company,
                                        customs_company, forex_company, seller_user, carrier_user, customs_user, forex_user):
     """创建已放行报关单并完成外汇核销"""
+    product = Product.objects.get_or_create(code='HLP-P01', defaults={'name': 'Helper Product', 'category': 'electronics', 'unit': 'PCS'})[0]
     transaction = Transaction.objects.create(
         buyer=buyer_company, seller=seller_company,
-        product_id=1, quantity=1000, unit_price=10.00,
+        product=product, quantity=1000, unit_price=10.00,
         status='in_progress', created_by=seller_user
     )
     contract = Contract.objects.create(
@@ -149,9 +151,10 @@ class TaxRefundServiceTest(TestCase):
 
     def test_create_application_without_forex_verified_rejected(self):
         # 需要一个报关单没有外汇核销
+        self.product = Product.objects.create(code='FIX-P0001', name='Test Product', category='electronics', unit='PCS')
         transaction = Transaction.objects.create(
             buyer=self.buyer_company, seller=self.exporter_company,
-            product_id=1, quantity=1000, unit_price=10.00,
+            product=self.product, quantity=1000, unit_price=10.00,
             status='in_progress', created_by=self.exporter
         )
         contract = Contract.objects.create(

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.products.models import Product
 from apps.transactions.models import (
     Transaction, InquiryMessage, Contract, ContractSignature,
     ContractAmendment, LetterOfCredit, LcAmendment, BankOperation,
@@ -18,12 +19,16 @@ class TransactionSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
     seller_company_name = serializers.CharField(source='seller.name', read_only=True)
     seller_company_code = serializers.CharField(source='seller.code', read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_code = serializers.CharField(source='product.code', read_only=True)
 
     class Meta:
         model = Transaction
         fields = ['id', 'buyer', 'buyer_name', 'buyer_company_name', 'buyer_company_code',
                   'seller', 'seller_name', 'seller_company_name', 'seller_company_code',
-                  'product_id', 'status', 'status_display', 'quantity',
+                  'product', 'product_name', 'product_code',
+                  'status', 'status_display', 'quantity',
                   'unit_price', 'currency', 'trade_term', 'port_of_loading',
                   'port_of_discharge', 'notes', 'created_at', 'updated_at']
         read_only_fields = ['id', 'buyer', 'created_at', 'updated_at']
