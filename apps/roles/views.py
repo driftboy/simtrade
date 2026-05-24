@@ -252,6 +252,35 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='activate')
+    def activate(self, request, pk=None):
+        """
+        Activate a role assignment (single activation).
+
+        Args:
+            pk: UserCompanyRole ID
+
+        Returns:
+            200: Role activated successfully
+            400: Invalid state or not owner
+        """
+        try:
+            assignment = RoleService.activate_role(
+                user=request.user,
+                assignment_id=pk
+            )
+            return Response({
+                'code': 0,
+                'message': '角色已切换',
+                'data': UserCompanyRoleSerializer(assignment).data
+            }, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            return Response({
+                'code': 5005,
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CompanyViewSet(viewsets.ModelViewSet):
     """

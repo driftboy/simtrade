@@ -366,6 +366,65 @@ class TestUserCompanyRoleAPI:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data['code'] == 2001  # Permission denied
 
+    def test_activate_role_success(self, db):
+        """Test activating a role."""
+        assignment1 = UserCompanyRole.objects.create(
+            user=self.student,
+            company=self.company,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.ACTIVE,
+            is_active=True
+        )
+        assignment2 = UserCompanyRole.objects.create(
+            user=self.student,
+            company=self.company,
+            role=self.importer_role,
+            status=UserCompanyRole.Status.ACTIVE,
+            is_active=False
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(f'/api/v1/my-roles/{assignment2.id}/activate/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['code'] == 0
+        assert response.data['data']['is_active'] is True
+        assert response.data['data']['role_code'] == 'importer'
+
+        assignment1.refresh_from_db()
+        assert assignment1.is_active is False
+
+    def test_activate_role_not_owner(self, db):
+        """Test activating a role that belongs to another user."""
+        assignment = UserCompanyRole.objects.create(
+            user=self.student,
+            company=self.company,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.ACTIVE,
+            is_active=True
+        )
+
+        self.client.force_authenticate(user=self.student2)
+        response = self.client.post(f'/api/v1/my-roles/{assignment.id}/activate/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['code'] == 5005
+
+    def test_activate_role_not_active_status(self, db):
+        """Test activating a role that is still pending."""
+        assignment = UserCompanyRole.objects.create(
+            user=self.student,
+            company=self.company,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.PENDING
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(f'/api/v1/my-roles/{assignment.id}/activate/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['code'] == 5005
+
 
 class TestCompanyAPI:
     """Test cases for Company API."""
