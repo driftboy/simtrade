@@ -1,6 +1,8 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
+from apps.notifications.models import Notification
+
 
 class NotificationService:
     """通知服务"""
@@ -18,6 +20,45 @@ class NotificationService:
                 is_active=True
             ).values_list('user_id', flat=True)
         )
+
+    @staticmethod
+    def create_notification(user, notification_type, title, content, related_transaction_id=None):
+        """创建持久化通知"""
+        return Notification.objects.create(
+            user=user,
+            type=notification_type,
+            title=title,
+            content=content,
+            related_transaction_id=related_transaction_id
+        )
+
+    @staticmethod
+    def get_notifications(user, is_read=None):
+        """获取用户通知列表"""
+        qs = Notification.objects.filter(user=user).order_by('-created_at', '-id')
+        if is_read is not None:
+            qs = qs.filter(is_read=is_read)
+        return qs
+
+    @staticmethod
+    def mark_as_read(notification_id, user):
+        """标记单条通知已读"""
+        notification = Notification.objects.get(id=notification_id)
+        if notification.user != user:
+            raise ValueError('无权操作此通知')
+        notification.is_read = True
+        notification.save()
+        return notification
+
+    @staticmethod
+    def mark_all_read(user):
+        """标记全部通知已读"""
+        Notification.objects.filter(user=user, is_read=False).update(is_read=True)
+
+    @staticmethod
+    def get_unread_count(user):
+        """获取未读通知数量"""
+        return Notification.objects.filter(user=user, is_read=False).count()
 
     @staticmethod
     def send_notification(user_ids, notification_type, data):
