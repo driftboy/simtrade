@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.notifications',
     'apps.roles',
     'apps.scoring',
+    'apps.teaching',
 ]
 
 MIDDLEWARE = [
