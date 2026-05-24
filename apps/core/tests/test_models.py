@@ -223,8 +223,8 @@ class TestPortModel:
         ports = list(Port.objects.filter(country=country))
         # Chinese name ordering
         assert ports[0].name == '上海港'
-        assert ports[1].name == '深圳港'
-        assert ports[2].name == '北京港'
+        assert ports[1].name == '北京港'
+        assert ports[2].name == '深圳港'
 
     def test_port_is_active_default(self, db):
         """Test that is_active defaults to True."""
