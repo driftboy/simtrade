@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('products', '0002_add_company_to_catalog'),
-        ('transactions', '0009_taxrefundapplication'),
+        ('transactions', '0010_remove_transaction_null_constraint'),
     ]
 
     operations = [
