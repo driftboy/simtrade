@@ -305,7 +305,7 @@ def teaching_dashboard(request):
 @login_required
 def teaching_course_list(request):
     """Course list page"""
-    return render(request, 'teaching/courses.html', {'user': request.user})
+    return render(request, 'teaching/course_list.html', {'user': request.user})
 
 
 @login_required
