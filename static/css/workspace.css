@@ -1,0 +1,298 @@
+/* ==========================================
+   SimTrade 工作台布局样式
+   ========================================== */
+
+/* --- 双栏布局 --- */
+.workspace-layout {
+    display: flex;
+    min-height: calc(100vh - 140px);
+}
+
+.workspace-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background-color: #f9f9f9;
+    border-right: 1px solid #e0e0e0;
+    padding: 0;
+}
+
+.workspace-main {
+    flex: 1;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+/* --- 侧边栏角色头部 --- */
+.sidebar-role-header {
+    background-color: #337ab7;
+    color: #fff;
+    padding: 15px;
+    text-align: center;
+}
+
+.sidebar-role-header h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.sidebar-role-header small {
+    color: #d9edf7;
+    font-size: 12px;
+}
+
+/* --- 侧边栏导航 --- */
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.sidebar-nav li a {
+    display: block;
+    padding: 10px 15px;
+    color: #555;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.sidebar-nav li:hover {
+    background-color: #f0f0f0;
+    border-left-color: #5bc0de;
+}
+
+.sidebar-nav li.active {
+    background-color: #e8f0fe;
+    border-left-color: #337ab7;
+    font-weight: bold;
+}
+
+.sidebar-nav li.active a {
+    color: #337ab7;
+}
+
+/* --- 快捷操作区 --- */
+.sidebar-actions {
+    padding: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.sidebar-actions h5 {
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+}
+
+.sidebar-actions .action-btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+/* --- 统计卡片 --- */
+.stat-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card .stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #337ab7;
+    line-height: 1.2;
+}
+
+.stat-card .stat-label {
+    font-size: 13px;
+    color: #999;
+    margin-top: 6px;
+}
+
+/* 统计卡片变体 */
+.stat-card.stat-warning .stat-number {
+    color: #f0ad4e;
+}
+
+.stat-card.stat-success .stat-number {
+    color: #5cb85c;
+}
+
+.stat-card.stat-danger .stat-number {
+    color: #d9534f;
+}
+
+.stat-card.stat-info .stat-number {
+    color: #5bc0de;
+}
+
+/* --- Tab 样式 --- */
+.workspace-tabs {
+    margin-bottom: 20px;
+}
+
+.workspace-tabs .nav-tabs {
+    border-bottom: 2px solid #ddd;
+}
+
+.workspace-tabs .nav-tabs > li > a {
+    margin-right: 2px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-size: 14px;
+    padding: 10px 18px;
+    border-radius: 0;
+}
+
+.workspace-tabs .nav-tabs > li > a:hover {
+    border-bottom-color: #5bc0de;
+    color: #337ab7;
+    background-color: transparent;
+}
+
+.workspace-tabs .nav-tabs > li.active > a,
+.workspace-tabs .nav-tabs > li.active > a:hover,
+.workspace-tabs .nav-tabs > li.active > a:focus {
+    border: none;
+    border-bottom: 3px solid #337ab7;
+    color: #337ab7;
+    background-color: transparent;
+    font-weight: bold;
+}
+
+.workspace-tabs .tab-content {
+    padding: 15px 0;
+}
+
+/* --- 操作按钮 --- */
+.action-btn {
+    display: inline-block;
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    text-align: center;
+    background-color: #fff;
+    color: #337ab7;
+    border-color: #337ab7;
+}
+
+.action-btn:hover {
+    background-color: #337ab7;
+    color: #fff;
+    text-decoration: none;
+}
+
+.action-btn.btn-success {
+    color: #5cb85c;
+    border-color: #5cb85c;
+}
+
+.action-btn.btn-success:hover {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.action-btn.btn-warning {
+    color: #f0ad4e;
+    border-color: #f0ad4e;
+}
+
+.action-btn.btn-warning:hover {
+    background-color: #f0ad4e;
+    color: #fff;
+}
+
+.action-btn.btn-danger {
+    color: #d9534f;
+    border-color: #d9534f;
+}
+
+.action-btn.btn-danger:hover {
+    background-color: #d9534f;
+    color: #fff;
+}
+
+.action-btn.btn-primary {
+    color: #337ab7;
+    border-color: #337ab7;
+}
+
+.action-btn.btn-primary:hover {
+    background-color: #337ab7;
+    color: #fff;
+}
+
+/* --- 无角色提示 --- */
+.no-role-hint {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.no-role-hint .glyphicon {
+    font-size: 48px;
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.no-role-hint h3 {
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.no-role-hint p {
+    color: #bbb;
+    margin-bottom: 20px;
+}
+
+/* --- 数据列表表格 --- */
+.data-table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.data-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.data-table td {
+    vertical-align: middle;
+}
+
+.data-table .action-cell {
+    white-space: nowrap;
+    text-align: right;
+}
+
+/* --- 响应式 --- */
+@media (max-width: 768px) {
+    .workspace-layout {
+        flex-direction: column;
+    }
+
+    .workspace-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .workspace-main {
+        padding: 15px;
+    }
+}

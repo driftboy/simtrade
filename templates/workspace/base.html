@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link href="{% static 'css/workspace.css' %}" rel="stylesheet">
+<link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="workspace-layout">
+    <!-- 左侧边栏 -->
+    <div class="workspace-sidebar">
+        <div class="sidebar-role-header">
+            <h4 id="sidebar-role-name">加载中...</h4>
+            <small id="sidebar-company-name"></small>
+        </div>
+
+        <ul class="sidebar-nav" id="sidebar-nav"></ul>
+
+        <div class="sidebar-actions" id="sidebar-actions"></div>
+    </div>
+
+    <!-- 右侧主内容区 -->
+    <div class="workspace-main">
+        {% block workspace_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

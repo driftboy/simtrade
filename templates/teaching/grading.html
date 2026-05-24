@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}成绩管理 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>成绩管理</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3 class="panel-title" style="line-height: 34px;">成绩单</h3>
+                    </div>
+                    <div class="col-md-6">
+                        <select id="experiment-select" class="form-control">
+                            <option value="">请选择实验</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped score-table">
+                    <thead>
+                        <tr>
+                            <th>学生</th>
+                            <th>公司</th>
+                            <th>自动评分</th>
+                            <th>教师调整</th>
+                            <th>最终分数</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="score-table-body">
+                        <tr><td colspan="6" class="text-center">请选择实验查看成绩</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teaching.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    loadGradingData();
+});
+</script>
+{% endblock %}

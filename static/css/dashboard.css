@@ -1,0 +1,87 @@
+/* ==========================================
+   SimTrade Dashboard Styles
+   ========================================== */
+
+/* Dashboard Stats Row */
+.dashboard-stats {
+    margin-bottom: 25px;
+}
+
+/* Stat Card */
+.dash-stat-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px 15px;
+    text-align: center;
+    transition: box-shadow 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.dash-stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dash-stat-icon {
+    font-size: 30px;
+    color: #337ab7;
+    margin-bottom: 10px;
+}
+
+.dash-stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.dash-stat-label {
+    font-size: 13px;
+    color: #999;
+}
+
+/* Dashboard Section */
+.dash-section {
+    margin-bottom: 25px;
+}
+
+.dash-section h3 {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 15px;
+}
+
+/* Activity Item */
+.dash-activity-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dash-activity-item:last-child {
+    border-bottom: none;
+}
+
+/* Todo Item */
+.dash-todo-item {
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-left: 4px solid #337ab7;
+}
+
+.dash-todo-item.todo-warning {
+    border-left-color: #f0ad4e;
+}
+
+.dash-todo-item.todo-danger {
+    border-left-color: #d9534f;
+}
+
+/* Quick Actions */
+.dash-quick-actions .btn {
+    margin: 0 5px 10px 0;
+}

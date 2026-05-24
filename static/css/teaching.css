@@ -1,0 +1,43 @@
+/* 教学模块样式 */
+
+/* 课程卡片 */
+.course-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    transition: box-shadow 0.3s ease;
+}
+
+.course-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.course-card h4 {
+    margin-top: 0;
+    color: #337ab7;
+}
+
+.course-card .course-meta {
+    color: #777;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+/* 邀请码 */
+.enrollment-code {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid #e0e0e0;
+    letter-spacing: 1px;
+}
+
+/* 成绩表格 */
+.score-table td,
+.score-table th {
+    text-align: center;
+    vertical-align: middle;
+}

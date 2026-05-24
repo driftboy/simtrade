@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}课程详情 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 id="course-title">课程详情</h2>
+        <hr>
+    </div>
+</div>
+
+<!-- Tab 导航 -->
+<div class="row">
+    <div class="col-md-12">
+        <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active">
+                <a href="#tab-classes" aria-controls="tab-classes" role="tab" data-toggle="tab">班级</a>
+            </li>
+            <li role="presentation">
+                <a href="#tab-experiments" aria-controls="tab-experiments" role="tab" data-toggle="tab">实验</a>
+            </li>
+            <li role="presentation">
+                <a href="#tab-assignments" aria-controls="tab-assignments" role="tab" data-toggle="tab">作业</a>
+            </li>
+        </ul>
+
+        <div class="tab-content" style="margin-top: 15px;">
+            <!-- 班级 Tab -->
+            <div role="tabpanel" class="tab-pane active" id="tab-classes">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>班级名称</th>
+                            <th>人数</th>
+                            <th>邀请码</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="class-table-body">
+                        <tr><td colspan="4" class="text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 实验 Tab -->
+            <div role="tabpanel" class="tab-pane" id="tab-experiments">
+                <p class="text-muted">实验管理功能开发中...</p>
+            </div>
+
+            <!-- 作业 Tab -->
+            <div role="tabpanel" class="tab-pane" id="tab-assignments">
+                <p class="text-muted">作业管理功能开发中...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teaching.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    var courseId = {{ course_id }};
+    loadCourseDetail(courseId);
+});
+</script>
+{% endblock %}

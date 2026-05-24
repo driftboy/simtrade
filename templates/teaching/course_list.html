@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}课程列表 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>课程列表
+            <button class="btn btn-primary pull-right" id="btn-create-course">创建课程</button>
+        </h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="course-list">
+            <div class="text-center">加载中...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teaching.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    loadCourses();
+
+    $('#btn-create-course').on('click', function() {
+        // TODO: 打开创建课程弹窗或跳转创建页面
+        alert('创建课程功能开发中...');
+    });
+});
+</script>
+{% endblock %}
