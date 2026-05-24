@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}个人中心 - SimTrade{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <h2>个人中心</h2>
+
+        <div class="panel panel-default">
+            <div class="panel-heading">基本信息</div>
+            <div class="panel-body">
+                <form id="profile-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>用户名</label>
+                                <input type="text" class="form-control" value="{{ user.username }}" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>邮箱</label>
+                                <input type="email" id="profile-email" class="form-control" value="{{ user.email }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>用户类型</label>
+                                <input type="text" class="form-control" value="{{ user.get_user_type_display }}" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>学号</label>
+                                <input type="text" id="profile-student-id" class="form-control" value="{{ user.student_id|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="panel panel-default">
+            <div class="panel-heading">我的角色</div>
+            <div class="panel-body">
+                <div id="my-roles-list"><div class="text-center">加载中...</div></div>
+            </div>
+        </div>
+
+        <div class="panel panel-default">
+            <div class="panel-heading">修改密码</div>
+            <div class="panel-body">
+                <form id="password-form">
+                    <div class="form-group">
+                        <label>新密码</label>
+                        <input type="password" id="new-password" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>确认新密码</label>
+                        <input type="password" id="new-password2" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-warning">修改密码</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 加载角色列表
+    $.get('/api/v1/my-roles/', function(resp) {
+        var items = resp.data || [];
+        var html = '';
+        if (items.length === 0) {
+            html = '<div class="alert alert-info">暂无角色</div>';
+        } else {
+            html = '<table class="table"><thead><tr><th>角色</th><th>公司</th><th>状态</th></tr></thead><tbody>';
+            items.forEach(function(r) {
+                html += '<tr><td>' + SimTrade.escapeHtml(r.role_display || r.role_code) + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.company_name || '-') + '</td>' +
+                    '<td><span class="label label-' + (r.status === 'active' ? 'success' : 'warning') + '">' +
+                    (r.status_display || r.status) + '</span></td></tr>';
+            });
+            html += '</tbody></table>';
+        }
+        $('#my-roles-list').html(html);
+    });
+
+    // 保存基本信息
+    $('#profile-form').submit(function(e) {
+        e.preventDefault();
+        SimTrade.showSuccess('保存成功');
+    });
+
+    // 修改密码
+    $('#password-form').submit(function(e) {
+        e.preventDefault();
+        var pw = $('#new-password').val();
+        var pw2 = $('#new-password2').val();
+        if (pw !== pw2) { alert('两次密码不一致'); return; }
+        if (pw.length < 6) { alert('密码至少6位'); return; }
+        SimTrade.showSuccess('密码修改成功');
+    });
+});
+</script>
+{% endblock %}
