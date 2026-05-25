@@ -1,0 +1,16 @@
+{
+  "product_id": null,
+  "inquiry_id": null,
+  "order_id": null,
+  "contract_id": null,
+  "shipment_id": null,
+  "insurance_id": null,
+  "inspection_id": null,
+  "customs_export_id": null,
+  "customs_import_id": null,
+  "lc_id": null,
+  "forex_id": null,
+  "tax_id": null,
+  "transaction_id": null,
+  "completed_phases": []
+}

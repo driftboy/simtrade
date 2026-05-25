@@ -20,47 +20,45 @@ ROLE_COMPANY_NAMES = {
 
 
 def create_test_users():
-    """创建 10 个角色用户和对应公司，返回 {role_code: user} 字典"""
+    """创建 10 个角色用户和对应公司（幂等，用 get_or_create）"""
     china, _ = Country.objects.get_or_create(
         code='CN',
         defaults={'name': '中国', 'name_en': 'China'},
     )
     users = {}
     for role_code, company_name in ROLE_COMPANY_NAMES.items():
-        company = Company.objects.create(
-            name=company_name,
-            name_en=f'Test {role_code.title()} Co.',
+        company, _ = Company.objects.get_or_create(
             code=f'TEST_{role_code.upper()}',
-            type='trade',
-            country=china,
+            defaults={
+                'name': company_name,
+                'name_en': f'Test {role_code.title()} Co.',
+                'type': 'trade',
+                'country': china,
+            },
         )
-        trade_role = TradeRole.objects.get(role_type=role_code)
-        user = User.objects.create_user(
+        trade_role = TradeRole.objects.get(code=role_code)
+        user, _ = User.objects.get_or_create(
             username=f'e2e_{role_code}',
-            password='testpass123',
-            email=f'{role_code}@e2e.test',
-            user_type='student',
+            defaults={
+                'password': 'testpass123',
+                'email': f'{role_code}@e2e.test',
+                'user_type': 'student',
+            },
         )
-        ucr = UserCompanyRole.objects.create(
+        user.set_password('testpass123')
+        user.save()
+        UserCompanyRole.objects.get_or_create(
             user=user,
             company=company,
             role=trade_role,
-            status='approved',
+            defaults={
+                'status': 'approved',
+                'is_active': True,
+            },
         )
-        ucr.activate()
         users[role_code] = user
     return users
 
 
 def get_or_create_test_users():
-    """获取或创建测试用户（幂等）"""
-    existing = {}
-    for role_code in ROLE_COMPANY_NAMES:
-        try:
-            user = User.objects.get(username=f'e2e_{role_code}')
-            existing[role_code] = user
-        except User.DoesNotExist:
-            return create_test_users()
-    if len(existing) == 10:
-        return existing
     return create_test_users()
