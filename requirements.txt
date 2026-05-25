@@ -31,3 +31,8 @@ channels-redis==4.1.0
 redis==4.5.5
 # ASGI 服务器 (channels 3.0.4 requires daphne<4,>=3.0)
 daphne==3.0.2
+
+# E2E testing
+pytest-playwright==0.8.0
+playwright==1.60.0
+anthropic==0.104.1
