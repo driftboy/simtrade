@@ -113,3 +113,16 @@ class DocumentValidationTest(TestCase):
         )
         self.assertEqual(validation.rule, 'date_logic')
         self.assertTrue(validation.passed)
+
+
+class DocumentTeachingClassTest(TestCase):
+    def test_document_can_link_teaching_class(self):
+        from apps.documents.models import Document, DocumentTemplate
+        doc = Document.objects.create(
+            template=DocumentTemplate.objects.create(
+                code='test_tc', name='测试', content='<p></p>'
+            ),
+            data='{}',
+        )
+        # teaching_class 应该是可空的
+        self.assertIsNone(doc.teaching_class)

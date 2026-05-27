@@ -161,6 +161,13 @@ class Document(models.Model):
         blank=True,
         related_name='reviewed_documents'
     )
+    teaching_class = models.ForeignKey(
+        'teaching.TeachingClass',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='documents',
+        verbose_name='所属班级',
+    )
     auto_validation_result = models.TextField(
         '自动校验结果',
         null=True,
