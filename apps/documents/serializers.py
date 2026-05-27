@@ -43,6 +43,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     """单证序列化器"""
     template_name = serializers.CharField(source='template.name', read_only=True)
     template_code = serializers.CharField(source='template.code', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     created_by = UserSerializer(read_only=True)
     reviewed_by = UserSerializer(read_only=True)
     validations = DocumentValidationSerializer(many=True, read_only=True)
@@ -50,7 +51,8 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = ['id', 'template', 'template_name', 'template_code',
-                  'status', 'data', 'created_by', 'reviewed_by',
+                  'status', 'status_display', 'data', 'teaching_class',
+                  'created_by', 'reviewed_by',
                   'auto_validation_result', 'manual_review_status',
                   'manual_review_comment', 'submitted_at', 'reviewed_at',
                   'created_at', 'updated_at', 'validations']
