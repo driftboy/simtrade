@@ -31,6 +31,59 @@ from apps.documents.models import Document, DocumentTemplate
 class Command(BaseCommand):
     help = '生成完整的国际贸易样本交易数据（CIF + L/C 场景）'
 
+    # ──────────────────────────────────────────────────────────────
+    # 辅助方法
+    # ──────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _ensure_country(code, name, phone_code=''):
+        """确保国家存在"""
+        country, created = Country.objects.get_or_create(
+            code=code,
+            defaults={'name': name, 'phone_code': phone_code}
+        )
+        return country
+
+    @staticmethod
+    def _ensure_currency(code, name, symbol=''):
+        """确保货币存在"""
+        currency, created = Currency.objects.get_or_create(
+            code=code,
+            defaults={'name': name, 'symbol': symbol}
+        )
+        return currency
+
+    @staticmethod
+    def _ensure_product(code, name, name_en, category, unit, hs_code, description=''):
+        """确保商品存在"""
+        product, created = Product.objects.get_or_create(
+            code=code,
+            defaults={
+                'name': name, 'name_en': name_en,
+                'category': category, 'unit': unit,
+                'hs_code': hs_code, 'description': description,
+            }
+        )
+        return product
+
+    @staticmethod
+    def _create_company(code, name, name_en, country_code, ctype, addr, phone, email):
+        """创建或获取公司，返回 (company, created) 元组"""
+        country = Country.objects.filter(code=country_code).first()
+        company, created = Company.objects.get_or_create(
+            code=code,
+            defaults={
+                'name': name, 'name_en': name_en,
+                'country': country, 'type': ctype,
+                'address': addr, 'phone': phone, 'email': email,
+            }
+        )
+        return company, created
+
+    # ──────────────────────────────────────────────────────────────
+    # 主入口
+    # ──────────────────────────────────────────────────────────────
+
     def handle(self, *args, **options):
         now = timezone.now()
 
@@ -61,53 +114,77 @@ class Command(BaseCommand):
         # ── 1. 创建样本公司 ──────────────────────────────────────
         self.stdout.write('\n[1/10] 创建样本公司...')
 
-        companies_data = [
-            ('EXP01', '深圳华信电子科技有限公司', 'Shenzhen Huaxin Electronics Tech Co., Ltd.',
-             'CN', 'electronics', 'exporter',
-             '深圳市南山区科技园南路88号华信大厦', '+86-755-86001234', 'trade@huaxin-elec.com'),
-            ('IMP01', 'Pacific Digital Trading LLC', 'Pacific Digital Trading LLC',
-             'US', 'trading', 'importer',
-             '1200 Wilshire Blvd, Suite 500, Los Angeles, CA 90017', '+1-213-555-0188', 'purchase@pacdigital.com'),
-            ('FAC01', '东莞光电制造厂', 'Dongguan Opto-Electronics Factory',
-             'CN', 'manufacturing', 'factory',
-             '东莞市长安镇霄边工业区第8栋', '+86-769-85001234', 'sales@dgeofactory.cn'),
-            ('BNK01', '中国银行深圳市分行', 'Bank of China Shenzhen Branch',
-             'CN', 'banking', 'bank',
-             '深圳市福田区深南大道1003号', '+86-755-25801234', 'trade@boc-sz.com'),
-            ('CUS01', '深圳海关', 'Shenzhen Customs District',
-             'CN', 'government', 'customs',
-             '深圳市福田区福中三路海关大厦', '+86-755-84301234', 'service@szcustoms.gov.cn'),
-            ('SHP01', '中远海运集装箱运输有限公司', 'COSCO Shipping Lines Co., Ltd.',
-             'CN', 'shipping', 'shipping',
-             '上海市浦东新区滨江大道528号', '+86-21-65966138', 'booking@cosco.com'),
-            ('INS01', '中国人民财产保险股份有限公司', 'PICC Property and Casualty Co., Ltd.',
-             'CN', 'insurance', 'insurance',
-             '北京市西城区西长安街88号', '+86-10-68301234', 'cargo@picc.com.cn'),
-            ('IQ01', '深圳出入境检验检疫局', 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
-             'CN', 'government', 'inspection',
-             '深圳市福田区福强路1011号', '+86-755-83701234', 'inspect@szciq.gov.cn'),
-            ('FX01', '国家外汇管理局深圳分局', 'SAFE Shenzhen Branch',
-             'CN', 'government', 'forex',
-             '深圳市福田区深南大道1099号', '+86-755-25591234', 'forex@safe-sz.gov.cn'),
-            ('TAX01', '深圳市国家税务局', 'Shenzhen State Tax Bureau',
-             'CN', 'government', 'tax',
-             '深圳市福田区沙嘴路38号', '+86-755-83801234', 'taxrefund@sz-tax.gov.cn'),
-        ]
-
         companies = {}
-        for code, name, name_en, country_code, ctype, role_key, addr, phone, email in companies_data:
-            country = Country.objects.filter(code=country_code).first()
-            company, created = Company.objects.get_or_create(
-                code=code,
-                defaults={
-                    'name': name, 'name_en': name_en,
-                    'country': country, 'type': ctype,
-                    'address': addr, 'phone': phone, 'email': email,
-                }
-            )
-            companies[role_key] = company
-            tag = 'CREATE' if created else 'SKIP'
-            self.stdout.write(f'  [{tag}] {name}')
+
+        company, created = self._create_company(
+            'EXP01', '深圳华信电子科技有限公司', 'Shenzhen Huaxin Electronics Tech Co., Ltd.',
+            'CN', 'exporter',
+            '深圳市南山区科技园南路88号华信大厦', '+86-755-86001234', 'trade@huaxin-elec.com')
+        companies['exporter'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'IMP01', 'Pacific Digital Trading LLC', 'Pacific Digital Trading LLC',
+            'US', 'importer',
+            '1200 Wilshire Blvd, Suite 500, Los Angeles, CA 90017', '+1-213-555-0188', 'purchase@pacdigital.com')
+        companies['importer'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'FAC01', '东莞光电制造厂', 'Dongguan Opto-Electronics Factory',
+            'CN', 'factory',
+            '东莞市长安镇霄边工业区第8栋', '+86-769-85001234', 'sales@dgeofactory.cn')
+        companies['factory'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'BNK01', '中国银行深圳市分行', 'Bank of China Shenzhen Branch',
+            'CN', 'bank',
+            '深圳市福田区深南大道1003号', '+86-755-25801234', 'trade@boc-sz.com')
+        companies['bank'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'CUS01', '深圳海关', 'Shenzhen Customs District',
+            'CN', 'customs',
+            '深圳市福田区福中三路海关大厦', '+86-755-84301234', 'service@szcustoms.gov.cn')
+        companies['customs'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'SHP01', '中远海运集装箱运输有限公司', 'COSCO Shipping Lines Co., Ltd.',
+            'CN', 'shipping',
+            '上海市浦东新区滨江大道528号', '+86-21-65966138', 'booking@cosco.com')
+        companies['shipping'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'INS01', '中国人民财产保险股份有限公司', 'PICC Property and Casualty Co., Ltd.',
+            'CN', 'insurance',
+            '北京市西城区西长安街88号', '+86-10-68301234', 'cargo@picc.com.cn')
+        companies['insurance'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'IQ01', '深圳出入境检验检疫局', 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+            'CN', 'inspection',
+            '深圳市福田区福强路1011号', '+86-755-83701234', 'inspect@szciq.gov.cn')
+        companies['inspection'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'FX01', '国家外汇管理局深圳分局', 'SAFE Shenzhen Branch',
+            'CN', 'forex',
+            '深圳市福田区深南大道1099号', '+86-755-25591234', 'forex@safe-sz.gov.cn')
+        companies['forex'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
+
+        company, created = self._create_company(
+            'TAX01', '深圳市国家税务局', 'Shenzhen State Tax Bureau',
+            'CN', 'tax',
+            '深圳市福田区沙嘴路38号', '+86-755-83801234', 'taxrefund@sz-tax.gov.cn')
+        companies['tax'] = company
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {company.name}')
 
         # ── 1b. 创建样本用户 ───────────────────────────────────
         self.stdout.write('\n[1b] 创建样本用户...')
@@ -137,6 +214,37 @@ class Command(BaseCommand):
                 defaults={'status': 'active'}
             )
             self.stdout.write('  [OK] 已关联出口商角色')
+
+        # ── 创建场景数据 ──────────────────────────────────────
+        result = self._create_scenario_cif_lc(now, companies, huaxin_user)
+
+        # ── 汇总 ─────────────────────────────────────────────────
+        self.stdout.write('\n' + '=' * 60)
+        self.stdout.write(self.style.SUCCESS('样本交易数据生成完毕！'))
+        self.stdout.write('=' * 60)
+        self.stdout.write(f'  公司: {Company.objects.count()} 家')
+        self.stdout.write(f'  交易: #{result["transaction"].id}')
+        self.stdout.write(f'  合同: {result["contract"].contract_no}')
+        self.stdout.write(f'  信用证: {result["lc"].lc_no}')
+        self.stdout.write(f'  采购订单: {result["po"].order_no}')
+        self.stdout.write(f'  货运: {result["shipment"].shipment_no}')
+        self.stdout.write(f'  保险: {result["insurance"].policy_no}')
+        self.stdout.write(f'  报检: {result["inspection"].application_no}')
+        self.stdout.write(f'  报关: {result["customs"].declaration_no}')
+        self.stdout.write(f'  外汇结算: {result["forex"].settlement_no}')
+        self.stdout.write(f'  退税: {result["tax_refund"].application_no}')
+        self.stdout.write(f'  单证记录: {Document.objects.count()} 份')
+
+    # ──────────────────────────────────────────────────────────────
+    # 场景：CIF + L/C 出口美国（蓝牙耳机）
+    # ──────────────────────────────────────────────────────────────
+
+    def _create_scenario_cif_lc(self, now, companies, huaxin_user):
+        """CIF + L/C 场景：蓝牙耳机出口美国"""
+
+        product = Product.objects.filter(code='E001').first()
+        sz_port = Port.objects.filter(code='CNSZX').first()
+        la_port = Port.objects.filter(code='USLAX').first()
 
         # ── 2. 创建交易 ──────────────────────────────────────────
         self.stdout.write('\n[2/10] 创建交易记录...')
@@ -464,22 +572,18 @@ class Command(BaseCommand):
                                insurance, inspection, customs, companies,
                                huaxin_user)
 
-        # ── 汇总 ─────────────────────────────────────────────────
-        self.stdout.write('\n' + '=' * 60)
-        self.stdout.write(self.style.SUCCESS('样本交易数据生成完毕！'))
-        self.stdout.write('=' * 60)
-        self.stdout.write(f'  公司: {Company.objects.count()} 家')
-        self.stdout.write(f'  交易: #{transaction.id}')
-        self.stdout.write(f'  合同: {contract.contract_no}')
-        self.stdout.write(f'  信用证: {lc.lc_no}')
-        self.stdout.write(f'  采购订单: {po.order_no}')
-        self.stdout.write(f'  货运: {shipment.shipment_no}')
-        self.stdout.write(f'  保险: {insurance.policy_no}')
-        self.stdout.write(f'  报检: {inspection.application_no}')
-        self.stdout.write(f'  报关: {customs.declaration_no}')
-        self.stdout.write(f'  外汇结算: {forex.settlement_no}')
-        self.stdout.write(f'  退税: {tax_refund.application_no}')
-        self.stdout.write(f'  单证记录: {Document.objects.count()} 份')
+        return {
+            'transaction': transaction,
+            'contract': contract,
+            'lc': lc,
+            'po': po,
+            'shipment': shipment,
+            'insurance': insurance,
+            'inspection': inspection,
+            'customs': customs,
+            'forex': forex,
+            'tax_refund': tax_refund,
+        }
 
     # ──────────────────────────────────────────────────────────────
     # 单证数据生成
