@@ -381,3 +381,27 @@ class DocumentVisibilityTest(TestCase):
         ids = [d['id'] for d in resp.json()['data']]
         self.assertIn(self.doc_in_class.id, ids)
         self.assertEqual(len(ids), 1)
+
+    def test_student_create_auto_fills_teaching_class(self):
+        """学生创建单证时自动填入 teaching_class"""
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post('/api/v1/documents/documents/', {
+            'template': self.template.id,
+            'data': {'invoice_no': 'AUTO001'},
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+        doc_id = resp.json()['data']['id']
+        doc = Document.objects.get(id=doc_id)
+        self.assertEqual(doc.teaching_class, self.tc)
+
+    def test_student_without_enrollment_creates_without_class(self):
+        """没有选课的学生创建单证时 teaching_class 为 None"""
+        self.client.force_authenticate(user=self.other_student)
+        resp = self.client.post('/api/v1/documents/documents/', {
+            'template': self.template.id,
+            'data': {},
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+        doc_id = resp.json()['data']['id']
+        doc = Document.objects.get(id=doc_id)
+        self.assertIsNone(doc.teaching_class)

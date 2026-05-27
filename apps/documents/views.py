@@ -16,6 +16,7 @@ from apps.documents.serializers import (
 )
 from apps.documents.services import DependencyService, DataFillService
 from apps.documents.validators import DocumentValidator
+from apps.teaching.models import StudentEnrollment
 
 
 class DocumentViewSet(ModelViewSet):
@@ -98,10 +99,21 @@ class DocumentViewSet(ModelViewSet):
             user_data = json.loads(user_data) if user_data else {}
         merged_data = {**defaults, **user_data}
 
+        # 自动填入 teaching_class（学生）
+        teaching_class = None
+        if user.user_type == 'student':
+            enrollment = StudentEnrollment.objects.filter(
+                student=user,
+                status='enrolled',
+            ).select_related('teaching_class').first()
+            if enrollment:
+                teaching_class = enrollment.teaching_class
+
         # 保存单证
         document = Document.objects.create(
             template=template,
             created_by=user,
+            teaching_class=teaching_class,
             data=json.dumps(merged_data, ensure_ascii=False)
         )
 
