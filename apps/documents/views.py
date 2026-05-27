@@ -28,9 +28,27 @@ class DocumentViewSet(ModelViewSet):
         return DocumentSerializer
 
     def get_queryset(self):
-        return Document.objects.filter(
-            created_by=self.request.user
-        ).select_related('template', 'created_by', 'reviewed_by')
+        user = self.request.user
+        transaction_id = self.request.query_params.get('transaction_id')
+        teaching_class_id = self.request.query_params.get('teaching_class_id')
+
+        if user.user_type == 'admin':
+            queryset = Document.objects.all()
+        elif user.user_type == 'teacher':
+            queryset = Document.objects.filter(
+                teaching_class__course__teachers=user
+            )
+        else:
+            queryset = Document.objects.filter(created_by=user)
+
+        if transaction_id:
+            queryset = queryset.filter(transaction_id=transaction_id)
+        if teaching_class_id:
+            queryset = queryset.filter(teaching_class_id=teaching_class_id)
+
+        return queryset.select_related(
+            'template', 'created_by', 'reviewed_by', 'teaching_class'
+        )
 
     def list(self, request, *args, **kwargs):
         """获取单证列表"""

@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 from apps.documents.models import Document, DocumentTemplate, DocumentDependency, DocumentValidation
+from apps.teaching.models import Semester, Course, TeachingClass, StudentEnrollment
 
 User = get_user_model()
 
@@ -272,3 +273,111 @@ class DocumentAPITest(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 401)
+
+
+class DocumentVisibilityTest(TestCase):
+    """测试单证三级可见性"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+        # 创建模板
+        self.template = DocumentTemplate.objects.create(
+            code='vis_test', name='可见性测试', content='<p></p>'
+        )
+
+        # 创建 admin 用户
+        self.admin = User.objects.create_user(
+            username='admin1', email='admin1@test.com',
+            password='pass', user_type='admin', is_staff=True,
+        )
+
+        # 创建 teacher 用户 + 课程 + 班级
+        self.teacher = User.objects.create_user(
+            username='teacher1', email='teacher1@test.com',
+            password='pass', user_type='teacher',
+        )
+        semester = Semester.objects.create(
+            name='2026春', code='2026SP',
+            start_date='2026-02-01', end_date='2026-06-30',
+        )
+        self.course = Course.objects.create(
+            semester=semester, name='国际贸易实务', code='IR101',
+        )
+        self.course.teachers.add(self.teacher)
+        self.tc = TeachingClass.objects.create(
+            course=self.course, name='A班', enrollment_code='AAAA1111',
+        )
+
+        # 创建 student 用户并选课
+        self.student = User.objects.create_user(
+            username='student1', email='student1@test.com',
+            password='pass', user_type='student',
+        )
+        StudentEnrollment.objects.create(
+            teaching_class=self.tc, student=self.student,
+        )
+
+        # 创建另一个不在班级的学生
+        self.other_student = User.objects.create_user(
+            username='student2', email='student2@test.com',
+            password='pass', user_type='student',
+        )
+
+        # 创建 3 份单证
+        # student1 的课堂单证
+        self.doc_in_class = Document.objects.create(
+            template=self.template, created_by=self.student,
+            teaching_class=self.tc, data='{}',
+        )
+        # student1 的无班级单证
+        self.doc_no_class = Document.objects.create(
+            template=self.template, created_by=self.student,
+            data='{}',
+        )
+        # student2 的单证（不在班级里）
+        self.doc_other = Document.objects.create(
+            template=self.template, created_by=self.other_student,
+            data='{}',
+        )
+
+    def test_admin_sees_all(self):
+        """admin 可以看到所有单证"""
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.get('/api/v1/documents/documents/')
+        ids = [d['id'] for d in resp.json()['data']]
+        self.assertIn(self.doc_in_class.id, ids)
+        self.assertIn(self.doc_no_class.id, ids)
+        self.assertIn(self.doc_other.id, ids)
+
+    def test_teacher_sees_class_docs_only(self):
+        """teacher 只能看到自己班级的单证"""
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.get('/api/v1/documents/documents/')
+        ids = [d['id'] for d in resp.json()['data']]
+        self.assertIn(self.doc_in_class.id, ids)
+        self.assertNotIn(self.doc_no_class.id, ids)
+        self.assertNotIn(self.doc_other.id, ids)
+
+    def test_student_sees_own_docs_only(self):
+        """student 只能看到自己的单证"""
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get('/api/v1/documents/documents/')
+        ids = [d['id'] for d in resp.json()['data']]
+        self.assertIn(self.doc_in_class.id, ids)
+        self.assertIn(self.doc_no_class.id, ids)
+        self.assertNotIn(self.doc_other.id, ids)
+
+    def test_filter_by_transaction_id(self):
+        """所有角色都可以用 transaction_id 过滤"""
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.get('/api/v1/documents/documents/?transaction_id=99999')
+        self.assertEqual(len(resp.json()['data']), 0)
+
+    def test_filter_by_teaching_class_id(self):
+        """teacher 可以按班级 ID 过滤"""
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.get(f'/api/v1/documents/documents/?teaching_class_id={self.tc.id}')
+        ids = [d['id'] for d in resp.json()['data']]
+        self.assertIn(self.doc_in_class.id, ids)
+        self.assertEqual(len(ids), 1)
