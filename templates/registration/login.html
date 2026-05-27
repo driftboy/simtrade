@@ -56,7 +56,6 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Show Django form errors if any
     {% if form.errors %}
     $('#login-alert').text('用户名或密码错误，请重试').show();
     {% endif %}

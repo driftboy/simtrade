@@ -1,5 +1,16 @@
 from django.contrib import admin
-from apps.products.models import Product, Catalog
+from apps.products.models import HSCode, Product, Catalog
+
+
+@admin.register(HSCode)
+class HSCodeAdmin(admin.ModelAdmin):
+    """HS编码管理"""
+
+    list_display = ['code', 'name', 'unit', 'vat_rate', 'rebate_rate', 'mfn_rate', 'export_rate', 'consumption_rate', 'chapter', 'is_expired']
+    list_filter = ['chapter', 'is_expired']
+    search_fields = ['code', 'name']
+    ordering = ['code']
+    readonly_fields = ['updated_at']
 
 
 @admin.register(Product)

@@ -57,7 +57,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        course = serializer.save(created_by=self.request.user)
+        if self.request.user.user_type == 'teacher':
+            course.teachers.add(self.request.user)
 
 
 class TeachingClassViewSet(viewsets.ModelViewSet):

@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from apps.products.models import Product, Catalog
+from apps.products.models import Product, Catalog, HSCode
 from apps.products.serializers import ProductSerializer, CatalogSerializer
 
 
@@ -69,3 +69,84 @@ class CatalogViewSet(viewsets.ModelViewSet):
             'message': '参数格式错误',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MarketCategoriesView(viewsets.ViewSet):
+    """市场分类 — 按 HS 章节聚合商品"""
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        from apps.products.management.commands.sync_hs_codes import CHAPTER_NAMES
+
+        products = Product.objects.filter(is_active=True)
+        chapter = request.query_params.get('chapter', '').strip()
+        search = request.query_params.get('search', '').strip()
+
+        if chapter:
+            products = products.filter(hs_code__startswith=chapter)
+        if search:
+            products = products.filter(name__icontains=search) | products.filter(
+                hs_code__icontains=search
+            )
+
+        # 按 HS 章节分组
+        hs_codes_cache = {}
+        for hsc in HSCode.objects.all():
+            hs_codes_cache[hsc.code] = hsc
+
+        def _find_hscode(code):
+            """精确匹配，失败则渐进前缀匹配（8位→6位→4位）"""
+            if code in hs_codes_cache:
+                return hs_codes_cache[code]
+            for prefix_len in (8, 6, 4):
+                prefix = code[:prefix_len]
+                if len(prefix) < prefix_len:
+                    continue
+                for hsc_code, hsc in hs_codes_cache.items():
+                    if hsc_code.startswith(prefix):
+                        return hsc
+            return None
+
+        chapters = {}
+        for p in products:
+            ch = p.hs_code[:2] if p.hs_code else ''
+            if not ch:
+                continue
+            if ch not in chapters:
+                chapters[ch] = {
+                    'chapter': ch,
+                    'name': CHAPTER_NAMES.get(ch, ''),
+                    'products': [],
+                }
+            hsc = _find_hscode(p.hs_code)
+            chapters[ch]['products'].append({
+                'id': p.id,
+                'code': p.code,
+                'name': p.name,
+                'name_en': p.name_en,
+                'hs_code': p.hs_code,
+                'unit': p.unit,
+                'category': p.category,
+                'description': p.description,
+                'export_rate': hsc.export_rate if hsc else '',
+                'rebate_rate': hsc.rebate_rate if hsc else '',
+                'vat_rate': hsc.vat_rate if hsc else '',
+                'mfn_rate': hsc.mfn_rate if hsc else '',
+                'consumption_rate': hsc.consumption_rate if hsc else '',
+            })
+
+        # 补充无商品但有 HS 编码数据的章节
+        if not chapter and not search:
+            loaded_chapters = set(
+                HSCode.objects.values_list('chapter', flat=True).distinct()
+            )
+            for ch in sorted(loaded_chapters):
+                if ch not in chapters:
+                    chapters[ch] = {
+                        'chapter': ch,
+                        'name': CHAPTER_NAMES.get(ch, ''),
+                        'products': [],
+                    }
+
+        data = sorted(chapters.values(), key=lambda x: x['chapter'])
+        return Response({'code': 0, 'data': data})

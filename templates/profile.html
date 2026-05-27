@@ -77,7 +77,7 @@
 $(document).ready(function() {
     // 加载角色列表
     $.get('/api/v1/my-roles/', function(resp) {
-        var items = resp.data || [];
+        var items = resp.results || resp.data || [];
         var html = '';
         if (items.length === 0) {
             html = '<div class="alert alert-info">暂无角色</div>';

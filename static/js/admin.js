@@ -150,8 +150,9 @@
                 $.ajax({
                     url: '/api/v1/auth/users/' + userId + '/reset-password/',
                     method: 'POST',
-                    success: function() {
-                        SimTrade.showSuccess('密码已重置');
+                    success: function(resp) {
+                        var pwd = (resp.data && resp.data.new_password) || '123456';
+                        SimTrade.showSuccess('密码已重置为: ' + pwd);
                     },
                     error: function() {
                         SimTrade.showError('重置密码失败');

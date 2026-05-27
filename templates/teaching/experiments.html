@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}实验模板管理 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+<style>
+.role-grid { display: flex; flex-wrap: wrap; gap: 0; }
+.role-grid label {
+    width: 50%; padding: 5px 0; margin: 0;
+    font-weight: normal; cursor: pointer;
+}
+.stage-list .checkbox { margin-top: 0; margin-bottom: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>实验模板管理
+            <button class="btn btn-success pull-right" id="btn-create-template">新建模板</button>
+        </h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>模板名称</th>
+                    <th>描述</th>
+                    <th>角色</th>
+                    <th>公开</th>
+                    <th>使用次数</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="template-table-body">
+                <tr><td colspan="6" class="text-center">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 新建/编辑 Modal -->
+<div class="modal fade" id="templateModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title" id="template-modal-title">新建模板</h4>
+            </div>
+            <div class="modal-body">
+                <form id="template-form">
+                    <input type="hidden" id="tpl-edit-id">
+
+                    <!-- 基本信息 -->
+                    <div class="row">
+                        <div class="col-md-8 form-group">
+                            <label>模板名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="tpl-name" placeholder="如：FOB 报价实验" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>&nbsp;</label>
+                            <div class="checkbox" style="margin-top:0;padding-top:5px;">
+                                <label><input type="checkbox" id="tpl-public"> 公开（所有教师可见）</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <textarea class="form-control" id="tpl-description" rows="2" placeholder="实验说明、目标等"></textarea>
+                    </div>
+
+                    <hr>
+
+                    <!-- 分组配置 -->
+                    <h5>分组配置</h5>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>每组人数</label>
+                            <input type="number" class="form-control" id="cfg-group-size" value="5" min="1" max="20">
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>分组方式</label>
+                            <select class="form-control" id="cfg-group-method">
+                                <option value="random">随机分组</option>
+                                <option value="manual">手动分组</option>
+                                <option value="balanced">均衡分组（按成绩）</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>是否自动建公司</label>
+                            <select class="form-control" id="cfg-auto-company">
+                                <option value="yes">自动创建</option>
+                                <option value="no">学生自建</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- 参与角色 -->
+                    <h5>参与角色 <small class="text-muted">（勾选本次实验涉及的角色）</small></h5>
+                    <div class="role-grid" id="role-grid">
+                        <!-- JS 填充 -->
+                    </div>
+
+                    <hr>
+
+                    <!-- 贸易参数 -->
+                    <h5>贸易参数</h5>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>贸易术语</label>
+                            <select class="form-control" id="cfg-trade-term">
+                                <option value="">不限</option>
+                                <option value="FOB">FOB</option>
+                                <option value="CIF">CIF</option>
+                                <option value="CFR">CFR</option>
+                                <option value="EXW">EXW</option>
+                                <option value="DDP">DDP</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>金额范围（美元）</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="cfg-amount-min" placeholder="最低" min="0">
+                                <span class="input-group-addon">~</span>
+                                <input type="number" class="form-control" id="cfg-amount-max" placeholder="最高" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>支付方式</label>
+                            <select class="form-control" id="cfg-payment">
+                                <option value="">不限</option>
+                                <option value="L/C">信用证 (L/C)</option>
+                                <option value="T/T">电汇 (T/T)</option>
+                                <option value="D/P">付款交单 (D/P)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- 流程阶段 -->
+                    <h5>流程阶段 <small class="text-muted">（勾选实验需要完成的交易环节）</small></h5>
+                    <div class="stage-list">
+                        <div class="row">
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="inquiry" checked> 询价磋商</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="contract" checked> 签订合同</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="purchase"> 采购订单</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="shipping"> 租船订舱</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="insurance"> 投保</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="inspection"> 报检</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="customs" checked> 报关</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="bank"> 银行结算</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="forex"> 外汇结汇</label></div></div>
+                            <div class="col-md-4"><div class="checkbox"><label><input type="checkbox" class="cfg-stage" value="tax"> 出口退税</label></div></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-save-template">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    var ROLES = [
+        {code: 'exporter', name: '出口商'},
+        {code: 'importer', name: '进口商'},
+        {code: 'factory', name: '工厂'},
+        {code: 'bank', name: '银行'},
+        {code: 'customs', name: '海关'},
+        {code: 'shipping', name: '货运公司'},
+        {code: 'insurance', name: '保险公司'},
+        {code: 'inspection', name: '商检机构'},
+        {code: 'forex', name: '外汇局'},
+        {code: 'tax', name: '税务局'}
+    ];
+
+    // 初始化角色复选框
+    var roleHtml = '';
+    ROLES.forEach(function(r) {
+        roleHtml += '<label><input type="checkbox" class="cfg-role" value="' + r.code + '" checked> ' + r.name + '</label>';
+    });
+    $('#role-grid').html(roleHtml);
+
+    function loadTemplates() {
+        $.get('/api/v1/teaching/experiment-templates/', function(resp) {
+            var templates = resp.results || resp.data || [];
+            var html = '';
+            if (templates.length === 0) {
+                html = '<tr><td colspan="6" class="text-center text-muted">暂无模板，点击右上角新建</td></tr>';
+            } else {
+                templates.forEach(function(tpl) {
+                    var cfg = tpl.config || {};
+                    var roles = (cfg.roles || []).map(function(code) {
+                        var found = ROLES.find(function(r) { return r.code === code; });
+                        return found ? found.name : code;
+                    });
+                    var roleStr = roles.length > 0 ? roles.slice(0, 3).join('、') + (roles.length > 3 ? ' 等' + roles.length + '个' : '') : '<span class="text-muted">未设置</span>';
+
+                    html += '<tr data-id="' + tpl.id + '">' +
+                        '<td><strong>' + SimTrade.escapeHtml(tpl.name) + '</strong></td>' +
+                        '<td>' + SimTrade.escapeHtml((tpl.description || '').substring(0, 60)) + ((tpl.description || '').length > 60 ? '...' : '') + '</td>' +
+                        '<td><small>' + roleStr + '</small></td>' +
+                        '<td>' + (tpl.is_public ? '<span class="label label-success">公开</span>' : '<span class="label label-default">私有</span>') + '</td>' +
+                        '<td>' + (tpl.use_count || 0) + '</td>' +
+                        '<td class="action-col">' +
+                            '<button class="btn btn-xs btn-primary btn-edit-tpl" data-id="' + tpl.id + '"><span class="glyphicon glyphicon-edit"></span> 编辑</button> ' +
+                            '<button class="btn btn-xs btn-danger btn-delete-tpl" data-id="' + tpl.id + '" data-name="' + SimTrade.escapeHtml(tpl.name) + '"><span class="glyphicon glyphicon-trash"></span></button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+            }
+            $('#template-table-body').html(html);
+        }).fail(function() {
+            $('#template-table-body').html('<tr><td colspan="6" class="text-center text-danger">加载失败</td></tr>');
+        });
+    }
+
+    loadTemplates();
+
+    function resetForm() {
+        $('#tpl-edit-id').val('');
+        $('#template-modal-title').text('新建模板');
+        $('#tpl-name, #tpl-description').val('');
+        $('#tpl-public').prop('checked', false);
+        $('#cfg-group-size').val(5);
+        $('#cfg-group-method').val('random');
+        $('#cfg-auto-company').val('yes');
+        $('#cfg-trade-term').val('');
+        $('#cfg-amount-min, #cfg-amount-max').val('');
+        $('#cfg-payment').val('');
+        $('.cfg-role').prop('checked', true);
+        $('.cfg-stage').prop('checked', false);
+        $('.cfg-stage[value="inquiry"], .cfg-stage[value="contract"], .cfg-stage[value="customs"]').prop('checked', true);
+    }
+
+    function collectConfig() {
+        var roles = [];
+        $('.cfg-role:checked').each(function() { roles.push($(this).val()); });
+        var stages = [];
+        $('.cfg-stage:checked').each(function() { stages.push($(this).val()); });
+        return {
+            group_size: parseInt($('#cfg-group-size').val()) || 5,
+            group_method: $('#cfg-group-method').val(),
+            auto_company: $('#cfg-auto-company').val() === 'yes',
+            roles: roles,
+            trade_term: $('#cfg-trade-term').val(),
+            amount_min: parseFloat($('#cfg-amount-min').val()) || null,
+            amount_max: parseFloat($('#cfg-amount-max').val()) || null,
+            payment: $('#cfg-payment').val(),
+            stages: stages
+        };
+    }
+
+    function applyConfig(config) {
+        $('#cfg-group-size').val(config.group_size || 5);
+        $('#cfg-group-method').val(config.group_method || 'random');
+        $('#cfg-auto-company').val(config.auto_company !== false ? 'yes' : 'no');
+        $('#cfg-trade-term').val(config.trade_term || '');
+        $('#cfg-amount-min').val(config.amount_min || '');
+        $('#cfg-amount-max').val(config.amount_max || '');
+        $('#cfg-payment').val(config.payment || '');
+        $('.cfg-role').prop('checked', false);
+        (config.roles || []).forEach(function(code) {
+            $('.cfg-role[value="' + code + '"]').prop('checked', true);
+        });
+        $('.cfg-stage').prop('checked', false);
+        (config.stages || []).forEach(function(s) {
+            $('.cfg-stage[value="' + s + '"]').prop('checked', true);
+        });
+    }
+
+    // 新建
+    $('#btn-create-template').on('click', function() {
+        resetForm();
+        $('#templateModal').modal('show');
+    });
+
+    // 编辑
+    $(document).on('click', '.btn-edit-tpl', function() {
+        var id = $(this).data('id');
+        $.get('/api/v1/teaching/experiment-templates/' + id + '/', function(resp) {
+            var tpl = resp.data || resp;
+            $('#tpl-edit-id').val(id);
+            $('#template-modal-title').text('编辑模板');
+            $('#tpl-name').val(tpl.name || '');
+            $('#tpl-description').val(tpl.description || '');
+            $('#tpl-public').prop('checked', !!tpl.is_public);
+            applyConfig(tpl.config || {});
+            $('#templateModal').modal('show');
+        });
+    });
+
+    // 保存
+    $('#btn-save-template').on('click', function() {
+        var id = $('#tpl-edit-id').val();
+        var name = $('#tpl-name').val().trim();
+        if (!name) { alert('请输入模板名称'); return; }
+
+        var data = {
+            name: name,
+            description: $('#tpl-description').val().trim(),
+            is_public: $('#tpl-public').is(':checked'),
+            config: collectConfig(),
+        };
+
+        var url = '/api/v1/teaching/experiment-templates/';
+        var method = 'POST';
+        if (id) {
+            url = '/api/v1/teaching/experiment-templates/' + id + '/';
+            method = 'PATCH';
+        }
+
+        $.ajax({
+            url: url, method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function() {
+                $('#templateModal').modal('hide');
+                if (typeof SimTrade !== 'undefined' && SimTrade.showSuccess) SimTrade.showSuccess('保存成功');
+                loadTemplates();
+            },
+            error: function(xhr) {
+                alert('保存失败: ' + ((xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.detail)) || '未知错误'));
+            }
+        });
+    });
+
+    // 删除
+    $(document).on('click', '.btn-delete-tpl', function() {
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+        if (!confirm('确认删除模板「' + name + '」？此操作不可恢复。')) return;
+        $.ajax({
+            url: '/api/v1/teaching/experiment-templates/' + id + '/',
+            method: 'DELETE',
+            success: function() { loadTemplates(); },
+            error: function(xhr) {
+                alert('删除失败: ' + ((xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.detail)) || '未知错误'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

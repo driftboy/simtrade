@@ -6,6 +6,10 @@
 {% block extra_css %}
 <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
 <link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+<style>
+@keyframes gly-spin { to { transform: rotate(360deg); } }
+.gly-spin { animation: gly-spin 1s infinite linear; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -42,10 +46,119 @@
                 </table>
             </div>
         </div>
+
+        <!-- 海关参数代码表 -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">海关参数代码表</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr><th>参数表</th><th>记录数</th><th>启用数</th><th>状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="customs-params-body">
+                        <tr><td colspan="5" class="text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- HS编码明细表 -->
+        <div class="panel panel-default">
+            <div class="panel-heading clearfix">
+                <h3 class="panel-title pull-left">HS编码明细</h3>
+                <div class="pull-right" style="display:flex;align-items:center;gap:6px;">
+                    <select class="form-control input-sm" id="hs-chapter-filter" style="width:auto;">
+                        <option value="">全部章节</option>
+                    </select>
+                    <input type="text" class="form-control input-sm" id="hs-search-input" placeholder="搜索编码/名称" style="width:140px;">
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped table-condensed">
+                    <thead>
+                        <tr><th>HS编码</th><th>商品名称</th><th>单位</th><th>增值税率</th><th>退税率</th><th>最惠国税率</th><th>出口税率</th><th>消费税率</th><th>章节</th><th>状态</th></tr>
+                    </thead>
+                    <tbody id="hs-table-body">
+                        <tr><td colspan="10" class="text-center text-muted">暂无数据，请先同步HS编码</td></tr>
+                    </tbody>
+                </table>
+                <div class="clearfix">
+                    <span class="pull-left text-muted" style="line-height:30px;font-size:12px;" id="hs-page-info">共 0 条</span>
+                    <div class="pull-right btn-group btn-group-xs" id="hs-pagination"></div>
+                    <select class="pull-right form-control input-xs" id="hs-page-size" style="width:90px;height:24px;margin-right:6px;font-size:11px;">
+                        <option value="5">5条/页</option>
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- 数据初始化 -->
+    <!-- 右侧面板 -->
     <div class="col-md-4">
+        <!-- 汇率同步 -->
+        <div class="panel panel-info">
+            <div class="panel-heading clearfix">
+                <h3 class="panel-title pull-left">汇率管理</h3>
+                <button class="btn btn-primary btn-sm pull-right" id="btn-sync-rates">
+                    <span class="glyphicon glyphicon-refresh"></span> 同步最新汇率
+                </button>
+            </div>
+            <div class="panel-body">
+                <div id="rate-status">
+                    <p>上次同步日期：<strong id="rate-date-text">-</strong></p>
+                    <p>汇率条数：<strong id="rate-count-text">0</strong></p>
+                </div>
+                <table class="table table-condensed table-bordered" id="rate-preview-table">
+                    <thead>
+                        <tr><th>货币</th><th>代码</th><th>兑人民币</th></tr>
+                    </thead>
+                    <tbody id="rate-preview-body">
+                        <tr><td colspan="3" class="text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- HS编码管理 -->
+        <div class="panel panel-info">
+            <div class="panel-heading clearfix">
+                <h3 class="panel-title pull-left">HS编码管理</h3>
+                <label class="pull-right" style="margin-right:12px;line-height:30px;font-weight:normal;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" id="chk-sync-tax" style="margin-right:4px;">同步税率
+                </label>
+                <button class="btn btn-primary btn-sm pull-right" id="btn-sync-hs" disabled>
+                    <span class="glyphicon glyphicon-download"></span> 同步选中章节
+                </button>
+            </div>
+            <div class="panel-body">
+                <div id="hs-stats">
+                    <p>编码总数：<strong id="hs-total-text">-</strong>
+                       （有效 <strong id="hs-active-text">-</strong>）</p>
+                </div>
+                <div style="max-height:260px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:8px;margin-bottom:10px;">
+                    <div class="row" id="hs-chapter-grid">
+                        <div class="text-center text-muted" style="width:100%">加载中...</div>
+                    </div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <button class="btn btn-xs btn-default" id="btn-hs-select-all">全选</button>
+                    <button class="btn btn-xs btn-default" id="btn-hs-select-none">取消全选</button>
+                </div>
+                <div id="hs-sync-log" style="display:none;">
+                    <div class="alert alert-info" style="padding:6px 12px;margin-bottom:0;">
+                        <span class="glyphicon glyphicon-refresh gly-spin"></span>
+                        <span id="hs-sync-status">同步中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据初始化 -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h3 class="panel-title">数据初始化</h3>
@@ -58,6 +171,9 @@
                     <tbody>
                         <tr><td><code>init_data</code></td><td>基础数据（角色、国家等）</td></tr>
                         <tr><td><code>init_products</code></td><td>商品目录数据</td></tr>
+                        <tr><td><code>sync_exchange_rates</code></td><td>同步商务部汇率</td></tr>
+                        <tr><td><code>sync_customs_params</code></td><td>同步海关参数代码表</td></tr>
+                        <tr><td><code>sync_hs_codes</code></td><td>同步HS编码数据</td></tr>
                     </tbody>
                 </table>
                 <p class="text-muted"><small>在命令行执行：<code>python manage.py init_data</code></small></p>
@@ -104,6 +220,33 @@
         </div>
     </div>
 </div>
+
+<!-- 明细查看模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title" id="detail-modal-title">明细</h4>
+            </div>
+            <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+                <div class="input-group" style="margin-bottom:10px;max-width:300px;">
+                    <input type="text" class="form-control" id="detail-search-input" placeholder="搜索编码或名称...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" id="detail-search-btn">搜索</button>
+                    </span>
+                </div>
+                <p class="text-muted"><small id="detail-count-text">共 0 条</small></p>
+                <table class="table table-bordered table-striped table-condensed">
+                    <thead id="detail-thead"></thead>
+                    <tbody id="detail-tbody">
+                        <tr><td colspan="10" class="text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -114,7 +257,7 @@ $(document).ready(function() {
 
     function loadSemesters() {
         $.get('/api/v1/teaching/semesters/', function(resp) {
-            var semesters = resp.data || [];
+            var semesters = resp.results || [];
             var html = '';
             if (semesters.length === 0) {
                 html = '<tr><td colspan="6" class="text-center">暂无学期</td></tr>';
@@ -146,6 +289,233 @@ $(document).ready(function() {
     }
 
     loadSemesters();
+
+    // ========== 汇率管理 ==========
+    var MAJOR_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'HKD', 'KRW', 'AUD', 'SGD', 'CAD', 'THB', 'CNY'];
+
+    function loadRatePreview() {
+        $.get('/api/v1/core/exchange-rates/', function(resp) {
+            var rates = resp.data || [];
+            $('#rate-date-text').text(resp.rate_date || '-');
+            $('#rate-count-text').text(rates.length);
+
+            // 展示主要货币
+            var majorRates = rates.filter(function(r) {
+                return r.currency_code && MAJOR_CODES.indexOf(r.currency_code) !== -1;
+            });
+            // 按 MAJOR_CODES 排序
+            majorRates.sort(function(a, b) {
+                return MAJOR_CODES.indexOf(a.currency_code) - MAJOR_CODES.indexOf(b.currency_code);
+            });
+
+            var html = '';
+            if (majorRates.length === 0) {
+                html = '<tr><td colspan="3" class="text-center text-muted">暂无主要货币数据</td></tr>';
+            } else {
+                majorRates.forEach(function(r) {
+                    var cnyRate = r.rate_to_cny ? parseFloat(r.rate_to_cny).toFixed(4) : '-';
+                    html += '<tr>' +
+                        '<td>' + SimTrade.escapeHtml(r.currency_name) + '</td>' +
+                        '<td><code>' + (r.currency_code || '-') + '</code></td>' +
+                        '<td>' + cnyRate + '</td>' +
+                    '</tr>';
+                });
+            }
+            $('#rate-preview-body').html(html);
+        }).fail(function() {
+            $('#rate-preview-body').html('<tr><td colspan="3" class="text-center text-danger">加载失败</td></tr>');
+        });
+    }
+
+    loadRatePreview();
+
+    // ========== 海关参数代码表 ==========
+    function loadCustomsParams() {
+        $.get('/api/v1/core/customs-params/stats/', function(resp) {
+            var tables = resp.data || [];
+            var html = '';
+            if (tables.length === 0) {
+                html = '<tr><td colspan="5" class="text-center text-muted">暂无数据</td></tr>';
+            } else {
+                var total = 0;
+                tables.forEach(function(t) {
+                    total += t.count;
+                    var badge = t.count > 0
+                        ? '<span class="label label-success">已加载</span>'
+                        : '<span class="label label-warning">未加载</span>';
+                    var viewBtn = t.count > 0
+                        ? '<button class="btn btn-xs btn-info btn-view-params" data-key="' + t.key + '" data-label="' + SimTrade.escapeHtml(t.label) + '">查看</button>'
+                        : '';
+                    html += '<tr>' +
+                        '<td>' + SimTrade.escapeHtml(t.label) + '</td>' +
+                        '<td><strong>' + t.count + '</strong></td>' +
+                        '<td>' + t.active_count + '</td>' +
+                        '<td>' + badge + '</td>' +
+                        '<td>' + viewBtn + '</td>' +
+                    '</tr>';
+                });
+                html += '<tr class="info"><td><strong>合计</strong></td><td><strong>' + total + '</strong></td><td colspan="3"></td></tr>';
+            }
+            $('#customs-params-body').html(html);
+        }).fail(function() {
+            $('#customs-params-body').html('<tr><td colspan="5" class="text-center text-danger">加载失败</td></tr>');
+        });
+    }
+
+    loadCustomsParams();
+
+    // ========== HS编码管理 ==========
+    var hsChapterMap = {};
+    var hsChFilterOptions = '';
+    var hsCurrentPage = 1;
+
+    function loadHSStats() {
+        hsChFilterOptions = '';
+        $.get('/api/v1/core/hs-codes/stats/', function(resp) {
+            var d = resp.data || {};
+            $('#hs-total-text').text(d.total || 0);
+            $('#hs-active-text').text(d.active || 0);
+
+            var chapters = d.chapters || [];
+            var loadedSet = {};
+            chapters.forEach(function(c) { loadedSet[c.chapter] = c.count; });
+
+            var html = '';
+            var allChapters = [];
+            for (var i = 1; i <= 98; i++) {
+                var ch = (i < 10 ? '0' : '') + i;
+                if (!CHAPTER_NAMES[ch]) continue;
+                allChapters.push(ch);
+                var count = loadedSet[ch] || 0;
+                var badge = count > 0
+                    ? '<a href="#" class="label label-success btn-view-hschapter" data-chapter="' + ch + '" style="font-size:10px" title="点击查看明细">' + count + '</a>'
+                    : '<span class="label label-default" style="font-size:10px">0</span>';
+
+                // fill chapter filter
+                if (count > 0) {
+                    hsChFilterOptions += '<option value="' + ch + '">' + ch + '章 ' + (CHAPTER_NAMES[ch] || '') + ' (' + count + ')</option>';
+                }
+                html += '<div class="col-xs-6 col-sm-4" style="padding:2px;">' +
+                    '<label style="font-weight:normal;font-size:12px;width:100%;cursor:pointer;">' +
+                    '<input type="checkbox" class="hs-ch-chk" value="' + ch + '" style="margin-right:3px;">' +
+                    ch + '章 ' + badge +
+                    '</label></div>';
+            }
+            hsChapterMap = {};
+            $('#hs-chapter-grid').html(html);
+            $('#btn-sync-hs').prop('disabled', false);
+            $('#hs-chapter-filter').html('<option value="">全部章节</option>' + hsChFilterOptions);
+            loadHSTable(1);
+        }).fail(function() {
+            $('#hs-chapter-grid').html('<div class="text-center text-danger" style="width:100%">加载失败</div>');
+        });
+    }
+
+    var CHAPTER_NAMES = {
+        '01':'活动物','02':'肉及食用杂碎','03':'鱼等','04':'乳品等',
+        '05':'其他动物产品','06':'活树等','07':'食用蔬菜','08':'食用水果',
+        '09':'咖啡、茶','10':'谷物','11':'制粉工业产品','12':'含油子仁',
+        '13':'虫胶等','14':'编结用植物材料','15':'动植物油脂','16':'肉鱼制品',
+        '17':'糖及糖食','18':'可可制品','19':'谷物制品','20':'蔬菜水果制品',
+        '21':'杂项食品','22':'饮料、酒','23':'食品工业残渣','24':'烟草',
+        '25':'盐等','26':'矿砂','27':'矿物燃料','28':'无机化学品',
+        '29':'有机化合物','30':'药品','31':'肥料','32':'鞣料染料',
+        '33':'精油化妆品','34':'肥皂洗涤剂','35':'蛋白类物质','36':'炸药',
+        '37':'照相用品','38':'杂项化学产品','39':'塑料及其制品',
+        '40':'橡胶及其制品','41':'生皮皮革','42':'皮革制品','43':'毛皮制品',
+        '44':'木及木制品','45':'软木制品','46':'稻草编结品','47':'木浆',
+        '48':'纸及纸板','49':'印刷品','50':'蚕丝','51':'羊毛','52':'棉花',
+        '53':'其他植物纺织纤维','54':'化学纤维长丝','55':'化学纤维短纤',
+        '56':'絮胎毡呢','57':'地毯','58':'特种机织物','59':'浸渍纺织物',
+        '60':'针织物','61':'针织服装','62':'非针织服装','63':'其他纺织品',
+        '64':'鞋靴','65':'帽类','66':'雨伞','67':'羽毛制品',
+        '68':'石料制品','69':'陶瓷产品','70':'玻璃及其制品',
+        '71':'珠宝贵金属','72':'钢铁','73':'钢铁制品','74':'铜及其制品',
+        '75':'镍及其制品','76':'铝及其制品','78':'铅及其制品',
+        '79':'锌及其制品','80':'锡及其制品','81':'其他贱金属',
+        '82':'贱金属工具','83':'贱金属杂项','84':'锅炉机器',
+        '85':'电机电气设备','86':'铁道车辆','87':'车辆','88':'航空器',
+        '89':'船舶','90':'光学精密仪器','91':'钟表','92':'乐器',
+        '93':'武器弹药','94':'家具灯具','95':'玩具运动品','96':'杂项制品',
+        '97':'艺术品收藏品','98':'特殊交易品'
+    };
+
+    loadHSStats();
+
+    // 全选/取消全选
+    $('#btn-hs-select-all').on('click', function() {
+        $('.hs-ch-chk').prop('checked', true);
+    });
+    $('#btn-hs-select-none').on('click', function() {
+        $('.hs-ch-chk').prop('checked', false);
+    });
+
+    // 同步选中章节
+    $('#btn-sync-hs').on('click', function() {
+        var btn = $(this);
+        if (btn.prop('disabled')) return;
+        var selected = [];
+        $('.hs-ch-chk:checked').each(function() { selected.push($(this).val()); });
+        if (selected.length === 0) {
+            SimTrade.showError('请先选择要同步的章节');
+            return;
+        }
+        if (!confirm('确认同步 ' + selected.length + ' 个章节的 HS 编码？可能需要几分钟。')) return;
+
+        btn.prop('disabled', true);
+        $('#hs-sync-log').show();
+        $('#hs-sync-status').text('正在同步 ' + selected.length + ' 个章节...');
+
+        $.ajax({
+            url: '/api/v1/core/hs-codes/sync/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ chapters: selected, filter_expired: true, with_tax: $('#chk-sync-tax').is(':checked') }),
+            success: function(resp) {
+                btn.prop('disabled', false);
+                $('#hs-sync-log').hide();
+                if (resp.code === 0 || resp.code === 2) {
+                    SimTrade.showSuccess(resp.message);
+                    loadHSStats();
+                } else {
+                    SimTrade.showError(resp.message || '同步失败');
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false);
+                $('#hs-sync-log').hide();
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) || '同步失败，请检查网络连接';
+                SimTrade.showError(msg);
+            }
+        });
+    });
+
+    // 同步汇率
+    $('#btn-sync-rates').on('click', function() {
+        var btn = $(this);
+        if (btn.prop('disabled')) return;
+        if (!confirm('确认从商务部同步最新汇率数据？')) return;
+
+        btn.prop('disabled', true).html('<span class="glyphicon glyphicon-refresh gly-spin"></span> 同步中...');
+        $.ajax({
+            url: '/api/v1/core/exchange-rates/sync/',
+            method: 'POST',
+            success: function(resp) {
+                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh"></span> 同步最新汇率');
+                if (resp.code === 0) {
+                    SimTrade.showSuccess(resp.message);
+                    loadRatePreview();
+                } else {
+                    SimTrade.showError(resp.message || '同步失败');
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh"></span> 同步最新汇率');
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) || '同步失败，请检查网络连接';
+                SimTrade.showError(msg);
+            }
+        });
+    });
 
     // 新增学期
     $('#btn-add-semester').on('click', function() {
@@ -230,6 +600,137 @@ $(document).ready(function() {
             }
         });
     });
+
+    // ========== 通用明细弹窗 ==========
+    var _detailLoader = null;
+
+    function openDetailModal(title, loaderFn) {
+        $('#detail-modal-title').text(title);
+        $('#detail-search-input').val('');
+        _detailLoader = loaderFn;
+        $('#detailModal').modal('show');
+        loaderFn('');
+    }
+
+    // 搜索
+    $('#detail-search-btn').on('click', function() {
+        if (_detailLoader) _detailLoader($('#detail-search-input').val().trim());
+    });
+    $('#detail-search-input').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            if (_detailLoader) _detailLoader($(this).val().trim());
+        }
+    });
+
+    // 查看海关参数明细
+    $(document).on('click', '.btn-view-params', function() {
+        var key = $(this).data('key');
+        var label = $(this).data('label');
+        openDetailModal(label + ' - 明细', function(search) {
+            $('#detail-thead').html('<tr><th style="width:120px">代码</th><th>名称</th><th style="width:60px">状态</th></tr>');
+            $('#detail-tbody').html('<tr><td colspan="3" class="text-center">加载中...</td></tr>');
+            $.get('/api/v1/core/customs-params/detail/?table=' + key + (search ? '&search=' + encodeURIComponent(search) : ''), function(resp) {
+                var rows = resp.data || [];
+                $('#detail-count-text').text('共 ' + resp.total + ' 条' + (resp.total > 500 ? '（显示前 500 条）' : ''));
+                if (rows.length === 0) {
+                    $('#detail-tbody').html('<tr><td colspan="3" class="text-center text-muted">无数据</td></tr>');
+                    return;
+                }
+                var html = '';
+                rows.forEach(function(r) {
+                    var st = r.is_active ? '<span class="label label-success">启用</span>' : '<span class="label label-default">停用</span>';
+                    html += '<tr><td><code>' + SimTrade.escapeHtml(r.code) + '</code></td><td>' + SimTrade.escapeHtml(r.name) + '</td><td>' + st + '</td></tr>';
+                });
+                $('#detail-tbody').html(html);
+            }).fail(function(xhr) {
+                var msg = '加载失败';
+                if (xhr.status === 403) msg = '无权限访问，请重新登录';
+                else if (xhr.status === 404) msg = '接口不存在';
+                else if (xhr.status === 500) msg = '服务器错误';
+                $('#detail-tbody').html('<tr><td colspan="3" class="text-center text-danger">' + msg + '</td></tr>');
+            });
+        });
+    });
+
+    // 查看 HS 编码章节明细 → 跳转到内嵌表格并筛选
+    $(document).on('click', '.btn-view-hschapter', function(e) {
+        e.preventDefault();
+        var ch = $(this).data('chapter');
+        $('#hs-chapter-filter').val(ch);
+        $('#hs-search-input').val('');
+        loadHSTable(1);
+        $('html,body').animate({scrollTop: $('#hs-table-body').closest('.panel').offset().top - 60}, 300);
+    });
+
+    // HS 编码分页表格
+    function loadHSTable(page) {
+        hsCurrentPage = page || 1;
+        var chapter = $('#hs-chapter-filter').val();
+        var search = $('#hs-search-input').val().trim();
+        var pageSize = $('#hs-page-size').val();
+        var params = 'page=' + hsCurrentPage + '&page_size=' + pageSize;
+        if (chapter) params += '&chapter=' + chapter;
+        if (search) params += '&search=' + encodeURIComponent(search);
+
+        $.get('/api/v1/core/hs-codes/list/?' + params, function(resp) {
+            var rows = resp.data || [];
+            var total = resp.total || 0;
+            var totalPages = resp.total_pages || 1;
+
+            $('#hs-page-info').text('共 ' + total + ' 条，第 ' + hsCurrentPage + '/' + totalPages + ' 页');
+
+            if (rows.length === 0) {
+                $('#hs-table-body').html('<tr><td colspan="10" class="text-center text-muted">无数据</td></tr>');
+                $('#hs-pagination').html('');
+                return;
+            }
+            var html = '';
+            rows.forEach(function(r) {
+                var st = r.is_expired ? '<span class="label label-default">过期</span>' : '<span class="label label-success">有效</span>';
+                html += '<tr>' +
+                    '<td><code>' + SimTrade.escapeHtml(r.code) + '</code></td>' +
+                    '<td>' + SimTrade.escapeHtml(r.name) + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.unit) + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.vat_rate || '') + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.rebate_rate) + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.mfn_rate || '') + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.export_rate || '') + '</td>' +
+                    '<td>' + SimTrade.escapeHtml(r.consumption_rate || '') + '</td>' +
+                    '<td>' + r.chapter + '章</td>' +
+                    '<td>' + st + '</td></tr>';
+            });
+            $('#hs-table-body').html(html);
+
+            // pagination
+            var pgHtml = '';
+            pgHtml += '<button class="btn btn-default hs-pg-btn" data-page="' + (hsCurrentPage - 1) + '"' + (hsCurrentPage <= 1 ? ' disabled' : '') + '>&laquo;</button>';
+            var start = Math.max(1, hsCurrentPage - 2);
+            var end = Math.min(totalPages, start + 4);
+            start = Math.max(1, end - 4);
+            for (var p = start; p <= end; p++) {
+                pgHtml += '<button class="btn ' + (p === hsCurrentPage ? 'btn-primary' : 'btn-default') + ' hs-pg-btn" data-page="' + p + '">' + p + '</button>';
+            }
+            pgHtml += '<button class="btn btn-default hs-pg-btn" data-page="' + (hsCurrentPage + 1) + '"' + (hsCurrentPage >= totalPages ? ' disabled' : '') + '>&raquo;</button>';
+            $('#hs-pagination').html(pgHtml);
+        });
+    }
+
+    // 分页点击
+    $(document).on('click', '.hs-pg-btn', function() {
+        var p = parseInt($(this).data('page'));
+        if (p >= 1) loadHSTable(p);
+    });
+    // 章节筛选
+    $('#hs-chapter-filter').on('change', function() { loadHSTable(1); });
+    // 搜索
+    var hsSearchTimer;
+    $('#hs-search-input').on('input', function() {
+        clearTimeout(hsSearchTimer);
+        hsSearchTimer = setTimeout(function() { loadHSTable(1); }, 400);
+    });
+    // 每页条数
+    $('#hs-page-size').on('change', function() { loadHSTable(1); });
 });
 </script>
 {% endblock %}

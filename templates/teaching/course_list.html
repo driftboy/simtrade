@@ -101,7 +101,7 @@ $(document).ready(function() {
 
     function loadSemesters() {
         $.get('/api/v1/teaching/semesters/', function(resp) {
-            var semesters = resp.data || [];
+            var semesters = resp.results || [];
             var html = '<option value="">请选择学期</option>';
             semesters.forEach(function(sem) {
                 html += '<option value="' + sem.id + '">' + SimTrade.escapeHtml(sem.name) + '</option>';

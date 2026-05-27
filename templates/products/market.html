@@ -5,40 +5,85 @@
 
 {% block extra_css %}
 <link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+<style>
+.mkt-chapter { margin-bottom: 8px; }
+.mkt-chapter-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: #f8f9fa; border: 1px solid #e8e8e8;
+    border-radius: 6px; cursor: pointer; transition: background 0.2s;
+}
+.mkt-chapter-header:hover { background: #eef3ff; }
+.mkt-chapter-header.active { background: #eef3ff; border-color: #b8d4ff; }
+.mkt-chapter-badge {
+    display: inline-block; min-width: 20px; text-align: center;
+    padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    background: #4a90d9; color: #fff;
+}
+.mkt-chapter-badge.empty { background: #d9d9d9; color: #8c8c8c; }
+.mkt-chapter-title { font-weight: 600; color: #262626; font-size: 14px; }
+.mkt-chapter-code { color: #8c8c8c; font-size: 13px; margin-right: 8px; }
+.mkt-product-grid { padding: 12px 0 4px 0; }
+.mkt-product-card {
+    border: 1px solid #e8e8e8; border-radius: 6px; padding: 14px;
+    transition: box-shadow 0.2s; background: #fff; height: 100%;
+}
+.mkt-product-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+.mkt-product-hs { font-size: 12px; color: #8c8c8c; }
+.mkt-product-name { font-size: 15px; font-weight: 600; color: #262626; margin: 4px 0; }
+.mkt-product-unit { font-size: 12px; color: #595959; }
+.mkt-product-desc { font-size: 12px; color: #8c8c8c; margin-top: 6px; }
+.mkt-tax-row { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 11px; color: #595959; }
+.mkt-tax-row span { white-space: nowrap; }
+.mkt-tax-label { color: #8c8c8c; }
+.mkt-sidebar { max-height: calc(100vh - 160px); overflow-y: auto; position: sticky; top: 70px; }
+.mkt-sidebar-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 12px; border-radius: 4px; cursor: pointer; transition: background 0.15s;
+    font-size: 13px; color: #595959;
+}
+.mkt-sidebar-item:hover, .mkt-sidebar-item.active { background: #eef3ff; color: #262626; }
+.mkt-search-bar { margin-bottom: 20px; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row" style="margin-bottom:16px;">
     <div class="col-md-12">
-        <h2>商品市场</h2>
-        <div class="panel panel-default">
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <select id="categoryFilter" class="form-control">
-                            <option value="">所有分类</option>
-                            <option value="electronics">电子产品</option>
-                            <option value="textiles">纺织品</option>
-                            <option value="machinery">机械设备</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" id="searchInput" class="form-control" placeholder="搜索商品...">
-                    </div>
-                    <div class="col-md-2">
-                        <button id="searchBtn" class="btn btn-primary btn-block">搜索</button>
-                    </div>
-                </div>
-            </div>
+        <h4 style="font-weight:600;color:#262626;margin:0;">商品市场</h4>
+    </div>
+</div>
+
+<!-- 搜索栏 -->
+<div class="row mkt-search-bar">
+    <div class="col-md-8 col-md-offset-2">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="搜索商品名称或HS编码...">
+            <span class="input-group-btn">
+                <button id="searchBtn" class="btn btn-primary">搜索</button>
+            </span>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-md-12">
-        <div id="productList" class="product-list">
-            <!-- 商品列表将通过 AJAX 加载 -->
-            <div class="text-center">加载中...</div>
+    <!-- 左侧：HS 章节导航 -->
+    <div class="col-md-3">
+        <div class="panel panel-default" style="border-radius:6px;">
+            <div class="panel-heading" style="border-radius:6px 6px 0 0;">
+                <strong style="font-size:13px;">HS 编码分类</strong>
+            </div>
+            <div class="panel-body mkt-sidebar" style="padding:6px;">
+                <div id="chapter-nav">
+                    <div class="text-center text-muted" style="padding:20px;">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：商品列表 -->
+    <div class="col-md-9">
+        <div id="productList">
+            <div class="text-center text-muted" style="padding:40px;">加载中...</div>
         </div>
     </div>
 </div>
@@ -50,69 +95,101 @@
 $(document).ready(function() {
     'use strict';
 
-    function loadProducts() {
-        var category = $('#categoryFilter').val();
-        var search = $('#searchInput').val();
-        var url = '/api/v1/products/products/';
+    var currentChapter = '';
 
-        $.ajax({
-            url: url,
-            method: 'GET',
-            data: {
-                category: category,
-                search: search
-            },
-            success: function(response) {
-                var html = '';
-                if (response.data.length === 0) {
-                    html = '<div class="alert alert-info">暂无商品</div>';
-                } else {
-                    html = '<div class="row">';
-                    response.data.forEach(function(product) {
-                        html += `
-                            <div class="col-md-4">
-                                <div class="panel panel-default product-card">
-                                    <div class="panel-heading">
-                                        <strong>${product.code}</strong>
-                                        <span class="pull-right badge">${product.category_display}</span>
-                                    </div>
-                                    <div class="panel-body">
-                                        <h4>${product.name}</h4>
-                                        <p>单位: ${product.unit}</p>
-                                        ${product.description ? '<p>' + product.description + '</p>' : ''}
-                                        <button class="btn btn-primary btn-sm send-inquiry-btn"
-                                                data-product-id="${product.id}"
-                                                data-product-name="${product.name}">
-                                            发送询盘
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                }
-                $('#productList').html(html);
-            },
-            error: function() {
-                $('#productList').html('<div class="alert alert-danger">加载失败</div>');
+    function loadMarket() {
+        var params = [];
+        if (currentChapter) params.push('chapter=' + currentChapter);
+        var search = $('#searchInput').val().trim();
+        if (search) params.push('search=' + encodeURIComponent(search));
+
+        $.get('/api/v1/products/market/' + (params.length ? '?' + params.join('&') : ''), function(resp) {
+            var chapters = resp.data || [];
+
+            // Sidebar
+            var navHtml = '';
+            if (!currentChapter && !search) {
+                navHtml += '<div class="mkt-sidebar-item' + (!currentChapter ? ' active' : '') + '" data-chapter="">'
+                    + '<span>全部章节</span><span class="mkt-chapter-badge">' + chapters.reduce(function(s,c){return s+c.products.length;},0) + '</span></div>';
             }
+            chapters.forEach(function(ch) {
+                var count = ch.products.length;
+                var badge = count > 0
+                    ? '<span class="mkt-chapter-badge">' + count + '</span>'
+                    : '<span class="mkt-chapter-badge empty">0</span>';
+                var active = currentChapter === ch.chapter ? ' active' : '';
+                navHtml += '<div class="mkt-sidebar-item' + active + '" data-chapter="' + ch.chapter + '">'
+                    + '<span>' + ch.chapter + '章 ' + SimTrade.escapeHtml(ch.name) + '</span>' + badge + '</div>';
+            });
+            $('#chapter-nav').html(navHtml);
+
+            // Product list
+            if (chapters.length === 0) {
+                $('#productList').html('<div class="alert alert-info" style="margin-top:20px;">暂无匹配的商品</div>');
+                return;
+            }
+
+            var html = '';
+            chapters.forEach(function(ch) {
+                if (ch.products.length === 0) return;
+                html += '<div class="mkt-chapter">';
+                html += '<div class="mkt-chapter-header">'
+                    + '<span><span class="mkt-chapter-code">第' + ch.chapter + '章</span>'
+                    + '<span class="mkt-chapter-title">' + SimTrade.escapeHtml(ch.name) + '</span></span>'
+                    + '<span class="mkt-chapter-badge">' + ch.products.length + '个商品</span></div>';
+                html += '<div class="mkt-product-grid"><div class="row">';
+
+                ch.products.forEach(function(p) {
+                        var taxHtml = '';
+                        var taxes = [
+                            ['增值税率', p.vat_rate], ['出口退税率', p.rebate_rate],
+                            ['最惠国税率', p.mfn_rate], ['出口税率', p.export_rate],
+                            ['消费税率', p.consumption_rate]
+                        ];
+                        var taxParts = [];
+                        taxes.forEach(function(t) {
+                            if (t[1]) taxParts.push('<span><span class="mkt-tax-label">' + t[0] + '</span> ' + SimTrade.escapeHtml(t[1]) + '</span>');
+                        });
+                        if (taxParts.length) taxHtml = '<div class="mkt-tax-row">' + taxParts.join('') + '</div>';
+
+                        html += '<div class="col-md-4" style="margin-bottom:12px;">'
+                        + '<div class="mkt-product-card">'
+                        + '<div class="mkt-product-hs"><code>' + SimTrade.escapeHtml(p.hs_code) + '</code></div>'
+                        + '<div class="mkt-product-name">' + SimTrade.escapeHtml(p.name) + '</div>'
+                        + '<div class="mkt-product-unit">单位：' + SimTrade.escapeHtml(p.unit) + '</div>'
+                        + (p.description ? '<div class="mkt-product-desc">' + SimTrade.escapeHtml(p.description) + '</div>' : '')
+                        + taxHtml
+                        + '<div style="margin-top:10px;">'
+                        + '<button class="btn btn-primary btn-xs send-inquiry-btn"'
+                        + ' data-product-id="' + p.id + '"'
+                        + ' data-product-name="' + SimTrade.escapeHtml(p.name) + '">'
+                        + '发送询盘</button></div>'
+                        + '</div></div>';
+                    });
+
+                html += '</div></div></div>';
+            });
+
+            if (!html) {
+                html = '<div class="alert alert-info" style="margin-top:20px;">该章节暂无上架商品</div>';
+            }
+            $('#productList').html(html);
+        }).fail(function() {
+            $('#productList').html('<div class="alert alert-danger">加载失败</div>');
         });
     }
 
-    // 初始加载
-    loadProducts();
+    loadMarket();
 
-    // 搜索按钮
-    $('#searchBtn').click(loadProducts);
-
-    // 回车搜索
-    $('#searchInput').keypress(function(e) {
-        if (e.which == 13) loadProducts();
+    // 章节导航点击
+    $(document).on('click', '.mkt-sidebar-item', function() {
+        currentChapter = $(this).data('chapter') || '';
+        loadMarket();
     });
 
-    // 分类筛选
-    $('#categoryFilter').change(loadProducts);
+    // 搜索
+    $('#searchBtn').click(function() { currentChapter = ''; loadMarket(); });
+    $('#searchInput').keypress(function(e) { if (e.which === 13) { currentChapter = ''; loadMarket(); } });
 });
 </script>
 {% endblock %}

@@ -123,6 +123,13 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+# HTTPS / Security
+SECURE_SSL_REDIRECT = False  # dev server; set True in production
+SESSION_COOKIE_SECURE = False  # set True when behind real HTTPS
+CSRF_COOKIE_SECURE = False  # set True when behind real HTTPS
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
 # Channels / WebSocket
 ASGI_APPLICATION = 'simtrade.asgi.application'
 

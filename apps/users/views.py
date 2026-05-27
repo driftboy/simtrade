@@ -196,4 +196,4 @@ class UserManagementViewSet(viewsets.ModelViewSet):
         new_password = request.data.get('new_password', '123456')
         user.set_password(new_password)
         user.save()
-        return Response({'code': 0, 'message': '密码已重置'})
+        return Response({'code': 0, 'message': f'密码已重置为: {new_password}', 'data': {'new_password': new_password}})

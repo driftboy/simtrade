@@ -1,5 +1,5 @@
 /* ==========================================
-   SimTrade Dashboard Styles
+   SimTrade Admin Dashboard Styles
    ========================================== */
 
 /* Dashboard Stats Row */
@@ -7,37 +7,92 @@
     margin-bottom: 25px;
 }
 
-/* Stat Card */
+/* Stat Card - horizontal layout with color bar */
 .dash-stat-card {
+    display: flex;
+    align-items: center;
     background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 20px 15px;
-    text-align: center;
-    transition: box-shadow 0.3s ease;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 18px 20px;
     margin-bottom: 15px;
+    transition: all 0.25s ease;
+    border-left: 4px solid #e8e8e8;
+    position: relative;
 }
 
 .dash-stat-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
 }
 
+/* Color variants */
+.dash-stat-card.card-blue    { border-left-color: #4a90d9; }
+.dash-stat-card.card-green   { border-left-color: #52c41a; }
+.dash-stat-card.card-orange  { border-left-color: #fa8c16; }
+.dash-stat-card.card-purple  { border-left-color: #722ed1; }
+
+/* Icon area - small circle */
 .dash-stat-icon {
-    font-size: 30px;
-    color: #337ab7;
-    margin-bottom: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    flex-shrink: 0;
 }
 
-.dash-stat-value {
-    font-size: 32px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
+.dash-stat-icon .glyphicon {
+    font-size: 20px;
+    color: #fff;
+}
+
+.card-blue   .dash-stat-icon { background: linear-gradient(135deg, #4a90d9, #357abd); }
+.card-green  .dash-stat-icon { background: linear-gradient(135deg, #52c41a, #3ba00c); }
+.card-orange .dash-stat-icon { background: linear-gradient(135deg, #fa8c16, #d97706); }
+.card-purple .dash-stat-icon { background: linear-gradient(135deg, #722ed1, #531dab); }
+
+/* Text area */
+.dash-stat-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .dash-stat-label {
     font-size: 13px;
-    color: #999;
+    color: #8c8c8c;
+    margin-bottom: 2px;
+}
+
+/* Value + arrow on the right */
+.dash-stat-right {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.dash-stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #262626;
+    line-height: 1;
+}
+
+.dash-stat-arrow {
+    font-size: 12px;
+    color: #bfbfbf;
+    transition: transform 0.2s;
+}
+
+.dash-stat-card:hover .dash-stat-arrow {
+    color: #4a90d9;
+    transform: translateX(3px);
 }
 
 /* Dashboard Section */
@@ -81,7 +136,47 @@
     border-left-color: #d9534f;
 }
 
-/* Quick Actions */
-.dash-quick-actions .btn {
-    margin: 0 5px 10px 0;
+/* Quick Actions - icon + text horizontal */
+.dash-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.dash-quick-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    color: #595959;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.dash-quick-link:hover {
+    border-color: #4a90d9;
+    color: #4a90d9;
+    background: #f0f6ff;
+    text-decoration: none;
+}
+
+.dash-quick-link .glyphicon {
+    font-size: 16px;
+    color: #4a90d9;
+}
+
+/* Panel tweaks for dashboard */
+.dash-panel > .panel-heading {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 20px;
+}
+
+.dash-panel > .panel-heading .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #262626;
 }

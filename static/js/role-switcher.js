@@ -53,7 +53,7 @@
 
         for (var i = 0; i < data.length; i++) {
             var item = data[i];
-            if (item.status === 'active') {
+            if (item.status === 'approved') {
                 activeRoles.push(item);
             } else if (item.status === 'pending') {
                 pendingRoles.push(item);

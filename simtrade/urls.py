@@ -230,7 +230,7 @@ def dashboard_view(request):
     """根据用户类型分发仪表盘"""
     user_type = request.user.user_type
     if user_type == 'admin':
-        return render(request, 'dashboard/admin.html', {'user': request.user})
+        return redirect('admin-dashboard')
     elif user_type == 'teacher':
         return render(request, 'dashboard/teacher.html', {'user': request.user})
     return render(request, 'dashboard/student.html', {'user': request.user})
@@ -324,6 +324,12 @@ def teaching_grading(request):
 
 
 @login_required
+def teaching_experiments(request):
+    """Experiment templates management page"""
+    return render(request, 'teaching/experiments.html', {'user': request.user})
+
+
+@login_required
 def admin_panel_dashboard(request):
     """Admin panel dashboard"""
     if not request.user.is_staff:
@@ -378,6 +384,7 @@ urlpatterns = [
     path('api/v1/scoring/', include('apps.scoring.urls')),
     path('api/v1/teaching/', include('apps.teaching.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
+    path('api/v1/core/', include('apps.core.urls')),
 ]
 
 if settings.DEBUG:
@@ -405,6 +412,7 @@ urlpatterns += [
     path('teaching/courses/', teaching_course_list, name='teaching-courses'),
     path('teaching/courses/<int:course_id>/', teaching_course_detail, name='teaching-course-detail'),
     path('teaching/grading/', teaching_grading, name='teaching-grading'),
+    path('teaching/experiments/', teaching_experiments, name='teaching-experiments'),
     # Admin panel
     path('admin-panel/', admin_panel_dashboard, name='admin-dashboard'),
     path('admin-panel/users/', admin_panel_users, name='admin-users'),

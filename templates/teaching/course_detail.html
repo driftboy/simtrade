@@ -5,6 +5,11 @@
 
 {% block extra_css %}
 <link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+<style>
+.tab-pane .panel-heading { padding: 8px 12px; }
+.action-col { white-space: nowrap; }
+.enrollment-code { font-family: monospace; font-size: 13px; background: #f5f5f5; padding: 2px 6px; border-radius: 3px; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -23,39 +28,184 @@
                 <a href="#tab-classes" aria-controls="tab-classes" role="tab" data-toggle="tab">班级</a>
             </li>
             <li role="presentation">
-                <a href="#tab-experiments" aria-controls="tab-experiments" role="tab" data-toggle="tab">实验</a>
+                <a href="#tab-assignments" aria-controls="tab-assignments" role="tab" data-toggle="tab">作业</a>
             </li>
             <li role="presentation">
-                <a href="#tab-assignments" aria-controls="tab-assignments" role="tab" data-toggle="tab">作业</a>
+                <a href="#tab-experiments" aria-controls="tab-experiments" role="tab" data-toggle="tab">实验</a>
             </li>
         </ul>
 
         <div class="tab-content" style="margin-top: 15px;">
-            <!-- 班级 Tab -->
+            <!-- ========== 班级 Tab ========== -->
             <div role="tabpanel" class="tab-pane active" id="tab-classes">
+                <div class="panel panel-default">
+                    <div class="panel-heading clearfix">
+                        <h3 class="panel-title pull-left">班级列表</h3>
+                        <button class="btn btn-success btn-sm pull-right" id="btn-create-class">新建班级</button>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>班级名称</th>
+                                    <th>人数</th>
+                                    <th>邀请码</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="class-table-body">
+                                <tr><td colspan="5" class="text-center">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 作业 Tab ========== -->
+            <div role="tabpanel" class="tab-pane" id="tab-assignments">
+                <div class="panel panel-default">
+                    <div class="panel-heading clearfix">
+                        <h3 class="panel-title pull-left">作业列表</h3>
+                        <button class="btn btn-success btn-sm pull-right" id="btn-create-assignment">新建作业</button>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>类型</th>
+                                    <th>满分</th>
+                                    <th>截止时间</th>
+                                    <th>提交数</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignment-table-body">
+                                <tr><td colspan="6" class="text-center">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 实验 Tab ========== -->
+            <div role="tabpanel" class="tab-pane" id="tab-experiments">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">实验模板</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div id="experiment-list">
+                            <div class="text-center">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 创建班级 Modal ========== -->
+<div class="modal fade" id="createClassModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新建班级</h4>
+            </div>
+            <div class="modal-body">
+                <form id="create-class-form">
+                    <div class="form-group">
+                        <label>班级名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="cls-name" placeholder="如：1班" required>
+                    </div>
+                    <div class="form-group">
+                        <label>最大人数</label>
+                        <input type="number" class="form-control" id="cls-capacity" value="40" min="1" max="200">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-submit-class">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 创建作业 Modal ========== -->
+<div class="modal fade" id="createAssignmentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新建作业</h4>
+            </div>
+            <div class="modal-body">
+                <form id="create-assignment-form">
+                    <div class="form-group">
+                        <label>所属班级 <span class="text-danger">*</span></label>
+                        <select class="form-control" id="asgn-class" required>
+                            <option value="">请选择班级</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>标题 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="asgn-title" placeholder="如：第一次作业" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>类型</label>
+                            <select class="form-control" id="asgn-type">
+                                <option value="homework">作业</option>
+                                <option value="quiz">测验</option>
+                                <option value="report">报告</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>满分</label>
+                            <input type="number" class="form-control" id="asgn-max-score" value="100" min="1" max="1000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>截止时间 <span class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="asgn-due-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>要求说明</label>
+                        <textarea class="form-control" id="asgn-description" rows="3" placeholder="作业要求（选填）"></textarea>
+                    </div>
+                    <div class="checkbox">
+                        <label><input type="checkbox" id="asgn-allow-late"> 允许迟交</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-submit-assignment">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 学生列表 Modal ========== -->
+<div class="modal fade" id="studentsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title" id="students-modal-title">班级学生</h4>
+            </div>
+            <div class="modal-body">
                 <table class="table table-bordered table-striped">
                     <thead>
-                        <tr>
-                            <th>班级名称</th>
-                            <th>人数</th>
-                            <th>邀请码</th>
-                            <th>状态</th>
-                        </tr>
+                        <tr><th>用户名</th><th>角色</th><th>状态</th><th>选课时间</th></tr>
                     </thead>
-                    <tbody id="class-table-body">
+                    <tbody id="students-table-body">
                         <tr><td colspan="4" class="text-center">加载中...</td></tr>
                     </tbody>
                 </table>
-            </div>
-
-            <!-- 实验 Tab -->
-            <div role="tabpanel" class="tab-pane" id="tab-experiments">
-                <p class="text-muted">实验管理功能开发中...</p>
-            </div>
-
-            <!-- 作业 Tab -->
-            <div role="tabpanel" class="tab-pane" id="tab-assignments">
-                <p class="text-muted">作业管理功能开发中...</p>
             </div>
         </div>
     </div>
@@ -69,7 +219,262 @@ $(document).ready(function() {
     'use strict';
 
     var courseId = {{ course_id }};
-    loadCourseDetail(courseId);
+
+    // ==================== 班级管理 ====================
+
+    function loadClasses() {
+        $.get('/api/v1/teaching/classes/', {course_id: courseId}, function(resp) {
+            var classes = resp.results || resp.data || [];
+            var html = '';
+            if (classes.length === 0) {
+                html = '<tr><td colspan="5" class="text-center text-muted">暂无班级，点击右上角新建</td></tr>';
+            } else {
+                classes.forEach(function(cls) {
+                    var statusLabel = cls.status === 'active'
+                        ? '<span class="label label-success">进行中</span>'
+                        : cls.status === 'upcoming'
+                            ? '<span class="label label-info">未开始</span>'
+                            : '<span class="label label-default">已结束</span>';
+                    html += '<tr>' +
+                        '<td>' + SimTrade.escapeHtml(cls.name) + '</td>' +
+                        '<td>' + (cls.student_count || 0) + '/' + (cls.capacity || 40) + '</td>' +
+                        '<td><code class="enrollment-code">' + SimTrade.escapeHtml(cls.enrollment_code || '') + '</code></td>' +
+                        '<td>' + statusLabel + '</td>' +
+                        '<td class="action-col">' +
+                            '<button class="btn btn-xs btn-default btn-copy-code" data-code="' + SimTrade.escapeHtml(cls.enrollment_code || '') + '" title="复制邀请码"><span class="glyphicon glyphicon-copy"></span></button> ' +
+                            '<button class="btn btn-xs btn-primary btn-view-students" data-id="' + cls.id + '" data-name="' + SimTrade.escapeHtml(cls.name) + '"><span class="glyphicon glyphicon-user"></span> 学生</button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+            }
+            $('#class-table-body').html(html);
+        }).fail(function() {
+            $('#class-table-body').html('<tr><td colspan="5" class="text-center text-danger">加载失败</td></tr>');
+        });
+    }
+
+    loadClasses();
+
+    // 加载课程标题
+    $.get('/api/v1/teaching/courses/' + courseId + '/', function(resp) {
+        var course = resp.data || resp;
+        $('#course-title').text(course.name || '课程详情');
+    });
+
+    // 创建班级
+    $('#btn-create-class').on('click', function() {
+        $('#cls-name').val('');
+        $('#cls-capacity').val(40);
+        $('#createClassModal').modal('show');
+    });
+
+    $('#btn-submit-class').on('click', function() {
+        var name = $('#cls-name').val().trim();
+        var capacity = parseInt($('#cls-capacity').val()) || 40;
+        if (!name) { alert('请输入班级名称'); return; }
+
+        $.ajax({
+            url: '/api/v1/teaching/classes/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({course: courseId, name: name, capacity: capacity}),
+            success: function() {
+                $('#createClassModal').modal('hide');
+                if (typeof SimTrade !== 'undefined' && SimTrade.showSuccess) SimTrade.showSuccess('班级创建成功');
+                loadClasses();
+            },
+            error: function(xhr) {
+                alert('创建失败: ' + ((xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.detail)) || '未知错误'));
+            }
+        });
+    });
+
+    // 复制邀请码
+    $(document).on('click', '.btn-copy-code', function() {
+        var code = $(this).data('code');
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(code).then(function() {
+                if (typeof SimTrade !== 'undefined' && SimTrade.showSuccess) SimTrade.showSuccess('邀请码已复制: ' + code);
+            });
+        } else {
+            var tmp = $('<input>').val(code);
+            $('body').append(tmp);
+            tmp.select();
+            document.execCommand('copy');
+            tmp.remove();
+            if (typeof SimTrade !== 'undefined' && SimTrade.showSuccess) SimTrade.showSuccess('邀请码已复制: ' + code);
+        }
+    });
+
+    // 查看学生列表
+    $(document).on('click', '.btn-view-students', function() {
+        var classId = $(this).data('id');
+        var className = $(this).data('name');
+        $('#students-modal-title').text(className + ' - 学生列表');
+        $('#students-table-body').html('<tr><td colspan="4" class="text-center">加载中...</td></tr>');
+        $('#studentsModal').modal('show');
+
+        $.get('/api/v1/teaching/classes/' + classId + '/enrollments/', function(resp) {
+            var students = resp.data || resp.results || [];
+            var html = '';
+            if (students.length === 0) {
+                html = '<tr><td colspan="4" class="text-center text-muted">暂无学生</td></tr>';
+            } else {
+                students.forEach(function(s) {
+                    html += '<tr>' +
+                        '<td>' + SimTrade.escapeHtml(s.student_username || '') + '</td>' +
+                        '<td>' + SimTrade.escapeHtml(s.role_display || s.role || '') + '</td>' +
+                        '<td>' + SimTrade.escapeHtml(s.status_display || s.status || '') + '</td>' +
+                        '<td>' + (s.enrolled_at ? s.enrolled_at.substring(0, 16).replace('T', ' ') : '-') + '</td>' +
+                    '</tr>';
+                });
+            }
+            $('#students-table-body').html(html);
+        }).fail(function() {
+            $('#students-table-body').html('<tr><td colspan="4" class="text-center text-danger">加载失败</td></tr>');
+        });
+    });
+
+    // ==================== 作业管理 ====================
+
+    var classCache = [];
+
+    function loadAssignments() {
+        // 先加载班级，再加载所有班级的作业
+        $.get('/api/v1/teaching/classes/', {course_id: courseId}, function(resp) {
+            classCache = resp.results || resp.data || [];
+            if (classCache.length === 0) {
+                $('#assignment-table-body').html('<tr><td colspan="6" class="text-center text-muted">请先创建班级</td></tr>');
+                return;
+            }
+            // 加载所有班级的作业
+            var promises = classCache.map(function(cls) {
+                return $.get('/api/v1/teaching/assignments/', {class_id: cls.id});
+            });
+            $.when.apply($, promises).then(function() {
+                var allAssignments = [];
+                // $.when with multiple deferreds passes multiple arguments
+                for (var i = 0; i < arguments.length; i++) {
+                    var data = arguments[i][0];
+                    var items = data.results || data.data || data || [];
+                    allAssignments = allAssignments.concat(items);
+                }
+                // 按截止时间降序
+                allAssignments.sort(function(a, b) { return (b.due_date || '').localeCompare(a.due_date || ''); });
+
+                var html = '';
+                if (allAssignments.length === 0) {
+                    html = '<tr><td colspan="6" class="text-center text-muted">暂无作业</td></tr>';
+                } else {
+                    allAssignments.forEach(function(asgn) {
+                        var isOverdue = asgn.due_date && new Date(asgn.due_date) < new Date();
+                        html += '<tr' + (isOverdue ? ' class="warning"' : '') + '>' +
+                            '<td>' + SimTrade.escapeHtml(asgn.title) + '</td>' +
+                            '<td>' + SimTrade.escapeHtml(asgn.assignment_type_display || asgn.assignment_type) + '</td>' +
+                            '<td>' + (asgn.max_score || 100) + '</td>' +
+                            '<td>' + (asgn.due_date ? asgn.due_date.substring(0, 16).replace('T', ' ') : '-') + '</td>' +
+                            '<td>' + (asgn.submission_count || 0) + '</td>' +
+                            '<td class="action-col">' +
+                                '<span class="label label-default">' + SimTrade.escapeHtml(asgn.class_name || '') + '</span>' +
+                            '</td>' +
+                        '</tr>';
+                    });
+                }
+                $('#assignment-table-body').html(html);
+            });
+        }).fail(function() {
+            $('#assignment-table-body').html('<tr><td colspan="6" class="text-center text-danger">加载失败</td></tr>');
+        });
+    }
+
+    // 切换到作业 tab 时加载
+    $('a[href="#tab-assignments"]').on('shown.bs.tab', function() {
+        if ($('#assignment-table-body tr').length <= 1 && $('#assignment-table-body .text-center').length) {
+            loadAssignments();
+        }
+    });
+
+    // 创建作业 modal
+    $('#btn-create-assignment').on('click', function() {
+        // 填充班级下拉
+        var html = '<option value="">请选择班级</option>';
+        classCache.forEach(function(cls) {
+            html += '<option value="' + cls.id + '">' + SimTrade.escapeHtml(cls.name) + '</option>';
+        });
+        $('#asgn-class').html(html);
+        $('#asgn-title').val('');
+        $('#asgn-type').val('homework');
+        $('#asgn-max-score').val(100);
+        $('#asgn-due-date').val('');
+        $('#asgn-description').val('');
+        $('#asgn-allow-late').prop('checked', false);
+        $('#createAssignmentModal').modal('show');
+    });
+
+    $('#btn-submit-assignment').on('click', function() {
+        var clsId = $('#asgn-class').val();
+        var title = $('#asgn-title').val().trim();
+        var dueDate = $('#asgn-due-date').val();
+        if (!clsId || !title || !dueDate) { alert('请填写必填项'); return; }
+
+        $.ajax({
+            url: '/api/v1/teaching/assignments/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                teaching_class: parseInt(clsId),
+                title: title,
+                assignment_type: $('#asgn-type').val(),
+                max_score: parseFloat($('#asgn-max-score').val()) || 100,
+                due_date: dueDate,
+                description: $('#asgn-description').val().trim(),
+                allow_late: $('#asgn-allow-late').is(':checked')
+            }),
+            success: function() {
+                $('#createAssignmentModal').modal('hide');
+                if (typeof SimTrade !== 'undefined' && SimTrade.showSuccess) SimTrade.showSuccess('作业创建成功');
+                loadAssignments();
+            },
+            error: function(xhr) {
+                alert('创建失败: ' + ((xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.detail)) || '未知错误'));
+            }
+        });
+    });
+
+    // ==================== 实验模板 ====================
+
+    function loadExperiments() {
+        $.get('/api/v1/teaching/experiment-templates/', function(resp) {
+            var templates = resp.results || resp.data || [];
+            var html = '';
+            if (templates.length === 0) {
+                html = '<div class="alert alert-info">暂无实验模板</div>';
+            } else {
+                templates.forEach(function(tpl) {
+                    html += '<div class="panel panel-default">' +
+                        '<div class="panel-heading clearfix">' +
+                            '<h4 class="panel-title pull-left">' + SimTrade.escapeHtml(tpl.name || '未命名') + '</h4>' +
+                            '<span class="pull-right text-muted"><small>使用 ' + (tpl.use_count || 0) + ' 次</small></span>' +
+                        '</div>' +
+                        '<div class="panel-body">' +
+                            '<p>' + SimTrade.escapeHtml(tpl.description || '暂无描述') + '</p>' +
+                            (tpl.created_by_name ? '<small class="text-muted">创建者: ' + SimTrade.escapeHtml(tpl.created_by_name) + '</small>' : '') +
+                        '</div>' +
+                    '</div>';
+                });
+            }
+            $('#experiment-list').html(html);
+        }).fail(function() {
+            $('#experiment-list').html('<div class="alert alert-danger">加载实验模板失败</div>');
+        });
+    }
+
+    // 切换到实验 tab 时加载
+    $('a[href="#tab-experiments"]').on('shown.bs.tab', function() {
+        if ($('#experiment-list .text-center').length) {
+            loadExperiments();
+        }
+    });
 });
 </script>
 {% endblock %}

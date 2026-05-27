@@ -40,3 +40,13 @@ Thumbs.db
 
 # Worktrees
 .worktrees/
+
+# SSL 证书
+certs/
+
+# Claude 本地配置
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# 测试产物
+tests/e2e/artifacts/
