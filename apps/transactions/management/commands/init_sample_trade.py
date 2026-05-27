@@ -218,11 +218,19 @@ class Command(BaseCommand):
         # ── 创建场景数据 ──────────────────────────────────────
         result = self._create_scenario_cif_lc(now, companies, huaxin_user)
 
+        # ── 场景 2：FOB + T/T ──────────────────────────────────
+        self.stdout.write('\n' + '=' * 60)
+        self.stdout.write('场景 2：FOB + T/T（智能手表出口阿联酋）')
+        self.stdout.write('=' * 60)
+        result2 = self._create_scenario_fob_tt(now, companies, huaxin_user)
+
         # ── 汇总 ─────────────────────────────────────────────────
         self.stdout.write('\n' + '=' * 60)
         self.stdout.write(self.style.SUCCESS('样本交易数据生成完毕！'))
         self.stdout.write('=' * 60)
         self.stdout.write(f'  公司: {Company.objects.count()} 家')
+        self.stdout.write('')
+        self.stdout.write('  场景 1: CIF + L/C（蓝牙耳机出口美国）')
         self.stdout.write(f'  交易: #{result["transaction"].id}')
         self.stdout.write(f'  合同: {result["contract"].contract_no}')
         self.stdout.write(f'  信用证: {result["lc"].lc_no}')
@@ -233,6 +241,17 @@ class Command(BaseCommand):
         self.stdout.write(f'  报关: {result["customs"].declaration_no}')
         self.stdout.write(f'  外汇结算: {result["forex"].settlement_no}')
         self.stdout.write(f'  退税: {result["tax_refund"].application_no}')
+        self.stdout.write('')
+        self.stdout.write('  场景 2: FOB + T/T（智能手表出口阿联酋）')
+        self.stdout.write(f'  交易: #{result2["transaction"].id}')
+        self.stdout.write(f'  合同: {result2["contract"].contract_no}')
+        self.stdout.write(f'  采购订单: {result2["po"].order_no}')
+        self.stdout.write(f'  货运: {result2["shipment"].shipment_no}')
+        self.stdout.write(f'  报检: {result2["inspection"].application_no}')
+        self.stdout.write(f'  报关: {result2["customs"].declaration_no}')
+        self.stdout.write(f'  外汇结算(30%): {result2["forex1"].settlement_no}')
+        self.stdout.write(f'  外汇结算(70%): {result2["forex2"].settlement_no}')
+        self.stdout.write(f'  退税: {result2["tax_refund"].application_no}')
         self.stdout.write(f'  单证记录: {Document.objects.count()} 份')
 
     # ──────────────────────────────────────────────────────────────
@@ -584,6 +603,588 @@ class Command(BaseCommand):
             'forex': forex,
             'tax_refund': tax_refund,
         }
+
+    # ──────────────────────────────────────────────────────────────
+    # 场景：FOB + T/T 出口阿联酋（智能手表）
+    # ──────────────────────────────────────────────────────────────
+
+    def _create_scenario_fob_tt(self, now, companies, sample_user):
+        """FOB + T/T 场景：智能手表出口阿联酋"""
+
+        # ── 新公司 ──────────────────────────────────────────
+        self.stdout.write('\n[新增公司] 创建场景 2 公司...')
+
+        exp02, created = self._create_company(
+            'EXP02', '深圳华芯电子科技有限公司',
+            'Shenzhen Huaxin Chip Electronics Co., Ltd.',
+            'CN', 'electronics',
+            '深圳市福田区华强北路赛格广场A座1208',
+            '+86-755-83001234', 'trade@huaxin-chip.com')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {exp02.name}')
+
+        imp02, created = self._create_company(
+            'IMP02', 'Al Rashid Trading LLC',
+            'Al Rashid Trading LLC',
+            'AE', 'trading',
+            'Dubai Silicon Oasis, DDP Building A, Office 305',
+            '+971-4-3201234', 'import@alrashid-trading.ae')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {imp02.name}')
+
+        # ── 商品 ──────────────────────────────────────────
+        product = self._ensure_product(
+            'E002', '智能手表 Smart Watch', 'Smart Watch HX-WatchPro',
+            'electronics', 'PCS', '910212',
+            '1.69寸AMOLED屏, 心率血氧, GPS, IP68防水, 7天续航')
+        self.stdout.write(f'  [OK] 商品 {product.name}')
+
+        # ── 交易 ──────────────────────────────────────────
+        self.stdout.write('\n[2/10] 创建交易记录 (FOB+TT)...')
+
+        transaction, created = Transaction.objects.get_or_create(
+            pk=9002,
+            defaults={
+                'buyer': imp02,
+                'seller': exp02,
+                'product': product,
+                'status': 'completed',
+                'quantity': 2000,
+                'unit_price': Decimal('25.00'),
+                'currency': 'USD',
+                'trade_term': 'FOB',
+                'port_of_loading': 'Shenzhen',
+                'port_of_discharge': 'Jebel Ali, Dubai',
+                'notes': '样本交易：智能手表出口阿联酋，FOB Shenzhen，T/T 30%+70%',
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 交易 #{transaction.id}')
+
+        # ── 合同 ──────────────────────────────────────────
+        self.stdout.write('\n[3/10] 创建外销合同 (FOB+TT)...')
+
+        delivery_date = (now - timedelta(days=5)).date()
+
+        contract, created = Contract.objects.get_or_create(
+            contract_no='HXCHIP2026SC001',
+            defaults={
+                'transaction': transaction,
+                'status': 'effective',
+                'trade_term': 'FOB',
+                'payment_term': 'T/T (30% advance + 70% against B/L copy)',
+                'delivery_time': delivery_date,
+                'port_of_loading': 'Shenzhen',
+                'port_of_discharge': 'Jebel Ali, Dubai',
+                'product_name': '智能手表 Smart Watch HX-WatchPro',
+                'product_spec': '型号: HX-WatchPro / 1.69寸AMOLED / 心率血氧GPS / IP68防水 / 7天续航',
+                'quantity': 2000,
+                'unit': 'PCS',
+                'unit_price': Decimal('25.00'),
+                'total_amount': Decimal('50000.00'),
+                'currency': 'USD',
+                'packing': '每只手表独立包装，20只/外箱，共100外箱',
+                'shipping_marks': (
+                    'HXCHIP2026SC001\n'
+                    'JEBEL ALI, DUBAI\n'
+                    'C/NO.: 1-100\n'
+                    'G.W.: 12.0 KGS\n'
+                    'N.W.: 10.0 KGS\n'
+                    'MEAS: 50×40×35 CM'
+                ),
+                'remarks': (
+                    '1. 装运期：不迟于2026年6月10日\n'
+                    '2. 允许分批装运：不允许\n'
+                    '3. 允许转船：不允许\n'
+                    '4. 品质以中国商品检验局检验证书为准\n'
+                    '5. 按 FOB Shenzhen 成交，买方负责保险和运费'
+                ),
+                'seller_signed_at': now - timedelta(days=20),
+                'buyer_signed_at': now - timedelta(days=19),
+                'effective_at': now - timedelta(days=19),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 合同 {contract.contract_no}')
+
+        # ── 无信用证（T/T 付款）──
+
+        # ── 采购订单 ──────────────────────────────────────
+        self.stdout.write('\n[5/10] 创建采购订单 (FOB+TT)...')
+
+        po_delivery = (now - timedelta(days=10)).date()
+
+        po, created = PurchaseOrder.objects.get_or_create(
+            order_no='PO20260528002',
+            defaults={
+                'transaction': transaction,
+                'buyer': exp02,
+                'seller': companies['factory'],
+                'product_name': '智能手表 HX-WatchPro',
+                'product_code': 'E002',
+                'quantity': Decimal('2000'),
+                'unit': 'PCS',
+                'unit_price': Decimal('128.00'),
+                'currency': 'CNY',
+                'total_amount': Decimal('256000.00'),
+                'delivery_date': po_delivery,
+                'delivery_address': '深圳市福田区华强北路赛格广场A座1208仓库',
+                'status': 'completed',
+                'notes': '智能手表HX-WatchPro，AMOLED屏+心率血氧+GPS+IP68',
+                'shipped_at': now - timedelta(days=8),
+                'invoiced_at': now - timedelta(days=7),
+                'completed_at': now - timedelta(days=7),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 采购订单 {po.order_no}')
+
+        # ── 货运 ──────────────────────────────────────────
+        self.stdout.write('\n[6/10] 创建货运订单 (FOB+TT)...')
+
+        etd = (now - timedelta(days=5)).date()
+        eta = etd + timedelta(days=14)
+
+        shipment, created = Shipment.objects.get_or_create(
+            shipment_no='SH20260601001',
+            defaults={
+                'contract': contract,
+                'shipper': exp02,
+                'carrier': companies['shipping'],
+                'booking_no': 'CMA26MA01SZ001',
+                'bl_no': 'CMDU5678234100',
+                'vessel_name': 'CMA CGM MARCO POLO V.023W',
+                'port_of_loading': 'Shenzhen (Yantian), China',
+                'port_of_discharge': 'Jebel Ali, Dubai, UAE',
+                'etd': etd,
+                'eta': eta,
+                'container_no': 'BMOU3948201 / 20GP',
+                'freight_amount': Decimal('1800.00'),
+                'freight_currency': 'USD',
+                'status': 'shipped',
+                'notes': "CY to CY, 1x20'GP Container",
+                'booked_at': now - timedelta(days=10),
+                'loaded_at': now - timedelta(days=5),
+                'shipped_at': now - timedelta(days=4),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 货运订单 {shipment.shipment_no}')
+
+        # ── 无保险（FOB 术语下卖方不负责保险）──
+
+        # ── 报检 ──────────────────────────────────────────
+        self.stdout.write('\n[8/10] 创建报检记录 (FOB+TT)...')
+
+        inspection, created = InspectionApplication.objects.get_or_create(
+            application_no='IA20260528002',
+            defaults={
+                'shipment': shipment,
+                'applicant': exp02,
+                'inspector': companies['inspection'],
+                'product_name': '智能手表 HX-WatchPro',
+                'product_spec': '1.69寸AMOLED, 心率血氧, GPS, IP68防水',
+                'quantity': Decimal('2000'),
+                'goods_value': Decimal('50000.00'),
+                'inspection_type': 'legal',
+                'fee': Decimal('600.00'),
+                'fee_currency': 'CNY',
+                'certificate_no': 'CIQ20260529002',
+                'origin_certificate_no': 'GSP/CCPIT2026/001',
+                'status': 'certified',
+                'notes': '依据 GB/T 22780-2017 标准，外观/功能/安全检验合格',
+                'inspecting_at': now - timedelta(days=7),
+                'passed_at': now - timedelta(days=6),
+                'certified_at': now - timedelta(days=5),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报检记录 {inspection.application_no}')
+
+        # ── 报关 ──────────────────────────────────────────
+        self.stdout.write('\n[9/10] 创建报关单 (FOB+TT)...')
+
+        customs, created = CustomsDeclaration.objects.get_or_create(
+            declaration_no='CD20260601002',
+            defaults={
+                'shipment': shipment,
+                'declarant': exp02,
+                'customs_office': companies['customs'],
+                'hs_code': '910212',
+                'goods_name': '智能手表 Smart Watch (Wrist-watch)',
+                'quantity': Decimal('2000'),
+                'unit_value': Decimal('25.00'),
+                'total_value': Decimal('50000.00'),
+                'currency': 'USD',
+                'duty_rate': Decimal('0'),
+                'duty_amount': Decimal('0'),
+                'vat_rate': Decimal('0.13'),
+                'vat_amount': Decimal('0'),
+                'status': 'cleared',
+                'notes': '监管条件无特殊要求，出口退税率为13%',
+                'reviewed_at': now - timedelta(days=5),
+                'assessed_at': now - timedelta(days=5),
+                'cleared_at': now - timedelta(days=5),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报关单 {customs.declaration_no}')
+
+        # ── 外汇结算（两笔：30% 预付 + 70% 见提单副本）────
+        self.stdout.write('\n[10/10] 创建外汇结算与退税 (FOB+TT)...')
+
+        forex1, created = ForexSettlement.objects.get_or_create(
+            settlement_no='FX20260530002',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp02,
+                'forex_bureau': companies['forex'],
+                'foreign_currency': 'USD',
+                'foreign_amount': Decimal('15000.00'),
+                'reference_rate': Decimal('7.2450'),
+                'reference_cny_amount': Decimal('108675.00'),
+                'settlement_rate': Decimal('7.2380'),
+                'settlement_cny_amount': Decimal('108570.00'),
+                'status': 'settled',
+                'notes': 'T/T 预付 30%',
+                'verified_at': now - timedelta(days=3),
+                'settled_at': now - timedelta(days=3),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 外汇结算(30%预付) {forex1.settlement_no}')
+
+        forex2, created = ForexSettlement.objects.get_or_create(
+            settlement_no='FX20260602002',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp02,
+                'forex_bureau': companies['forex'],
+                'foreign_currency': 'USD',
+                'foreign_amount': Decimal('35000.00'),
+                'reference_rate': Decimal('7.2450'),
+                'reference_cny_amount': Decimal('253575.00'),
+                'settlement_rate': Decimal('7.2380'),
+                'settlement_cny_amount': Decimal('253330.00'),
+                'status': 'settled',
+                'notes': 'T/T 尾款 70%，凭提单副本付款',
+                'verified_at': now - timedelta(days=1),
+                'settled_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 外汇结算(70%尾款) {forex2.settlement_no}')
+
+        # ── 退税 ──────────────────────────────────────────
+        total_value_cny = Decimal('361900.00')  # 50000 * 7.238
+
+        tax_refund, created = TaxRefundApplication.objects.get_or_create(
+            application_no='TR20260603002',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp02,
+                'tax_bureau': companies['tax'],
+                'hs_code': '910212',
+                'total_value': total_value_cny,
+                'refund_rate': Decimal('0.13'),
+                'refund_amount': Decimal('47047.00'),
+                'refund_currency': 'CNY',
+                'status': 'approved',
+                'notes': '退税率13%，依据出口报关单及增值税发票核准',
+                'reviewing_at': now - timedelta(days=1),
+                'approved_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 退税申请 {tax_refund.application_no}')
+
+        # ── 单证 ──────────────────────────────────────────
+        self.stdout.write('\n[单证] 生成场景 2 单证记录...')
+
+        self._create_fob_tt_documents(
+            now, contract, transaction, shipment,
+            inspection, customs, companies,
+            exp02, imp02, sample_user)
+
+        return {
+            'transaction': transaction,
+            'contract': contract,
+            'po': po,
+            'shipment': shipment,
+            'inspection': inspection,
+            'customs': customs,
+            'forex1': forex1,
+            'forex2': forex2,
+            'tax_refund': tax_refund,
+        }
+
+    def _create_fob_tt_documents(self, now, contract, transaction, shipment,
+                                  inspection, customs, companies,
+                                  exp02, imp02, sample_user):
+        """创建 FOB + T/T 场景的单证记录"""
+
+        invoice_date = (now - timedelta(days=5)).strftime('%Y-%m-%d')
+        bl_date = (now - timedelta(days=4)).strftime('%Y-%m-%d')
+
+        documents_data = [
+            # 1. 商业发票
+            {
+                'template_code': 'commercial_invoice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'invoice_no': 'HXCHIP-INV-2026-001',
+                    'invoice_date': invoice_date,
+                    'seller_name': 'Shenzhen Huaxin Chip Electronics Co., Ltd.',
+                    'seller_address': 'Seg Plaza Tower A, 1208 Huaqiang North Rd, Futian, Shenzhen, China',
+                    'buyer_name': 'Al Rashid Trading LLC',
+                    'buyer_address': 'Dubai Silicon Oasis, DDP Building A, Office 305, Dubai, UAE',
+                    'contract_no': 'HXCHIP2026SC001',
+                    'trade_term': 'FOB Shenzhen, Incoterms 2020',
+                    'payment_term': 'T/T (30% advance + 70% against B/L copy)',
+                    'from_port': 'Shenzhen (Yantian), China',
+                    'to_port': 'Jebel Ali, Dubai, UAE',
+                    'vessel': 'CMA CGM MARCO POLO V.023W',
+                    'container_no': 'BMOU3948201',
+                    'items': [
+                        {
+                            'marks': 'HXCHIP2026SC001\nJEBEL ALI, DUBAI\nC/NO.1-100\nG.W.:12.0KGS',
+                            'description': 'Smart Watch Model HX-WatchPro\n1.69" AMOLED, Heart Rate, SpO2, GPS, IP68\nHS Code: 910212',
+                            'quantity': '2000',
+                            'unit': 'PCS',
+                            'unit_price': '25.00',
+                            'amount': '50000.00',
+                        }
+                    ],
+                    'total_amount': 'USD 50,000.00',
+                    'packing': '100 cartons',
+                    'gross_weight': '1,200.00 KGS',
+                    'net_weight': '1,000.00 KGS',
+                    'total_packages': '100 CARTONS',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 2. 装箱单
+            {
+                'template_code': 'packing_list',
+                'status': 'approved',
+                'data': json.dumps({
+                    'packing_list_no': 'HXCHIP-PL-2026-001',
+                    'invoice_no': 'HXCHIP-INV-2026-001',
+                    'packing_date': invoice_date,
+                    'shipper': 'Shenzhen Huaxin Chip Electronics Co., Ltd.',
+                    'consignee': 'Al Rashid Trading LLC',
+                    'destination': 'Jebel Ali, Dubai, UAE',
+                    'shipping_marks': 'HXCHIP2026SC001 / JEBEL ALI, DUBAI / C/NO.1-100',
+                    'items': [
+                        {
+                            'carton_no': 'C/NO. 1-50',
+                            'description': 'HX-WatchPro Smart Watch (Black)',
+                            'qty_per_carton': '20 PCS',
+                            'total_qty': '1000 PCS',
+                            'net_weight': '500.00 KGS',
+                            'gross_weight': '600.00 KGS',
+                            'measurement': '50×40×35 CM × 50',
+                        },
+                        {
+                            'carton_no': 'C/NO. 51-100',
+                            'description': 'HX-WatchPro Smart Watch (Silver)',
+                            'qty_per_carton': '20 PCS',
+                            'total_qty': '1000 PCS',
+                            'net_weight': '500.00 KGS',
+                            'gross_weight': '600.00 KGS',
+                            'measurement': '50×40×35 CM × 50',
+                        },
+                    ],
+                    'total_cartons': '100',
+                    'total_net_weight': '1,000.00 KGS',
+                    'total_gross_weight': '1,200.00 KGS',
+                    'total_measurement': '3.5 CBM',
+                    'package_type': 'Carton',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 3. 海运提单
+            {
+                'template_code': 'bill_of_lading',
+                'status': 'approved',
+                'data': json.dumps({
+                    'bl_no': 'CMDU5678234100',
+                    'booking_no': 'CMA26MA01SZ001',
+                    'shipper': 'Shenzhen Huaxin Chip Electronics Co., Ltd.\nSeg Plaza Tower A, 1208 Huaqiang North Rd\nFutian District, Shenzhen 518031, China',
+                    'consignee': 'TO ORDER OF SHIPPER',
+                    'notify_party': 'Al Rashid Trading LLC\nDubai Silicon Oasis, DDP Building A, Office 305\nDubai, UAE\nAttn: Mr. Ahmed Al Rashid\nTel: +971-4-3201234',
+                    'vessel': 'CMA CGM MARCO POLO',
+                    'voyage': '023W',
+                    'port_of_loading': 'Shenzhen (Yantian), China',
+                    'port_of_discharge': 'Jebel Ali, Dubai, UAE',
+                    'etd': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'eta': (now + timedelta(days=9)).strftime('%Y-%m-%d'),
+                    'container_no': 'BMOU3948201',
+                    'container_type': "1×20'GP",
+                    'seal_no': 'CM260601B',
+                    'description': '2000 PCS Smart Watch\nHS Code: 910212\nGW: 1,200 KGS\n100 CARTONS',
+                    'freight': 'FREIGHT COLLECT (FOB)',
+                    'bl_issued_at': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'bl_originals': '3/3 ORIGINAL',
+                    'on_board_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 4. 产地证
+            {
+                'template_code': 'certificate_of_origin',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'GSP/CCPIT2026/001',
+                    'certificate_type': 'FORM A (Generalized System of Preferences)',
+                    'goods_consigned_from': 'Shenzhen Huaxin Chip Electronics Co., Ltd.\nSeg Plaza Tower A, 1208 Huaqiang North Rd\nFutian District, Shenzhen 518031, China',
+                    'goods_consigned_to': 'Al Rashid Trading LLC\nDubai Silicon Oasis, DDP Building A, Office 305\nDubai, UAE',
+                    'means_of_transport': 'BY VESSEL: CMA CGM MARCO POLO V.023W',
+                    'port_of_loading': 'Shenzhen (Yantian), China',
+                    'port_of_discharge': 'Jebel Ali, Dubai, UAE',
+                    'item_details': [
+                        {
+                            'marks': 'HXCHIP2026SC001\nJEBEL ALI, DUBAI',
+                            'description': 'Smart Watch Model HX-WatchPro',
+                            'quantity': '2,000 PCS',
+                            'origin_criterion': 'P (Wholly produced in China)',
+                        }
+                    ],
+                    'issue_date': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+                    'issuing_authority': 'China Council for the Promotion of International Trade (CCPIT)',
+                    'certification': 'It is hereby certified that the goods described above originate in China',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 5. 报检单
+            {
+                'template_code': 'inspection_application',
+                'status': 'approved',
+                'data': json.dumps({
+                    'application_no': 'IA20260528002',
+                    'applicant': 'Shenzhen Huaxin Chip Electronics Co., Ltd.',
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'product_name': '智能手表 HX-WatchPro',
+                    'product_spec': '1.69寸AMOLED, 心率血氧, GPS, IP68防水',
+                    'hs_code': '910212',
+                    'quantity': '2,000 PCS',
+                    'goods_value': 'USD 50,000.00',
+                    'inspection_type': '法定检验',
+                    'inspection_standard': 'GB/T 22780-2017',
+                    'inspection_items': '外观检查、功能测试、电气安全、电磁兼容、防水等级',
+                    'result': '合格',
+                    'certificate_no': 'CIQ20260529002',
+                    'application_date': (now - timedelta(days=8)).strftime('%Y-%m-%d'),
+                    'inspection_date': (now - timedelta(days=7)).strftime('%Y-%m-%d'),
+                    'pass_date': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 6. 检验证书
+            {
+                'template_code': 'inspection_certificate',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'CIQ20260529002',
+                    'applicant': 'Shenzhen Huaxin Chip Electronics Co., Ltd.',
+                    'product_name': 'Smart Watch Model HX-WatchPro',
+                    'hs_code': '910212',
+                    'quantity': '2,000 PCS',
+                    'contract_no': 'HXCHIP2026SC001',
+                    'inspection_result': 'QUALITY AND QUANTITY FOUND TO BE IN CONFORMITY WITH THE CONTRACT STIPULATIONS',
+                    'inspection_standard': 'GB/T 22780-2017',
+                    'inspection_date': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+                    'issue_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'remarks': 'Sample rate: AQL 1.0 Level II, All items passed',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 7. 出口报关单
+            {
+                'template_code': 'export_declaration',
+                'status': 'approved',
+                'data': json.dumps({
+                    'declaration_no': 'CD20260601002',
+                    'declaration_type': '出口报关',
+                    'declarant': '深圳华芯电子科技有限公司',
+                    'customs_office': '深圳海关（大鹏海关）',
+                    'trade_mode': '一般贸易 (0110)',
+                    'transport_mode': '海运 (2)',
+                    'hs_code': '910212.00',
+                    'goods_name': '智能手表 Smart Watch (Wrist-watch)',
+                    'specification': 'HX-WatchPro',
+                    'quantity': '2,000',
+                    'unit': '只',
+                    'unit_price': '25.00',
+                    'total_value': 'USD 50,000.00',
+                    'currency': 'USD',
+                    'country_of_destination': '阿联酋 (AE)',
+                    'port_of_loading': '深圳盐田 (CNSZX)',
+                    'port_of_discharge': '杰贝阿里 (AEJEA)',
+                    'container_no': 'BMOU3948201',
+                    'gross_weight': '1,200 KGS',
+                    'net_weight': '1,000 KGS',
+                    'package_count': '100 纸箱',
+                    'contract_no': 'HXCHIP2026SC001',
+                    'supervision_code': '无',
+                    'rebate_rate': '13%',
+                    'declaration_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'clearance_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 8. 装船通知
+            {
+                'template_code': 'shipping_advice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'advice_no': 'HXCHIP-SA-2026-001',
+                    'advice_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'from': 'Shenzhen Huaxin Chip Electronics Co., Ltd.',
+                    'to': 'Al Rashid Trading LLC',
+                    'contract_no': 'HXCHIP2026SC001',
+                    'commodity': '2000 PCS Smart Watch (HX-WatchPro)',
+                    'vessel': 'CMA CGM MARCO POLO V.023W',
+                    'bl_no': 'CMDU5678234100',
+                    'container_no': 'BMOU3948201',
+                    'etd': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'eta': (now + timedelta(days=9)).strftime('%Y-%m-%d'),
+                    'port_of_loading': 'Shenzhen (Yantian), China',
+                    'port_of_discharge': 'Jebel Ali, Dubai, UAE',
+                    'shipping_marks': 'HXCHIP2026SC001 / JEBEL ALI, DUBAI / C/NO.1-100',
+                    'message': (
+                        'We hereby inform you that the above mentioned goods have been shipped '
+                        'on board the above vessel on the date shown. Please arrange for import '
+                        'clearance and cargo reception accordingly.\n\n'
+                        'As per our agreement, 70% balance payment (USD 35,000.00) is due upon '
+                        'presentation of B/L copy. Please remit payment promptly.'
+                    ),
+                }, ensure_ascii=False, indent=2),
+            },
+        ]
+
+        for doc_data in documents_data:
+            template = DocumentTemplate.objects.filter(
+                code=doc_data['template_code']
+            ).first()
+            if not template:
+                self.stdout.write(self.style.WARNING(
+                    f"  [SKIP] 模板不存在: {doc_data['template_code']}"))
+                continue
+
+            doc, created = Document.objects.get_or_create(
+                template=template,
+                transaction_id=transaction.id,
+                defaults={
+                    'status': doc_data['status'],
+                    'data': doc_data['data'],
+                    'created_by': sample_user,
+                }
+            )
+            if not created and not doc.created_by:
+                doc.created_by = sample_user
+                doc.save(update_fields=['created_by'])
+            tag = 'CREATE' if created else 'SKIP'
+            self.stdout.write(f'  [{tag}] {template.name}')
 
     # ──────────────────────────────────────────────────────────────
     # 单证数据生成
