@@ -236,6 +236,12 @@ class Command(BaseCommand):
         self.stdout.write('=' * 60)
         result4 = self._create_scenario_machinery_sea(now, companies, huaxin_user)
 
+        # ── 场景 5：空运出口日本 ──────────────────────────────
+        self.stdout.write('\n' + '=' * 60)
+        self.stdout.write('场景 5：空运出口日本（CIP + T/T）')
+        self.stdout.write('=' * 60)
+        result5 = self._create_scenario_air_freight(now, companies, huaxin_user)
+
         # ── 汇总 ─────────────────────────────────────────────────
         self.stdout.write('\n' + '=' * 60)
         self.stdout.write(self.style.SUCCESS('样本交易数据生成完毕！'))
@@ -288,6 +294,17 @@ class Command(BaseCommand):
         self.stdout.write(f'  报关: {result4["customs"].declaration_no}')
         self.stdout.write(f'  外汇结算: {result4["forex"].settlement_no}')
         self.stdout.write(f'  退税: {result4["tax_refund"].application_no}')
+        self.stdout.write('')
+        self.stdout.write('  场景 5: CIP + T/T（高精度传感器空运出口日本）')
+        self.stdout.write(f'  交易: #{result5["transaction"].id}')
+        self.stdout.write(f'  合同: {result5["contract"].contract_no}')
+        self.stdout.write(f'  采购订单: {result5["po"].order_no}')
+        self.stdout.write(f'  货运: {result5["shipment"].shipment_no}')
+        self.stdout.write(f'  保险: {result5["insurance"].policy_no}')
+        self.stdout.write(f'  报检: {result5["inspection"].application_no}')
+        self.stdout.write(f'  报关: {result5["customs"].declaration_no}')
+        self.stdout.write(f'  外汇结算: {result5["forex"].settlement_no}')
+        self.stdout.write(f'  退税: {result5["tax_refund"].application_no}')
         self.stdout.write(f'  单证记录: {Document.objects.count()} 份')
 
     # ──────────────────────────────────────────────────────────────
@@ -2676,6 +2693,595 @@ class Command(BaseCommand):
                         'Full set of original documents will be presented to Bangkok Bank '
                         'for L/C negotiation.'
                     ),
+                }, ensure_ascii=False, indent=2),
+            },
+        ]
+
+        for doc_data in documents_data:
+            template = DocumentTemplate.objects.filter(
+                code=doc_data['template_code']
+            ).first()
+            if not template:
+                self.stdout.write(self.style.WARNING(
+                    f"  [SKIP] 模板不存在: {doc_data['template_code']}"))
+                continue
+
+            doc, created = Document.objects.get_or_create(
+                template=template,
+                transaction_id=transaction.id,
+                defaults={
+                    'status': doc_data['status'],
+                    'data': doc_data['data'],
+                    'created_by': sample_user,
+                }
+            )
+            if not created and not doc.created_by:
+                doc.created_by = sample_user
+                doc.save(update_fields=['created_by'])
+            tag = 'CREATE' if created else 'SKIP'
+            self.stdout.write(f'  [{tag}] {template.name}')
+
+    # ──────────────────────────────────────────────────────────────
+    # 场景 5：空运出口日本（CIP + T/T，高精度传感器）
+    # ──────────────────────────────────────────────────────────────
+
+    def _create_scenario_air_freight(self, now, companies, sample_user):
+        """CIP + T/T 场景：高精度传感器空运出口日本（AWB，纸箱包装，无信用证）"""
+
+        # ── 新公司 ──────────────────────────────────────────
+        self.stdout.write('\n[新增公司] 创建场景 5 公司...')
+
+        exp05, created = self._create_company(
+            'EXP05', '苏州精密仪器有限公司',
+            'Suzhou Precision Instruments Co., Ltd.',
+            'CN', 'electronics',
+            '苏州市工业园区星湖街218号精密仪器产业园',
+            '+86-512-62801234', 'export@sz-precision.com')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {exp05.name}')
+
+        imp05, created = self._create_company(
+            'IMP05', 'Yamada Electronics 株式会社',
+            'Yamada Electronics Co., Ltd.',
+            'JP', 'electronics',
+            '東京都千代田区丸の内1-8-3 丸の内ビルディング 15F',
+            '+81-3-62001234', 'purchase@yamada-elec.co.jp')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {imp05.name}')
+
+        # ── 商品 ──────────────────────────────────────────
+        product = self._ensure_product(
+            'E003', '高精度传感器 High-Precision Sensor', 'High-Precision Sensor SP-X200',
+            'electronics', 'PCS', '903149',
+            '测量精度±0.01%, 工作温度-40~85℃, IP67防护, 输出信号4-20mA/RS485')
+        self.stdout.write(f'  [OK] 商品 {product.name}')
+
+        # ── 交易 ──────────────────────────────────────────
+        self.stdout.write('\n[2/10] 创建交易记录 (Air Freight CIP+T/T)...')
+
+        transaction, created = Transaction.objects.get_or_create(
+            pk=9005,
+            defaults={
+                'buyer': imp05,
+                'seller': exp05,
+                'product': product,
+                'status': 'completed',
+                'quantity': 500,
+                'unit_price': Decimal('120.00'),
+                'currency': 'USD',
+                'trade_term': 'CIP',
+                'port_of_loading': 'Shanghai Pudong (PVG)',
+                'port_of_discharge': 'Tokyo Narita (NRT)',
+                'notes': '样本交易：高精度传感器出口日本，CIP Tokyo，T/T 100% 预付，空运',
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 交易 #{transaction.id}')
+
+        # ── 合同 ──────────────────────────────────────────
+        self.stdout.write('\n[3/10] 创建外销合同 (Air Freight CIP+T/T)...')
+
+        delivery_date = (now - timedelta(days=2)).date()
+
+        contract, created = Contract.objects.get_or_create(
+            contract_no='SZPI2026SC001',
+            defaults={
+                'transaction': transaction,
+                'status': 'effective',
+                'trade_term': 'CIP',
+                'payment_term': 'T/T 100% in advance',
+                'delivery_time': delivery_date,
+                'port_of_loading': 'Shanghai Pudong (PVG)',
+                'port_of_discharge': 'Tokyo Narita (NRT)',
+                'product_name': '高精度传感器 High-Precision Sensor SP-X200',
+                'product_spec': '测量精度±0.01%, 工作温度-40~85℃, IP67防护, 输出信号4-20mA/RS485',
+                'quantity': 500,
+                'unit': 'PCS',
+                'unit_price': Decimal('120.00'),
+                'total_amount': Decimal('60000.00'),
+                'currency': 'USD',
+                'packing': '每个传感器独立防静电包装，20个/纸箱，共25纸箱',
+                'shipping_marks': (
+                    'SZPI2026SC001\n'
+                    'NARITA\n'
+                    'C/NO.: 1-25\n'
+                    'G.W.: 8.0 KGS\n'
+                    'N.W.: 6.5 KGS\n'
+                    'MEAS: 50×40×35 CM'
+                ),
+                'remarks': (
+                    '1. 装运期：不迟于2026年6月15日\n'
+                    '2. 允许分批装运：不允许\n'
+                    '3. 允许转船：不允许\n'
+                    '4. 品质以中国商品检验局检验证书为准\n'
+                    '5. 按 CIP Tokyo Narita 成交，卖方负责投保航空运输险\n'
+                    '6. 运输方式：航空运输 (AIR FREIGHT)\n'
+                    '7. 付款方式：T/T 100% 预付'
+                ),
+                'seller_signed_at': now - timedelta(days=15),
+                'buyer_signed_at': now - timedelta(days=14),
+                'effective_at': now - timedelta(days=14),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 合同 {contract.contract_no}')
+
+        # ── 无信用证（T/T 100% 预付，不创建 LetterOfCredit 和 BankOperation）──
+
+        # ── 采购订单 ──────────────────────────────────────
+        self.stdout.write('\n[5/10] 创建采购订单 (Air Freight)...')
+
+        po_delivery = (now - timedelta(days=6)).date()
+
+        po, created = PurchaseOrder.objects.get_or_create(
+            order_no='PO20260610005',
+            defaults={
+                'transaction': transaction,
+                'buyer': exp05,
+                'seller': companies['factory'],
+                'product_name': '高精度传感器 SP-X200',
+                'product_code': 'E003',
+                'quantity': Decimal('500'),
+                'unit': 'PCS',
+                'unit_price': Decimal('380.00'),
+                'currency': 'CNY',
+                'total_amount': Decimal('190000.00'),
+                'delivery_date': po_delivery,
+                'delivery_address': '苏州市工业园区星湖街218号精密仪器产业园仓库',
+                'status': 'completed',
+                'notes': '高精度传感器SP-X200，测量精度±0.01%，IP67防护，防静电包装',
+                'shipped_at': now - timedelta(days=5),
+                'invoiced_at': now - timedelta(days=4),
+                'completed_at': now - timedelta(days=4),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 采购订单 {po.order_no}')
+
+        # ── 货运（空运，AWB 替代 B/L）──────────────────────
+        self.stdout.write('\n[6/10] 创建货运订单 (Air Freight)...')
+
+        etd = (now - timedelta(days=2)).date()
+        eta = etd + timedelta(days=1)  # 空运次日达
+
+        shipment, created = Shipment.objects.get_or_create(
+            shipment_no='SH20260610001',
+            defaults={
+                'contract': contract,
+                'shipper': exp05,
+                'carrier': companies['shipping'],
+                'bl_no': '618-12345675',  # AWB 航空运单号格式
+                'vessel_name': 'CA929 / MU537',  # 航班号（船名/航班号字段）
+                'port_of_loading': 'Shanghai Pudong (PVG)',
+                'port_of_discharge': 'Tokyo Narita (NRT)',
+                'etd': etd,
+                'eta': eta,
+                'container_no': '',  # 空运无集装箱
+                'freight_amount': Decimal('2800.00'),
+                'freight_currency': 'USD',
+                'status': 'shipped',
+                'notes': 'AIR FREIGHT, AWB: 618-12345675, 25 cartons on air pallet',
+                'booked_at': now - timedelta(days=5),
+                'loaded_at': now - timedelta(days=2),
+                'shipped_at': now - timedelta(days=1),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 货运订单 {shipment.shipment_no}')
+
+        # ── 保险（CIP 术语下卖方负责保险）──────────────────
+        self.stdout.write('\n[7/10] 创建保险单 (Air Freight)...')
+
+        insurance, created = InsurancePolicy.objects.get_or_create(
+            policy_no='PICC2026SH06100001',
+            defaults={
+                'contract': contract,
+                'shipment': shipment,
+                'insured': exp05,
+                'insurer': companies['insurance'],
+                'cargo_description': (
+                    '500 PCS High-Precision Sensor (SP-X200) as per Contract No. SZPI2026SC001 '
+                    'Shipped per AIR FREIGHT AWB 618-12345675 '
+                    'from Shanghai Pudong to Tokyo Narita'
+                ),
+                'insured_amount': Decimal('66000.00'),  # USD 60000 × 110%
+                'premium': Decimal('396.00'),  # ~0.6%
+                'premium_currency': 'CNY',
+                'coverage_type': 'all_risk',
+                'status': 'issued',
+                'notes': 'Air cargo insurance, covering warehouse to warehouse including air transit',
+                'underwritten_at': now - timedelta(days=3),
+                'issued_at': now - timedelta(days=2),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 保险单 {insurance.policy_no}')
+
+        # ── 报检（一般鉴定）────────────────────────────────
+        self.stdout.write('\n[8/10] 创建报检记录 (Air Freight)...')
+
+        inspection, created = InspectionApplication.objects.get_or_create(
+            application_no='IA20260607005',
+            defaults={
+                'shipment': shipment,
+                'applicant': exp05,
+                'inspector': companies['inspection'],
+                'product_name': '高精度传感器 High-Precision Sensor SP-X200',
+                'product_spec': '测量精度±0.01%, 工作温度-40~85℃, IP67防护, 输出信号4-20mA/RS485',
+                'quantity': Decimal('500'),
+                'goods_value': Decimal('60000.00'),
+                'inspection_type': 'general',
+                'fee': Decimal('500.00'),
+                'fee_currency': 'CNY',
+                'certificate_no': 'CIQ20260609005',
+                'origin_certificate_no': 'CO/CCPIT2026/005',
+                'status': 'certified',
+                'notes': '精密仪器一般鉴定，依据企业标准 Q/SPX200-2026，精度/防护/信号输出检验合格',
+                'inspecting_at': now - timedelta(days=4),
+                'passed_at': now - timedelta(days=3),
+                'certified_at': now - timedelta(days=2),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报检记录 {inspection.application_no}')
+
+        # ── 报关 ──────────────────────────────────────────
+        self.stdout.write('\n[9/10] 创建报关单 (Air Freight)...')
+
+        customs, created = CustomsDeclaration.objects.get_or_create(
+            declaration_no='CD20260610005',
+            defaults={
+                'shipment': shipment,
+                'declarant': exp05,
+                'customs_office': companies['customs'],
+                'hs_code': '903149',
+                'goods_name': '高精度传感器 High-Precision Sensor',
+                'quantity': Decimal('500'),
+                'unit_value': Decimal('120.00'),
+                'total_value': Decimal('60000.00'),
+                'currency': 'USD',
+                'duty_rate': Decimal('0'),
+                'duty_amount': Decimal('0'),
+                'vat_rate': Decimal('0.13'),
+                'vat_amount': Decimal('0'),
+                'status': 'cleared',
+                'notes': '精密仪器出口，退税率13%',
+                'reviewed_at': now - timedelta(days=2),
+                'assessed_at': now - timedelta(days=2),
+                'cleared_at': now - timedelta(days=2),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报关单 {customs.declaration_no}')
+
+        # ── 外汇结算（单笔 T/T 预付）──────────────────────
+        self.stdout.write('\n[10/10] 创建外汇结算与退税 (Air Freight)...')
+
+        forex, created = ForexSettlement.objects.get_or_create(
+            settlement_no='FX20260608005',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp05,
+                'forex_bureau': companies['forex'],
+                'foreign_currency': 'USD',
+                'foreign_amount': Decimal('60000.00'),
+                'reference_rate': Decimal('7.2450'),
+                'reference_cny_amount': Decimal('434700.00'),
+                'settlement_rate': Decimal('7.2380'),
+                'settlement_cny_amount': Decimal('434280.00'),
+                'status': 'settled',
+                'notes': 'T/T 100% 预付，收汇金额与报关金额一致',
+                'verified_at': now - timedelta(days=2),
+                'settled_at': now - timedelta(days=1),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 外汇结算 {forex.settlement_no}')
+
+        # ── 退税（13%）────────────────────────────────────
+        total_value_cny = Decimal('434280.00')
+
+        tax_refund, created = TaxRefundApplication.objects.get_or_create(
+            application_no='TR20260611005',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp05,
+                'tax_bureau': companies['tax'],
+                'hs_code': '903149',
+                'total_value': total_value_cny,
+                'refund_rate': Decimal('0.13'),
+                'refund_amount': Decimal('49934.16'),  # 434280 × 13% / 1.13
+                'refund_currency': 'CNY',
+                'status': 'approved',
+                'notes': '精密仪器退税率13%，依据出口报关单及增值税发票核准',
+                'reviewing_at': now - timedelta(days=1),
+                'approved_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 退税申请 {tax_refund.application_no}')
+
+        # ── 单证 ──────────────────────────────────────────
+        self.stdout.write('\n[单证] 生成场景 5 单证记录...')
+
+        self._create_air_freight_documents(
+            now, contract, transaction, shipment,
+            insurance, inspection, customs, companies,
+            exp05, imp05, sample_user)
+
+        return {
+            'transaction': transaction,
+            'contract': contract,
+            'po': po,
+            'shipment': shipment,
+            'insurance': insurance,
+            'inspection': inspection,
+            'customs': customs,
+            'forex': forex,
+            'tax_refund': tax_refund,
+        }
+
+    def _create_air_freight_documents(self, now, contract, transaction, shipment,
+                                       insurance, inspection, customs,
+                                       companies, exp05, imp05, sample_user):
+        """创建 CIP + T/T 空运出口日本场景的单证记录（8 种）"""
+
+        invoice_date = (now - timedelta(days=2)).strftime('%Y-%m-%d')
+        awb_date = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+
+        documents_data = [
+            # 1. 商业发票
+            {
+                'template_code': 'commercial_invoice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'invoice_no': 'SZPI-INV-2026-001',
+                    'invoice_date': invoice_date,
+                    'seller_name': 'Suzhou Precision Instruments Co., Ltd.',
+                    'seller_address': 'Precision Instrument Park, 218 Xinghu Street, Industrial Park, Suzhou, China',
+                    'buyer_name': 'Yamada Electronics Co., Ltd.',
+                    'buyer_address': 'Marunouchi Building 15F, 1-8-3 Marunouchi, Chiyoda-ku, Tokyo, Japan',
+                    'contract_no': 'SZPI2026SC001',
+                    'trade_term': 'CIP Tokyo Narita, Incoterms 2020',
+                    'payment_term': 'T/T 100% in advance',
+                    'from_port': 'Shanghai Pudong (PVG), China',
+                    'to_port': 'Tokyo Narita (NRT), Japan',
+                    'flight': 'CA929 / MU537',
+                    'awb_no': '618-12345675',
+                    'items': [
+                        {
+                            'marks': 'SZPI2026SC001\nNARITA\nC/NO.1-25\nG.W.:8.0KGS',
+                            'description': 'High-Precision Sensor Model SP-X200\nAccuracy ±0.01%, Operating temp -40~85°C, IP67\nOutput 4-20mA/RS485\nHS Code: 903149',
+                            'quantity': '500',
+                            'unit': 'PCS',
+                            'unit_price': '120.00',
+                            'amount': '60000.00',
+                        }
+                    ],
+                    'total_amount': 'USD 60,000.00',
+                    'packing': '25 cartons (anti-static individual packaging, 20 PCS/carton)',
+                    'gross_weight': '200.00 KGS',
+                    'net_weight': '162.50 KGS',
+                    'total_packages': '25 CARTONS',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 2. 装箱单
+            {
+                'template_code': 'packing_list',
+                'status': 'approved',
+                'data': json.dumps({
+                    'packing_list_no': 'SZPI-PL-2026-001',
+                    'invoice_no': 'SZPI-INV-2026-001',
+                    'packing_date': invoice_date,
+                    'shipper': 'Suzhou Precision Instruments Co., Ltd.',
+                    'consignee': 'Yamada Electronics Co., Ltd.',
+                    'destination': 'Tokyo Narita (NRT), Japan',
+                    'shipping_marks': 'SZPI2026SC001 / NARITA / C/NO.1-25',
+                    'items': [
+                        {
+                            'carton_no': 'C/NO. 1-10',
+                            'description': 'High-Precision Sensor SP-X200 (Anti-static packaging)',
+                            'qty_per_carton': '20 PCS',
+                            'total_qty': '200 PCS',
+                            'net_weight': '65.00 KGS',
+                            'gross_weight': '80.00 KGS',
+                            'measurement': '50×40×35 CM × 10',
+                        },
+                        {
+                            'carton_no': 'C/NO. 11-20',
+                            'description': 'High-Precision Sensor SP-X200 (Anti-static packaging)',
+                            'qty_per_carton': '20 PCS',
+                            'total_qty': '200 PCS',
+                            'net_weight': '65.00 KGS',
+                            'gross_weight': '80.00 KGS',
+                            'measurement': '50×40×35 CM × 10',
+                        },
+                        {
+                            'carton_no': 'C/NO. 21-25',
+                            'description': 'High-Precision Sensor SP-X200 (Anti-static packaging)',
+                            'qty_per_carton': '20 PCS',
+                            'total_qty': '100 PCS',
+                            'net_weight': '32.50 KGS',
+                            'gross_weight': '40.00 KGS',
+                            'measurement': '50×40×35 CM × 5',
+                        },
+                    ],
+                    'total_cartons': '25',
+                    'total_net_weight': '162.50 KGS',
+                    'total_gross_weight': '200.00 KGS',
+                    'total_measurement': '1.75 CBM',
+                    'package_type': 'Carton (Anti-static)',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 3. 航空运单 AWB（使用 bill_of_lading 模板）
+            {
+                'template_code': 'bill_of_lading',
+                'status': 'approved',
+                'data': json.dumps({
+                    'document_type': 'AIR WAYBILL (航空运单)',
+                    'awb_no': '618-12345675',
+                    'awb_issue_date': awb_date,
+                    'shipper': 'Suzhou Precision Instruments Co., Ltd.\nPrecision Instrument Park, 218 Xinghu Street\nIndustrial Park, Suzhou 215021, China',
+                    'consignee': 'Yamada Electronics Co., Ltd.\nMarunouchi Building 15F, 1-8-3 Marunouchi\nChiyoda-ku, Tokyo 100-0005, Japan\nAttn: Mr. Takeshi Yamada\nTel: +81-3-62001234',
+                    'carrier': 'Air China / China Eastern Airlines',
+                    'flight_no': 'CA929 / MU537',
+                    'port_of_loading': 'Shanghai Pudong International Airport (PVG), China',
+                    'port_of_discharge': 'Tokyo Narita International Airport (NRT), Japan',
+                    'etd': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'eta': (now - timedelta(days=1)).strftime('%Y-%m-%d'),
+                    'description': '500 PCS High-Precision Sensor SP-X200\nHS Code: 903149\nGW: 200 KGS\n25 CARTONS ON AIR PALLET\nANTI-STATIC PACKAGING',
+                    'freight': 'FREIGHT PREPAID (CIP)',
+                    'handling_information': 'FRAGILE - PRECISION INSTRUMENTS\nKEEP DRY - ANTI-STATIC REQUIRED\nDO NOT STACK MORE THAN 5 HIGH',
+                    'issued_at': awb_date,
+                    'originals': '3/3 ORIGINAL AWB',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 4. 保险单（空运保险）
+            {
+                'template_code': 'insurance_policy',
+                'status': 'approved',
+                'data': json.dumps({
+                    'policy_no': 'PICC2026SH06100001',
+                    'insured': 'Suzhou Precision Instruments Co., Ltd.',
+                    'insurer': 'PICC Property and Casualty Co., Ltd.',
+                    'insured_amount': 'USD 66,000.00',
+                    'insured_amount_in_words': 'US DOLLARS SIXTY-SIX THOUSAND ONLY',
+                    'coverage': 'ALL RISKS (AIR CARGO)',
+                    'coverage_clause': 'As per Air Cargo Clauses of CIC, covering warehouse to warehouse including air transit',
+                    'cargo_description': '500 PCS High-Precision Sensor SP-X200 (Precision Instruments)',
+                    'voyage_from': 'Shanghai Pudong (PVG), China',
+                    'voyage_to': 'Tokyo Narita (NRT), Japan',
+                    'flight': 'CA929 / MU537',
+                    'awb_no': '618-12345675',
+                    'premium': 'CNY 396.00',
+                    'issue_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'claim_settling_agent': 'PICC Japan Office, Tokyo',
+                    'special_conditions': 'Air cargo insurance, covering warehouse to warehouse including air transit, loading and unloading',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 5. 产地证（中国一般产地证）
+            {
+                'template_code': 'certificate_of_origin',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'CO/CCPIT2026/005',
+                    'certificate_type': 'Certificate of Origin (General)',
+                    'goods_consigned_from': 'Suzhou Precision Instruments Co., Ltd.\nPrecision Instrument Park, 218 Xinghu Street\nIndustrial Park, Suzhou 215021, China',
+                    'goods_consigned_to': 'Yamada Electronics Co., Ltd.\nMarunouchi Building 15F, 1-8-3 Marunouchi\nChiyoda-ku, Tokyo 100-0005, Japan',
+                    'means_of_transport': 'BY AIR: CA929 / MU537',
+                    'port_of_loading': 'Shanghai Pudong (PVG), China',
+                    'port_of_discharge': 'Tokyo Narita (NRT), Japan',
+                    'item_details': [
+                        {
+                            'marks': 'SZPI2026SC001\nNARITA',
+                            'description': 'High-Precision Sensor Model SP-X200\nHS Code: 903149',
+                            'quantity': '500 PCS',
+                            'origin_criterion': 'P (Wholly produced in China)',
+                        }
+                    ],
+                    'issue_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'issuing_authority': 'China Council for the Promotion of International Trade (CCPIT)',
+                    'certification': 'It is hereby certified that the goods described above originate in China',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 6. 报检单
+            {
+                'template_code': 'inspection_application',
+                'status': 'approved',
+                'data': json.dumps({
+                    'application_no': 'IA20260607005',
+                    'applicant': 'Suzhou Precision Instruments Co., Ltd.',
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'product_name': '高精度传感器 High-Precision Sensor SP-X200',
+                    'product_spec': '测量精度±0.01%, 工作温度-40~85℃, IP67防护, 输出信号4-20mA/RS485',
+                    'hs_code': '903149',
+                    'quantity': '500 PCS',
+                    'goods_value': 'USD 60,000.00',
+                    'inspection_type': '一般鉴定',
+                    'inspection_standard': 'Q/SPX200-2026 (企业标准)',
+                    'inspection_items': '精度检测、防护等级、信号输出、温度特性、外观检查',
+                    'result': '合格',
+                    'certificate_no': 'CIQ20260609005',
+                    'application_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'inspection_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'pass_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 7. 检验证书
+            {
+                'template_code': 'inspection_certificate',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'CIQ20260609005',
+                    'applicant': 'Suzhou Precision Instruments Co., Ltd.',
+                    'product_name': 'High-Precision Sensor Model SP-X200',
+                    'hs_code': '903149',
+                    'quantity': '500 PCS',
+                    'contract_no': 'SZPI2026SC001',
+                    'inspection_result': 'QUALITY AND QUANTITY FOUND TO BE IN CONFORMITY WITH THE CONTRACT STIPULATIONS',
+                    'inspection_standard': 'Q/SPX200-2026 (Enterprise Standard for High-Precision Sensors)',
+                    'inspection_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'issue_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'remarks': 'All 500 units tested. Accuracy ±0.01% confirmed. IP67 protection verified. Output signal 4-20mA/RS485 within specifications.',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 8. 出口报关单（航空运输）
+            {
+                'template_code': 'export_declaration',
+                'status': 'approved',
+                'data': json.dumps({
+                    'declaration_no': 'CD20260610005',
+                    'declaration_type': '出口报关',
+                    'declarant': '苏州精密仪器有限公司',
+                    'customs_office': '上海海关（浦东机场海关）',
+                    'trade_mode': '一般贸易 (0110)',
+                    'transport_mode': '航空运输 (5)',
+                    'hs_code': '903149.00',
+                    'goods_name': '高精度传感器 High-Precision Sensor',
+                    'specification': 'SP-X200',
+                    'quantity': '500',
+                    'unit': '个',
+                    'unit_price': '120.00',
+                    'total_value': 'USD 60,000.00',
+                    'currency': 'USD',
+                    'country_of_destination': '日本 (JP)',
+                    'port_of_loading': '上海浦东 (PVG)',
+                    'port_of_discharge': '东京成田 (NRT)',
+                    'container_no': '',
+                    'gross_weight': '200 KGS',
+                    'net_weight': '162.5 KGS',
+                    'package_count': '25 纸箱',
+                    'contract_no': 'SZPI2026SC001',
+                    'supervision_code': '无',
+                    'rebate_rate': '13%',
+                    'declaration_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'clearance_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
                 }, ensure_ascii=False, indent=2),
             },
         ]
