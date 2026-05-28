@@ -4,7 +4,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import json
 from django.contrib.auth.decorators import login_required
 from apps.documents.models import Document, DocumentTemplate
@@ -231,10 +231,82 @@ def dashboard_view(request):
     """根据用户类型分发仪表盘"""
     user_type = request.user.user_type
     if user_type == 'admin':
-        return redirect('admin-dashboard')
+        return render(request, 'dashboard/admin.html', {'user': request.user})
     elif user_type == 'teacher':
         return render(request, 'dashboard/teacher.html', {'user': request.user})
     return render(request, 'dashboard/student.html', {'user': request.user})
+
+
+@login_required
+def admin_dashboard_stats(request):
+    """Admin dashboard statistics API"""
+    from django.db.models import Count
+    from apps.users.models import User
+    from apps.teaching.models import Course
+
+    users = User.objects.all()
+    documents = Document.objects.all()
+
+    user_type_dist = list(users.values('user_type').annotate(count=Count('id')))
+    doc_type_dist = list(
+        documents.values('template__code', 'template__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    doc_status_dist = list(documents.values('status').annotate(count=Count('id')))
+
+    pending_review = documents.filter(status='pending_review').count()
+
+    recent_docs = list(
+        documents.select_related('template', 'created_by')
+        .order_by('-created_at')[:10]
+        .values('id', 'template__name', 'created_by__username', 'status', 'created_at')
+    )
+
+    recent_users = list(
+        users.order_by('-date_joined')[:5]
+        .values('id', 'username', 'user_type', 'date_joined')
+    )
+
+    return JsonResponse({
+        'summary': {
+            'total_users': users.count(),
+            'total_documents': documents.count(),
+            'total_courses': Course.objects.count(),
+            'pending_review': pending_review,
+        },
+        'user_type_distribution': [
+            {'type': item['user_type'], 'count': item['count']}
+            for item in user_type_dist
+        ],
+        'document_type_distribution': [
+            {'code': item['template__code'], 'name': item['template__name'], 'count': item['count']}
+            for item in doc_type_dist
+        ],
+        'document_status_distribution': [
+            {'status': item['status'], 'count': item['count']}
+            for item in doc_status_dist
+        ],
+        'recent_documents': [
+            {
+                'id': d['id'],
+                'template_name': d['template__name'],
+                'created_by': d['created_by__username'],
+                'status': d['status'],
+                'created_at': d['created_at'].isoformat() if d['created_at'] else None,
+            }
+            for d in recent_docs
+        ],
+        'recent_users': [
+            {
+                'id': u['id'],
+                'username': u['username'],
+                'user_type': u['user_type'],
+                'date_joined': u['date_joined'].isoformat() if u['date_joined'] else None,
+            }
+            for u in recent_users
+        ],
+    })
 
 
 @login_required
@@ -381,6 +453,7 @@ def document_preview(request, id):
 # ---------------------------------------------------------------------------
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/v1/dashboard/stats/', admin_dashboard_stats, name='admin-dashboard-stats'),
     path('api/v1/', include('apps.users.urls')),
     path('api/v1/documents/', include('apps.documents.urls')),
     path('api/v1/products/', include('apps.products.urls')),
