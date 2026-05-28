@@ -1,0 +1,35 @@
+<div class="print-document generic-document">
+    <h2 class="text-center">{{ document.template.name }}</h2>
+    <hr>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40%">字段</th>
+                <th style="width:60%">内容</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, value in data.items %}
+            <tr>
+                <td><strong>{{ key }}</strong></td>
+                <td>
+                    {% if value is iterable and value is not string %}
+                        <ul style="margin:0;padding-left:20px">
+                            {% for item in value %}
+                                {% if item is iterable and item is not string %}
+                                    <li>{{ item }}</li>
+                                {% else %}
+                                    <li>{{ item }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span style="white-space:pre-wrap">{{ value }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

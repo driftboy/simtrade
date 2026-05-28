@@ -1,0 +1,47 @@
+<div class="print-document bill-of-exchange">
+    <h2 class="text-center">汇票</h2>
+    <h3 class="text-center">BILL OF EXCHANGE</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>汇票号 Draft No.:</strong></td>
+            <td style="width:25%">{{ data.draft_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.draft_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td colspan="4">
+                <strong>金额 Amount:</strong> {{ data.draft_amount|default:"" }}<br>
+                <strong>大写 Amount in Words:</strong> {{ data.amount_in_words|default:"" }}
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>出票人 Drawer:</strong></td>
+            <td style="width:25%">{{ data.drawer|default:"" }}</td>
+            <td style="width:25%"><strong>付款人 Drawee:</strong></td>
+            <td style="width:25%">{{ data.drawee|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>收款人 Payee:</strong></td>
+            <td>{{ data.payee|default:"" }}</td>
+            <td><strong>付款期限 Tenor:</strong></td>
+            <td>{{ data.tenor|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>信用证号 L/C No.:</strong></td>
+            <td>{{ data.lc_no|default:"" }}</td>
+            <td><strong>依据 Drawn Under:</strong></td>
+            <td colspan="3">{{ data.drawn_under|default:"" }}</td>
+        </tr>
+    </table>
+</div>

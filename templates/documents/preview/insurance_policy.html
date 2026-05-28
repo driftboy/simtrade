@@ -1,0 +1,91 @@
+<div class="print-document insurance-policy">
+    <h2 class="text-center">保险单</h2>
+    <h3 class="text-center">INSURANCE POLICY</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>保单号 Policy No.:</strong></td>
+            <td style="width:25%">{{ data.policy_no|default:"" }}</td>
+            <td style="width:25%"><strong>签发日期 Issue Date:</strong></td>
+            <td style="width:25%">{{ data.issue_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>被保险人 Insured:</strong></td>
+            <td style="width:75%" colspan="3">{{ data.insured|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>保险人 Insurer:</strong></td>
+            <td colspan="3">{{ data.insurer|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>保险金额 Insured Amount:</strong></td>
+            <td>{{ data.insured_amount|default:"" }}</td>
+            <td><strong>大写 In Words:</strong></td>
+            <td>{{ data.insured_amount_in_words|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>险种 Coverage:</strong></td>
+            <td>{{ data.coverage|default:"" }}</td>
+            <td><strong>保费 Premium:</strong></td>
+            <td>{{ data.premium|default:"" }}</td>
+        </tr>
+    </table>
+
+    {% if data.coverage_clause %}
+    <div class="doc-section-title">保险条款 COVERAGE CLAUSE</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.coverage_clause }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    <table>
+        <tr>
+            <td><strong>保险标的 Cargo:</strong></td>
+            <td colspan="3" style="white-space:pre-wrap">{{ data.cargo_description|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>航程 From:</strong></td>
+            <td>{{ data.voyage_from|default:"" }}</td>
+            <td><strong>To:</strong></td>
+            <td>{{ data.voyage_to|default:"" }}</td>
+        </tr>
+        {% if data.flight %}
+        <tr>
+            <td><strong>航班/船次:</strong></td>
+            <td>{{ data.flight }}</td>
+            <td><strong>运单号:</strong></td>
+            <td>{{ data.awb_no|default:"" }}{{ data.bl_no|default:"" }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if data.claim_settling_agent %}
+    <table>
+        <tr>
+            <td><strong>理赔代理 Claim Agent:</strong></td>
+            <td colspan="3">{{ data.claim_settling_agent }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    {% if data.special_conditions %}
+    <div class="doc-section-title">特别条款 SPECIAL CONDITIONS</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.special_conditions }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

@@ -1,0 +1,88 @@
+<div class="print-document shipping-advice">
+    <h2 class="text-center">装船通知</h2>
+    <h3 class="text-center">SHIPPING ADVICE</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>通知号 Advice No.:</strong></td>
+            <td style="width:25%">{{ data.advice_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.advice_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <strong>发送方 From:</strong><br>
+                {{ data.from|default:"" }}
+            </td>
+            <td style="width:50%">
+                <strong>接收方 To:</strong><br>
+                {{ data.to|default:"" }}
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>合同号 Contract No.:</strong></td>
+            <td>{{ data.contract_no|default:"" }}</td>
+            <td><strong>信用证号 L/C No.:</strong></td>
+            <td>{{ data.lc_no|default:"" }}</td>
+        </tr>
+    </table>
+
+    <div class="doc-section-title">装运信息 SHIPMENT DETAILS</div>
+    <table>
+        <tr>
+            <td><strong>商品 Commodity:</strong></td>
+            <td colspan="3">{{ data.commodity|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>船名/航次 Vessel:</strong></td>
+            <td>{{ data.vessel|default:"" }}</td>
+            <td><strong>提单号 B/L No.:</strong></td>
+            <td>{{ data.bl_no|default:"" }}</td>
+        </tr>
+        {% if data.container_no %}
+        <tr>
+            <td><strong>集装箱号 Container:</strong></td>
+            <td>{{ data.container_no }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td><strong>装货港 Loading:</strong></td>
+            <td>{{ data.port_of_loading|default:"" }}</td>
+            <td><strong>卸货港 Discharge:</strong></td>
+            <td>{{ data.port_of_discharge|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>ETD:</strong></td>
+            <td>{{ data.etd|default:"" }}</td>
+            <td><strong>ETA:</strong></td>
+            <td>{{ data.eta|default:"" }}</td>
+        </tr>
+    </table>
+
+    {% if data.shipping_marks %}
+    <table>
+        <tr>
+            <td><strong>唛头 Shipping Marks:</strong></td>
+            <td colspan="3">{{ data.shipping_marks|default:"" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    {% if data.message %}
+    <div class="doc-section-title">通知内容 MESSAGE</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.message }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

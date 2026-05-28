@@ -1,0 +1,88 @@
+<div class="print-document packing-list">
+    <h2 class="text-center">装箱单</h2>
+    <h3 class="text-center">PACKING LIST</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <strong>发货人 Shipper:</strong><br>
+                {{ data.shipper|default:"" }}
+            </td>
+            <td style="width:50%">
+                <strong>收货人 Consignee:</strong><br>
+                {{ data.consignee|default:"" }}
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>装箱单号 No.:</strong></td>
+            <td style="width:25%">{{ data.packing_list_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.packing_date|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>发票号 Invoice No.:</strong></td>
+            <td>{{ data.invoice_no|default:"" }}</td>
+            <td><strong>目的地 Destination:</strong></td>
+            <td>{{ data.destination|default:"" }}</td>
+        </tr>
+        {% if data.shipping_marks %}
+        <tr>
+            <td><strong>唛头 Shipping Marks:</strong></td>
+            <td colspan="3">{{ data.shipping_marks|default:"" }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <div class="doc-section-title">装箱明细 PACKING DETAILS</div>
+    <table>
+        <thead>
+            <tr>
+                <th>箱号 Carton No.</th>
+                <th>商品描述 Description</th>
+                <th>数量 Qty</th>
+                <th>净重 N.W.</th>
+                <th>毛重 G.W.</th>
+                <th>尺寸 Measurement</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data.items %}
+            <tr>
+                <td>{{ item.carton_no|default:"" }}</td>
+                <td>{{ item.description|default:"" }}</td>
+                <td class="text-right">{{ item.quantity|default:"" }}</td>
+                <td class="text-right">{{ item.net_weight|default:"" }}</td>
+                <td class="text-right">{{ item.gross_weight|default:"" }}</td>
+                <td class="text-right">{{ item.measurement|default:"" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">-</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>总箱数 Total Cartons:</strong></td>
+            <td>{{ data.total_cartons|default:"" }}</td>
+            <td><strong>包装类型 Package Type:</strong></td>
+            <td>{{ data.package_type|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>总净重 Total N.W.:</strong></td>
+            <td>{{ data.total_net_weight|default:"" }}</td>
+            <td><strong>总毛重 Total G.W.:</strong></td>
+            <td>{{ data.total_gross_weight|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>总体积 Total Measurement:</strong></td>
+            <td colspan="3">{{ data.total_measurement|default:"" }}</td>
+        </tr>
+    </table>
+</div>

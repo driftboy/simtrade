@@ -1,0 +1,73 @@
+<div class="print-document inspection-application">
+    <h2 class="text-center">报检单</h2>
+    <h3 class="text-center">INSPECTION APPLICATION</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>报检号 Application No.:</strong></td>
+            <td style="width:25%">{{ data.application_no|default:"" }}</td>
+            <td style="width:25%"><strong>申请日期 Date:</strong></td>
+            <td style="width:25%">{{ data.application_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>申请人 Applicant:</strong></td>
+            <td>{{ data.applicant|default:"" }}</td>
+            <td><strong>检验机构 Inspector:</strong></td>
+            <td>{{ data.inspector|default:"" }}</td>
+        </tr>
+    </table>
+
+    <div class="doc-section-title">商品信息 GOODS DETAILS</div>
+    <table>
+        <tr>
+            <td><strong>商品名称 Product:</strong></td>
+            <td>{{ data.product_name|default:"" }}</td>
+            <td><strong>HS编码:</strong></td>
+            <td>{{ data.hs_code|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>规格型号 Spec.:</strong></td>
+            <td colspan="3">{{ data.product_spec|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>数量 Quantity:</strong></td>
+            <td>{{ data.quantity|default:"" }}</td>
+            <td><strong>货值 Value:</strong></td>
+            <td>{{ data.goods_value|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>检验类型 Type:</strong></td>
+            <td>{{ data.inspection_type|default:"" }}</td>
+            <td><strong>检验标准 Standard:</strong></td>
+            <td>{{ data.inspection_standard|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>检验项目 Items:</strong></td>
+            <td colspan="3">{{ data.inspection_items|default:"" }}</td>
+        </tr>
+    </table>
+
+    {% if data.result %}
+    <table>
+        <tr>
+            <td><strong>检验结果 Result:</strong></td>
+            <td>{{ data.result }}</td>
+            <td><strong>证书号 Certificate No.:</strong></td>
+            <td>{{ data.certificate_no|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>检验日期 Inspection Date:</strong></td>
+            <td>{{ data.inspection_date|default:"" }}</td>
+            <td><strong>通过日期 Pass Date:</strong></td>
+            <td>{{ data.pass_date|default:"" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

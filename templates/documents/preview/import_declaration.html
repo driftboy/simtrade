@@ -1,0 +1,79 @@
+<div class="print-document import-declaration">
+    <h2 class="text-center">进口报关单</h2>
+    <h3 class="text-center">IMPORT DECLARATION</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>报关单号 Declaration No.:</strong></td>
+            <td style="width:25%">{{ data.declaration_no|default:"" }}</td>
+            <td style="width:25%"><strong>报关类型 Type:</strong></td>
+            <td style="width:25%">{{ data.declaration_type|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>申报单位 Declarant:</strong></td>
+            <td colspan="3">{{ data.declarant|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>海关关区 Customs:</strong></td>
+            <td>{{ data.customs_office|default:"" }}</td>
+            <td><strong>贸易方式 Trade Mode:</strong></td>
+            <td>{{ data.trade_mode|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>运输方式 Transport:</strong></td>
+            <td>{{ data.transport_mode|default:"" }}</td>
+            <td><strong>申报日期 Date:</strong></td>
+            <td>{{ data.declaration_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <div class="doc-section-title">商品信息 GOODS DETAILS</div>
+    <table>
+        <tr>
+            <td><strong>HS编码 HS Code:</strong></td>
+            <td>{{ data.hs_code|default:"" }}</td>
+            <td><strong>商品名称 Goods:</strong></td>
+            <td>{{ data.goods_name|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>规格型号 Spec.:</strong></td>
+            <td>{{ data.specification|default:"" }}</td>
+            <td><strong>数量/单位 Qty:</strong></td>
+            <td>{{ data.quantity|default:"" }} {{ data.unit|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>单价 Unit Price:</strong></td>
+            <td>{{ data.unit_price|default:"" }}</td>
+            <td><strong>总价 Total Value:</strong></td>
+            <td>{{ data.total_value|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>币种 Currency:</strong></td>
+            <td>{{ data.currency|default:"" }}</td>
+            <td><strong>原产国 Origin:</strong></td>
+            <td>{{ data.country_of_origin|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>装货港 Port of Loading:</strong></td>
+            <td>{{ data.port_of_loading|default:"" }}</td>
+            <td><strong>卸货港 Port of Discharge:</strong></td>
+            <td>{{ data.port_of_discharge|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>毛重 Gross Weight:</strong></td>
+            <td>{{ data.gross_weight|default:"" }}</td>
+            <td><strong>净重 Net Weight:</strong></td>
+            <td>{{ data.net_weight|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>件数 Packages:</strong></td>
+            <td>{{ data.package_count|default:"" }}</td>
+            <td><strong>合同号 Contract No.:</strong></td>
+            <td>{{ data.contract_no|default:"" }}</td>
+        </tr>
+    </table>
+</div>

@@ -1,0 +1,88 @@
+<div class="print-document bill-of-lading">
+    <h2 class="text-center">{{ data.document_type|default:"海运提单" }}</h2>
+    {% if data.document_type %}
+    <h3 class="text-center">BILL OF LADING / AIR WAYBILL</h3>
+    {% else %}
+    <h3 class="text-center">BILL OF LADING</h3>
+    {% endif %}
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <strong>发货人 Shipper:</strong><br>
+                <span style="white-space:pre-wrap">{{ data.shipper|default:"" }}</span>
+            </td>
+            <td style="width:50%">
+                <strong>收货人 Consignee:</strong><br>
+                <span style="white-space:pre-wrap">{{ data.consignee|default:"" }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        {% if data.awb_no %}
+        <tr>
+            <td style="width:25%"><strong>航空运单号 AWB No.:</strong></td>
+            <td style="width:25%">{{ data.awb_no }}</td>
+            <td style="width:25%"><strong>签发日期 Issue Date:</strong></td>
+            <td style="width:25%">{{ data.awb_issue_date|default:"" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td style="width:25%"><strong>提单号 B/L No.:</strong></td>
+            <td style="width:25%">{{ data.bl_no|default:"" }}</td>
+            <td style="width:25%"><strong>签发日期 Issue Date:</strong></td>
+            <td style="width:25%">{{ data.issue_date|default:"" }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td><strong>承运人 Carrier:</strong></td>
+            <td>{{ data.carrier|default:"" }}</td>
+            <td><strong>航班/船次 Flight/Vessel:</strong></td>
+            <td>{{ data.flight_no|default:"" }}{{ data.vessel|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>装货港 Port of Loading:</strong></td>
+            <td>{{ data.port_of_loading|default:"" }}</td>
+            <td><strong>卸货港 Port of Discharge:</strong></td>
+            <td>{{ data.port_of_discharge|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>ETD:</strong></td>
+            <td>{{ data.etd|default:"" }}</td>
+            <td><strong>ETA:</strong></td>
+            <td>{{ data.eta|default:"" }}</td>
+        </tr>
+        {% if data.container_no %}
+        <tr>
+            <td><strong>集装箱号 Container No.:</strong></td>
+            <td>{{ data.container_no }}</td>
+            <td><strong>正本份数 Originals:</strong></td>
+            <td>{{ data.originals|default:"" }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <div class="doc-section-title">货物描述 DESCRIPTION OF GOODS</div>
+    <table>
+        <tr>
+            <td colspan="4" style="white-space:pre-wrap">{{ data.description|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>运费 Freight:</strong></td>
+            <td>{{ data.freight|default:"" }}</td>
+            <td><strong>签发地 Issued at:</strong></td>
+            <td>{{ data.issued_at|default:"" }}</td>
+        </tr>
+        {% if data.handling_information %}
+        <tr>
+            <td><strong>操作说明 Handling:</strong></td>
+            <td colspan="3" style="white-space:pre-wrap">{{ data.handling_information }}</td>
+        </tr>
+        {% endif %}
+    </table>
+</div>

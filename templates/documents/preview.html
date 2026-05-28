@@ -1,6 +1,6 @@
 {% extends "documents/base.html" %}
 
-{% block title %}单证预览 - SimTrade{% endblock %}
+{% block title %}单证预览 - {{ document.template.name }} - SimTrade{% endblock %}
 
 {% block document_content %}
 <div class="row">
@@ -22,7 +22,7 @@
                 </button>
                 {% endif %}
             </div>
-            <h2>单证预览</h2>
+            <h2>{{ document.template.name }} 预览</h2>
         </div>
     </div>
 </div>
@@ -31,53 +31,41 @@
 
 <div class="document-preview">
     <div id="documentContent">
-        <div class="print-document commercial-invoice">
-            <h2 class="text-center">商业发票</h2>
-            <h3 class="text-center">COMMERCIAL INVOICE</h3>
-            <hr>
-            <table class="table table-bordered">
-                <tr>
-                    <td colspan="2">
-                        <strong>卖方 SELLER:</strong><br>
-                        {{ data.seller_name|default:"" }}
-                    </td>
-                    <td colspan="2">
-                        <strong>买方 BUYER:</strong><br>
-                        {{ data.buyer_name|default:"" }}
-                    </td>
-                </tr>
-                <tr>
-                    <td><strong>发票号码 NO:</strong></td>
-                    <td>{{ data.invoice_no|default:"" }}</td>
-                    <td><strong>日期 DATE:</strong></td>
-                    <td>{{ data.invoice_date|default:"" }}</td>
-                </tr>
-            </table>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>商品名称</th>
-                        <th>数量</th>
-                        <th>单价</th>
-                        <th>金额</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{{ data.product_name|default:"-" }}</td>
-                        <td>{{ data.quantity|default:"-" }}</td>
-                        <td>{{ data.unit_price|default:"-" }}</td>
-                        <td>{{ data.amount|default:"-" }}</td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" class="text-right"><strong>总计 TOTAL:</strong></td>
-                        <td class="text-right"><strong>{{ data.total_amount|default:"" }}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+        {% with template_code=document.template.code %}
+            {% if template_code == "commercial_invoice" %}
+                {% include "documents/preview/commercial_invoice.html" %}
+            {% elif template_code == "packing_list" %}
+                {% include "documents/preview/packing_list.html" %}
+            {% elif template_code == "bill_of_lading" %}
+                {% include "documents/preview/bill_of_lading.html" %}
+            {% elif template_code == "sales_contract" %}
+                {% include "documents/preview/sales_contract.html" %}
+            {% elif template_code == "letter_of_credit" %}
+                {% include "documents/preview/letter_of_credit.html" %}
+            {% elif template_code == "bill_of_exchange" %}
+                {% include "documents/preview/bill_of_exchange.html" %}
+            {% elif template_code == "insurance_policy" %}
+                {% include "documents/preview/insurance_policy.html" %}
+            {% elif template_code == "insurance_application" %}
+                {% include "documents/preview/insurance_application.html" %}
+            {% elif template_code == "export_declaration" %}
+                {% include "documents/preview/export_declaration.html" %}
+            {% elif template_code == "import_declaration" %}
+                {% include "documents/preview/import_declaration.html" %}
+            {% elif template_code == "inspection_application" %}
+                {% include "documents/preview/inspection_application.html" %}
+            {% elif template_code == "inspection_certificate" %}
+                {% include "documents/preview/inspection_certificate.html" %}
+            {% elif template_code == "certificate_of_origin" %}
+                {% include "documents/preview/certificate_of_origin.html" %}
+            {% elif template_code == "beneficiary_certificate" %}
+                {% include "documents/preview/beneficiary_certificate.html" %}
+            {% elif template_code == "shipping_advice" %}
+                {% include "documents/preview/shipping_advice.html" %}
+            {% else %}
+                {% include "documents/preview/_generic.html" %}
+            {% endif %}
+        {% endwith %}
     </div>
 </div>
 {% endblock %}
@@ -123,10 +111,38 @@ function showValidationError(errors) {
 
 .print-document {
     padding: 20px;
+    font-size: 13px;
+    line-height: 1.6;
 }
 
 .print-document h2, .print-document h3 {
     margin: 10px 0;
+}
+
+.print-document table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.print-document table th,
+.print-document table td {
+    border: 1px solid #333;
+    padding: 6px 10px;
+    vertical-align: top;
+}
+
+.print-document table th {
+    background: #f5f5f5;
+    font-weight: bold;
+    text-align: center;
+}
+
+.doc-section-title {
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+    margin: 12px 0 6px;
 }
 
 @media print {
@@ -134,6 +150,10 @@ function showValidationError(errors) {
     .document-preview {
         border: none;
         padding: 0;
+    }
+    .print-document table th,
+    .print-document table td {
+        border-color: #000;
     }
     @page { margin: 10mm; }
 }

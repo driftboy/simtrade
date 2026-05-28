@@ -1,0 +1,42 @@
+<div class="print-document insurance-application">
+    <h2 class="text-center">投保单</h2>
+    <h3 class="text-center">INSURANCE APPLICATION</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>投保单号 Application No.:</strong></td>
+            <td style="width:25%">{{ data.application_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.application_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>投保人 Applicant:</strong></td>
+            <td>{{ data.applicant|default:"" }}</td>
+            <td><strong>保险公司 Insurer:</strong></td>
+            <td>{{ data.insurer|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>保险标的 Cargo:</strong></td>
+            <td colspan="3">{{ data.cargo_description|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>保险金额 Amount:</strong></td>
+            <td>{{ data.insured_amount|default:"" }}</td>
+            <td><strong>险种 Coverage:</strong></td>
+            <td>{{ data.coverage|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>航程 From:</strong></td>
+            <td>{{ data.voyage_from|default:"" }}</td>
+            <td><strong>To:</strong></td>
+            <td>{{ data.voyage_to|default:"" }}</td>
+        </tr>
+    </table>
+</div>

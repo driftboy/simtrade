@@ -61,12 +61,16 @@ $(document).ready(function() {
         $.ajax({
             url: '/api/v1/documents/documents/?' + params,
             method: 'GET',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
             success: function(response) {
                 var html = '';
-                if (response.data.length === 0) {
+                var items = response.data || response.results || [];
+                if (items.length === 0) {
                     html = '<div class="alert alert-info">暂无单证</div>';
                 } else {
-                    response.data.forEach(function(doc) {
+                    items.forEach(function(doc) {
                         var statusClass = getStatusClass(doc.status);
                         html += `
                             <div class="document-card">
@@ -91,7 +95,13 @@ $(document).ready(function() {
                 $('#documentList').html(html);
             },
             error: function(xhr) {
-                $('#documentList').html('<div class="alert alert-danger">加载失败</div>');
+                var msg = '加载失败';
+                if (xhr.status === 403) msg = '未登录或权限不足，请重新登录';
+                else if (xhr.status === 0) msg = '网络错误，请检查连接';
+                else if (xhr.responseText) {
+                    try { msg += ': ' + JSON.parse(xhr.responseText).detail; } catch(e) {}
+                }
+                $('#documentList').html('<div class="alert alert-danger">' + msg + '</div>');
             }
         });
     }

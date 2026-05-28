@@ -1,0 +1,87 @@
+<div class="print-document sales-contract">
+    <h2 class="text-center">外销合同</h2>
+    <h3 class="text-center">SALES CONTRACT</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>合同号 Contract No.:</strong></td>
+            <td style="width:25%">{{ data.contract_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.contract_date|default:"" }}</td>
+        </tr>
+        <tr>
+            <td style="width:50%">
+                <strong>卖方 Seller:</strong><br>
+                {{ data.seller_name|default:"" }}<br>
+                <span style="white-space:pre-wrap">{{ data.seller_address|default:"" }}</span>
+            </td>
+            <td style="width:50%">
+                <strong>买方 Buyer:</strong><br>
+                {{ data.buyer_name|default:"" }}<br>
+                <span style="white-space:pre-wrap">{{ data.buyer_address|default:"" }}</span>
+            </td>
+        </tr>
+        </table>
+    <table>
+        <tr>
+            <td><strong>贸易术语 Trade Term:</strong></td>
+            <td>{{ data.trade_term|default:"" }}</td>
+            <td><strong>付款方式 Payment:</strong></td>
+            <td>{{ data.payment_term|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>装运港 Port of Loading:</strong></td>
+            <td>{{ data.port_of_loading|default:"" }}</td>
+            <td><strong>目的港 Port of Destination:</strong></td>
+            <td>{{ data.port_of_destination|default:"" }}</td>
+        </tr>
+        {% if data.shipment_date %}
+        <tr>
+            <td><strong>装运期 Shipment Date:</strong></td>
+            <td>{{ data.shipment_date }}</td>
+            <td><strong>有效期 Validity:</strong></td>
+            <td>{{ data.validity_date|default:"" }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if data.items %}
+    <div class="doc-section-title">商品明细 DETAILS OF GOODS</div>
+    <table>
+        <thead>
+            <tr>
+                <th>商品描述 Description</th>
+                <th>数量 Qty</th>
+                <th>单价 Unit Price</th>
+                <th>金额 Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data.items %}
+            <tr>
+                <td>{{ item.description|default:"" }}</td>
+                <td class="text-right">{{ item.quantity|default:"" }}</td>
+                <td class="text-right">{{ item.unit_price|default:"" }}</td>
+                <td class="text-right">{{ item.amount|default:"" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-right"><strong>总计 TOTAL:</strong></td>
+                <td class="text-right"><strong>{{ data.total_amount|default:"" }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    {% endif %}
+
+    {% if data.remarks %}
+    <div class="doc-section-title">备注 REMARKS</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.remarks }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

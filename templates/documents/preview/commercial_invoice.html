@@ -1,0 +1,98 @@
+<div class="print-document commercial-invoice">
+    <h2 class="text-center">商业发票</h2>
+    <h3 class="text-center">COMMERCIAL INVOICE</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <strong>卖方 SELLER:</strong><br>
+                {{ data.seller_name|default:"" }}<br>
+                <span style="white-space:pre-wrap">{{ data.seller_address|default:"" }}</span>
+            </td>
+            <td style="width:50%">
+                <strong>买方 BUYER:</strong><br>
+                {{ data.buyer_name|default:"" }}<br>
+                <span style="white-space:pre-wrap">{{ data.buyer_address|default:"" }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>发票号码 Invoice No.:</strong></td>
+            <td style="width:25%">{{ data.invoice_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.invoice_date|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>合同号 Contract No.:</strong></td>
+            <td>{{ data.contract_no|default:"" }}</td>
+            <td><strong>贸易术语 Trade Term:</strong></td>
+            <td>{{ data.trade_term|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>付款方式 Payment:</strong></td>
+            <td>{{ data.payment_term|default:"" }}</td>
+            <td><strong>运输方式 Shipment:</strong></td>
+            <td>{{ data.from_port|default:"" }} → {{ data.to_port|default:"" }}</td>
+        </tr>
+        {% if data.flight %}
+        <tr>
+            <td><strong>航班/船次 Flight/Vessel:</strong></td>
+            <td>{{ data.flight|default:"" }}</td>
+            <td><strong>运单号 AWB/B/L No.:</strong></td>
+            <td>{{ data.awb_no|default:"" }}{{ data.bl_no|default:"" }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <div class="doc-section-title">商品明细 DETAILS OF GOODS</div>
+    <table>
+        <thead>
+            <tr>
+                <th>唛头 Marks</th>
+                <th>商品描述 Description</th>
+                <th>数量 Qty</th>
+                <th>单价 Unit Price</th>
+                <th>金额 Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data.items %}
+            <tr>
+                <td style="white-space:pre-wrap">{{ item.marks|default:"" }}</td>
+                <td style="white-space:pre-wrap">{{ item.description|default:"" }}</td>
+                <td class="text-right">{{ item.quantity|default:"" }}</td>
+                <td class="text-right">{{ item.unit_price|default:"" }}</td>
+                <td class="text-right">{{ item.amount|default:"" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">-</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" class="text-right"><strong>总计 TOTAL:</strong></td>
+                <td class="text-right"><strong>{{ data.total_amount|default:"" }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>包装 Packing:</strong></td>
+            <td>{{ data.packing|default:"" }}</td>
+            <td><strong>总件数 Packages:</strong></td>
+            <td>{{ data.total_packages|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>毛重 Gross Weight:</strong></td>
+            <td>{{ data.gross_weight|default:"" }}</td>
+            <td><strong>净重 Net Weight:</strong></td>
+            <td>{{ data.net_weight|default:"" }}</td>
+        </tr>
+    </table>
+</div>

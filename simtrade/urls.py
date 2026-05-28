@@ -5,6 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
+import json
 from django.contrib.auth.decorators import login_required
 from apps.documents.models import Document, DocumentTemplate
 from apps.roles.services import RoleService
@@ -368,7 +369,11 @@ def document_preview(request, id):
         document = Document.objects.get(pk=id)
     except Document.DoesNotExist:
         return HttpResponse('Document not found', status=404)
-    return render(request, 'documents/preview.html', {'document': document})
+    try:
+        data = json.loads(document.data) if document.data else {}
+    except (json.JSONDecodeError, TypeError):
+        data = {}
+    return render(request, 'documents/preview.html', {'document': document, 'data': data})
 
 
 # ---------------------------------------------------------------------------

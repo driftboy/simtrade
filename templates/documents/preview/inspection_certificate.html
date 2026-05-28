@@ -1,0 +1,62 @@
+<div class="print-document inspection-certificate">
+    <h2 class="text-center">检验证书</h2>
+    <h3 class="text-center">INSPECTION CERTIFICATE</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>证书号 Certificate No.:</strong></td>
+            <td style="width:25%">{{ data.certificate_no|default:"" }}</td>
+            <td style="width:25%"><strong>签发日期 Issue Date:</strong></td>
+            <td style="width:25%">{{ data.issue_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>申请人 Applicant:</strong></td>
+            <td>{{ data.applicant|default:"" }}</td>
+            <td><strong>检验机构 Inspector:</strong></td>
+            <td>{{ data.inspector|default:"" }}</td>
+        </tr>
+    </table>
+
+    <div class="doc-section-title">商品信息 GOODS DETAILS</div>
+    <table>
+        <tr>
+            <td><strong>商品名称 Product:</strong></td>
+            <td>{{ data.product_name|default:"" }}</td>
+            <td><strong>HS编码:</strong></td>
+            <td>{{ data.hs_code|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>数量 Quantity:</strong></td>
+            <td>{{ data.quantity|default:"" }}</td>
+            <td><strong>合同号 Contract No.:</strong></td>
+            <td>{{ data.contract_no|default:"" }}</td>
+        </tr>
+    </table>
+
+    <div class="doc-section-title">检验结果 INSPECTION RESULT</div>
+    <table>
+        <tr>
+            <td><strong>检验标准 Standard:</strong></td>
+            <td colspan="3">{{ data.inspection_standard|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>检验日期 Date:</strong></td>
+            <td>{{ data.inspection_date|default:"" }}</td>
+            <td><strong>检验结果 Result:</strong></td>
+            <td>{{ data.inspection_result|default:"" }}</td>
+        </tr>
+    </table>
+
+    {% if data.remarks %}
+    <div class="doc-section-title">备注 REMARKS</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.remarks }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

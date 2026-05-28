@@ -1,0 +1,38 @@
+<div class="print-document beneficiary-certificate">
+    <h2 class="text-center">受益人证明</h2>
+    <h3 class="text-center">BENEFICIARY CERTIFICATE</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>证书号 Certificate No.:</strong></td>
+            <td style="width:25%">{{ data.certificate_no|default:"" }}</td>
+            <td style="width:25%"><strong>日期 Date:</strong></td>
+            <td style="width:25%">{{ data.certificate_date|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>受益人 Beneficiary:</strong></td>
+            <td>{{ data.beneficiary|default:"" }}</td>
+            <td><strong>信用证号 L/C No.:</strong></td>
+            <td>{{ data.lc_no|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>合同号 Contract No.:</strong></td>
+            <td>{{ data.contract_no|default:"" }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+    {% if data.declaration %}
+    <div class="doc-section-title">声明 DECLARATION</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.declaration }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

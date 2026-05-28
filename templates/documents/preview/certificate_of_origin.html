@@ -1,0 +1,79 @@
+<div class="print-document certificate-of-origin">
+    <h2 class="text-center">产地证</h2>
+    <h3 class="text-center">CERTIFICATE OF ORIGIN</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>证书号 Certificate No.:</strong></td>
+            <td style="width:25%">{{ data.certificate_no|default:"" }}</td>
+            <td style="width:25%"><strong>类型 Type:</strong></td>
+            <td style="width:25%">{{ data.certificate_type|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>签发日期 Issue Date:</strong></td>
+            <td>{{ data.issue_date|default:"" }}</td>
+            <td><strong>签发机构 Authority:</strong></td>
+            <td>{{ data.issuing_authority|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <strong>发货方 Consigned From:</strong><br>
+                <span style="white-space:pre-wrap">{{ data.goods_consigned_from|default:"" }}</span>
+            </td>
+            <td style="width:50%">
+                <strong>收货方 Consigned To:</strong><br>
+                <span style="white-space:pre-wrap">{{ data.goods_consigned_to|default:"" }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>运输方式 Transport:</strong></td>
+            <td>{{ data.means_of_transport|default:"" }}</td>
+            <td><strong>装货港 Loading:</strong></td>
+            <td>{{ data.port_of_loading|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>卸货港 Discharge:</strong></td>
+            <td>{{ data.port_of_discharge|default:"" }}</td>
+            <td><strong>目的地 Destination:</strong></td>
+            <td>{{ data.destination|default:"" }}</td>
+        </tr>
+    </table>
+
+    {% if data.item_details %}
+    <div class="doc-section-title">商品明细 ITEM DETAILS</div>
+    <table>
+        <thead>
+            <tr>
+                <th>唛头 Marks</th>
+                <th>商品描述 Description</th>
+                <th>数量 Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data.item_details %}
+            <tr>
+                <td style="white-space:pre-wrap">{{ item.marks|default:"" }}</td>
+                <td>{{ item.description|default:"" }}</td>
+                <td class="text-right">{{ item.quantity|default:"" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if data.certification %}
+    <div class="doc-section-title">认证声明 CERTIFICATION</div>
+    <table>
+        <tr>
+            <td style="white-space:pre-wrap">{{ data.certification }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>

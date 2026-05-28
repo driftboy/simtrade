@@ -1,0 +1,91 @@
+<div class="print-document letter-of-credit">
+    <h2 class="text-center">信用证</h2>
+    <h3 class="text-center">LETTER OF CREDIT</h3>
+    <hr>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>信用证号 L/C No.:</strong></td>
+            <td style="width:25%">{{ data.lc_no|default:"" }}</td>
+            <td style="width:25%"><strong>开证日期 Issue Date:</strong></td>
+            <td style="width:25%">{{ data.lc_issue_date|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>信用证类型 Type:</strong></td>
+            <td>{{ data.lc_type|default:"" }}</td>
+            <td><strong>金额 Amount:</strong></td>
+            <td>{{ data.amount|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>到期日 Expiry Date:</strong></td>
+            <td>{{ data.expiry_date|default:"" }}</td>
+            <td><strong>到期地点 Expiry Place:</strong></td>
+            <td>{{ data.expiry_place|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:25%"><strong>开证行 Issuing Bank:</strong></td>
+            <td style="width:75%" colspan="3">{{ data.issuing_bank|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>通知行 Advising Bank:</strong></td>
+            <td colspan="3">{{ data.advising_bank|default:"" }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <strong>申请人 Applicant:</strong><br>
+                <span style="white-space:pre-wrap">{{ data.applicant|default:"" }}</span>
+            </td>
+            <td style="width:50%">
+                <strong>受益人 Beneficiary:</strong><br>
+                <span style="white-space:pre-wrap">{{ data.beneficiary|default:"" }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td><strong>装货港 Port of Loading:</strong></td>
+            <td>{{ data.port_of_loading|default:"" }}</td>
+            <td><strong>卸货港 Port of Discharge:</strong></td>
+            <td>{{ data.port_of_discharge|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>最迟装运期 Latest Shipment:</strong></td>
+            <td>{{ data.latest_shipment|default:"" }}</td>
+            <td><strong>贸易术语 Trade Term:</strong></td>
+            <td>{{ data.trade_term|default:"" }}</td>
+        </tr>
+        <tr>
+            <td><strong>分批装运 Partial Shipment:</strong></td>
+            <td>{{ data.partial_shipment|default:"" }}</td>
+            <td><strong>转运 Transshipment:</strong></td>
+            <td>{{ data.transshipment|default:"" }}</td>
+        </tr>
+        {% if data.period_for_presentation %}
+        <tr>
+            <td><strong>交单期限 Presentation Period:</strong></td>
+            <td colspan="3">{{ data.period_for_presentation }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if data.documents_required %}
+    <div class="doc-section-title">所需单证 DOCUMENTS REQUIRED</div>
+    <table>
+        <tbody>
+            {% for doc in data.documents_required %}
+            <tr>
+                <td>{{ forloop.counter }}.</td>
+                <td>{{ doc }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
