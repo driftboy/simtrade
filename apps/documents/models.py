@@ -12,6 +12,7 @@ class DocumentTemplate(models.Model):
         SALES_CONTRACT = 'sales_contract', '外销合同'
         LETTER_OF_CREDIT = 'letter_of_credit', '信用证'
         BILL_OF_LADING = 'bill_of_lading', '海运提单'
+        AIR_WAYBILL = 'air_waybill', '航空运单'
         INSURANCE_POLICY = 'insurance_policy', '保险单'
         INSURANCE_APPLICATION = 'insurance_application', '投保单'
         EXPORT_DECLARATION = 'export_declaration', '出口报关单'

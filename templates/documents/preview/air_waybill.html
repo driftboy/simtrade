@@ -1,6 +1,6 @@
-<div class="print-document bill-of-lading">
-    <h2 class="text-center">海运提单</h2>
-    <h3 class="text-center">BILL OF LADING</h3>
+<div class="print-document air-waybill">
+    <h2 class="text-center">航空运单</h2>
+    <h3 class="text-center">AIR WAYBILL</h3>
     <hr>
 
     <table>
@@ -18,21 +18,21 @@
 
     <table>
         <tr>
-            <td style="width:25%"><strong>提单号 B/L No.:</strong></td>
-            <td style="width:25%">{{ data.bl_no|default:"" }}</td>
+            <td style="width:25%"><strong>运单号 AWB No.:</strong></td>
+            <td style="width:25%">{{ data.awb_no|default:"" }}</td>
             <td style="width:25%"><strong>签发日期 Issue Date:</strong></td>
-            <td style="width:25%">{{ data.issue_date|default:"" }}</td>
+            <td style="width:25%">{{ data.awb_issue_date|default:"" }}</td>
         </tr>
         <tr>
             <td><strong>承运人 Carrier:</strong></td>
             <td>{{ data.carrier|default:"" }}</td>
-            <td><strong>船名/航次 Vessel:</strong></td>
-            <td>{{ data.vessel|default:"" }}</td>
+            <td><strong>航班号 Flight No.:</strong></td>
+            <td>{{ data.flight_no|default:"" }}</td>
         </tr>
         <tr>
-            <td><strong>装货港 Port of Loading:</strong></td>
+            <td><strong>出发地 Airport of Departure:</strong></td>
             <td>{{ data.port_of_loading|default:"" }}</td>
-            <td><strong>卸货港 Port of Discharge:</strong></td>
+            <td><strong>目的地 Airport of Destination:</strong></td>
             <td>{{ data.port_of_discharge|default:"" }}</td>
         </tr>
         <tr>
@@ -41,12 +41,12 @@
             <td><strong>ETA:</strong></td>
             <td>{{ data.eta|default:"" }}</td>
         </tr>
-        {% if data.container_no %}
+        {% if data.originals %}
         <tr>
-            <td><strong>集装箱号 Container No.:</strong></td>
-            <td>{{ data.container_no }}</td>
             <td><strong>正本份数 Originals:</strong></td>
-            <td>{{ data.originals|default:"" }}</td>
+            <td>{{ data.originals }}</td>
+            <td></td>
+            <td></td>
         </tr>
         {% endif %}
     </table>
@@ -65,5 +65,11 @@
             <td><strong>签发地 Issued at:</strong></td>
             <td>{{ data.issued_at|default:"" }}</td>
         </tr>
+        {% if data.handling_information %}
+        <tr>
+            <td><strong>操作说明 Handling:</strong></td>
+            <td colspan="3" style="white-space:pre-wrap">{{ data.handling_information }}</td>
+        </tr>
+        {% endif %}
     </table>
 </div>
