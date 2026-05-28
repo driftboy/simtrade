@@ -224,6 +224,12 @@ class Command(BaseCommand):
         self.stdout.write('=' * 60)
         result2 = self._create_scenario_fob_tt(now, companies, huaxin_user)
 
+        # ── 场景 3：CIF + L/C 纺织品出口欧盟 ──────────────────────
+        self.stdout.write('\n' + '=' * 60)
+        self.stdout.write('场景 3：CIF + L/C（棉质女式针织外套出口德国）')
+        self.stdout.write('=' * 60)
+        result3 = self._create_scenario_textile_eu(now, companies, huaxin_user)
+
         # ── 汇总 ─────────────────────────────────────────────────
         self.stdout.write('\n' + '=' * 60)
         self.stdout.write(self.style.SUCCESS('样本交易数据生成完毕！'))
@@ -252,6 +258,18 @@ class Command(BaseCommand):
         self.stdout.write(f'  外汇结算(30%): {result2["forex1"].settlement_no}')
         self.stdout.write(f'  外汇结算(70%): {result2["forex2"].settlement_no}')
         self.stdout.write(f'  退税: {result2["tax_refund"].application_no}')
+        self.stdout.write('')
+        self.stdout.write('  场景 3: CIF + L/C（棉质女式针织外套出口德国）')
+        self.stdout.write(f'  交易: #{result3["transaction"].id}')
+        self.stdout.write(f'  合同: {result3["contract"].contract_no}')
+        self.stdout.write(f'  信用证: {result3["lc"].lc_no}')
+        self.stdout.write(f'  采购订单: {result3["po"].order_no}')
+        self.stdout.write(f'  货运: {result3["shipment"].shipment_no}')
+        self.stdout.write(f'  保险: {result3["insurance"].policy_no}')
+        self.stdout.write(f'  报检: {result3["inspection"].application_no}')
+        self.stdout.write(f'  报关: {result3["customs"].declaration_no}')
+        self.stdout.write(f'  外汇结算: {result3["forex"].settlement_no}')
+        self.stdout.write(f'  退税: {result3["tax_refund"].application_no}')
         self.stdout.write(f'  单证记录: {Document.objects.count()} 份')
 
     # ──────────────────────────────────────────────────────────────
@@ -1157,6 +1175,749 @@ class Command(BaseCommand):
                         'clearance and cargo reception accordingly.\n\n'
                         'As per our agreement, 70% balance payment (USD 35,000.00) is due upon '
                         'presentation of B/L copy. Please remit payment promptly.'
+                    ),
+                }, ensure_ascii=False, indent=2),
+            },
+        ]
+
+        for doc_data in documents_data:
+            template = DocumentTemplate.objects.filter(
+                code=doc_data['template_code']
+            ).first()
+            if not template:
+                self.stdout.write(self.style.WARNING(
+                    f"  [SKIP] 模板不存在: {doc_data['template_code']}"))
+                continue
+
+            doc, created = Document.objects.get_or_create(
+                template=template,
+                transaction_id=transaction.id,
+                defaults={
+                    'status': doc_data['status'],
+                    'data': doc_data['data'],
+                    'created_by': sample_user,
+                }
+            )
+            if not created and not doc.created_by:
+                doc.created_by = sample_user
+                doc.save(update_fields=['created_by'])
+            tag = 'CREATE' if created else 'SKIP'
+            self.stdout.write(f'  [{tag}] {template.name}')
+
+    # ──────────────────────────────────────────────────────────────
+    # 场景：CIF + L/C 纺织品出口德国（棉质女式针织外套）
+    # ──────────────────────────────────────────────────────────────
+
+    def _create_scenario_textile_eu(self, now, companies, sample_user):
+        """CIF + L/C 场景：棉质女式针织外套出口德国（EUR 结算，FORM A 欧盟普惠制）"""
+
+        # ── 新公司 ──────────────────────────────────────────
+        self.stdout.write('\n[新增公司] 创建场景 3 公司...')
+
+        exp03, created = self._create_company(
+            'EXP03', '杭州丝绸之纺织品有限公司',
+            'Hangzhou Silk Road Textiles Co., Ltd.',
+            'CN', 'textiles',
+            '杭州市萧山区市心北路188号丝绸之大厦',
+            '+86-571-82801234', 'export@silkroad-textile.com')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {exp03.name}')
+
+        imp03, created = self._create_company(
+            'IMP03', 'Fashion Europe GmbH',
+            'Fashion Europe GmbH',
+            'DE', 'trading',
+            'Mönckebergstraße 7, 20095 Hamburg, Germany',
+            '+49-40-3001234', 'purchasing@fashion-europe.de')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {imp03.name}')
+
+        # ── 商品 ──────────────────────────────────────────
+        product = self._ensure_product(
+            'T001', '棉质女式针织外套', "Women's Cotton Knitted Coat",
+            'textiles', 'PCS', '6104',
+            '60%棉 40%聚酯纤维, 针织, 女式, 外套, 多色可选')
+        self.stdout.write(f'  [OK] 商品 {product.name}')
+
+        # ── 交易 ──────────────────────────────────────────
+        self.stdout.write('\n[2/10] 创建交易记录 (Textile EU CIF+L/C)...')
+
+        transaction, created = Transaction.objects.get_or_create(
+            pk=9003,
+            defaults={
+                'buyer': imp03,
+                'seller': exp03,
+                'product': product,
+                'status': 'completed',
+                'quantity': 10000,
+                'unit_price': Decimal('8.50'),
+                'currency': 'EUR',
+                'trade_term': 'CIF',
+                'port_of_loading': 'Shanghai',
+                'port_of_discharge': 'Hamburg, Germany',
+                'notes': '样本交易：棉质女式针织外套出口德国，CIF Hamburg，L/C at sight',
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 交易 #{transaction.id}')
+
+        # ── 合同 ──────────────────────────────────────────
+        self.stdout.write('\n[3/10] 创建外销合同 (Textile EU CIF+L/C)...')
+
+        delivery_date = (now - timedelta(days=3)).date()
+
+        contract, created = Contract.objects.get_or_create(
+            contract_no='SR2026SC001',
+            defaults={
+                'transaction': transaction,
+                'status': 'effective',
+                'trade_term': 'CIF',
+                'payment_term': 'L/C at sight',
+                'delivery_time': delivery_date,
+                'port_of_loading': 'Shanghai',
+                'port_of_discharge': 'Hamburg, Germany',
+                'product_name': "棉质女式针织外套 Women's Cotton Knitted Coat",
+                'product_spec': '60%棉 40%聚酯纤维, 针织, 女式, S/M/L/XL, 多色可选',
+                'quantity': 10000,
+                'unit': 'PCS',
+                'unit_price': Decimal('8.50'),
+                'total_amount': Decimal('85000.00'),
+                'currency': 'EUR',
+                'packing': '每件独立包装，50件/外箱，共200外箱',
+                'shipping_marks': (
+                    'SR2026SC001\n'
+                    'HAMBURG\n'
+                    'C/NO.: 1-200\n'
+                    'G.W.: 18.0 KGS\n'
+                    'N.W.: 15.0 KGS\n'
+                    'MEAS: 60×45×50 CM'
+                ),
+                'remarks': (
+                    '1. 装运期：不迟于2026年6月15日\n'
+                    '2. 允许分批装运：不允许\n'
+                    '3. 允许转船：不允许\n'
+                    '4. 品质以中国商品检验局检验证书为准\n'
+                    '5. 按 CIF Hamburg 成交，卖方负责投保一切险\n'
+                    '6. 产地证要求 FORM A 欧盟普惠制'
+                ),
+                'seller_signed_at': now - timedelta(days=30),
+                'buyer_signed_at': now - timedelta(days=29),
+                'effective_at': now - timedelta(days=29),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 合同 {contract.contract_no}')
+
+        # ── 信用证 ──────────────────────────────────────────
+        self.stdout.write('\n[4/10] 创建信用证 (Textile EU)...')
+
+        lc_issue_date = (now - timedelta(days=28)).date()
+        lc_expiry_date = (now + timedelta(days=15)).date()
+        latest_shipment = (now - timedelta(days=2)).date()
+
+        lc, created = LetterOfCredit.objects.get_or_create(
+            lc_no='COMMB/2026/LC00234',
+            defaults={
+                'contract': contract,
+                'transaction': transaction,
+                'status': 'negotiated',
+                'issuing_bank': 'Commerzbank AG, Hamburg',
+                'advising_bank': '中国银行杭州市分行',
+                'applicant': imp03,
+                'beneficiary': exp03,
+                'amount': Decimal('85000.00'),
+                'currency': 'EUR',
+                'issue_date': lc_issue_date,
+                'expiry_date': lc_expiry_date,
+                'latest_shipment_date': latest_shipment,
+                'port_of_loading': 'Shanghai, China',
+                'port_of_discharge': 'Hamburg, Germany',
+                'documents_required': [
+                    'Signed Commercial Invoice in triplicate, currency EUR',
+                    'Full set of 3/3 clean on board ocean Bills of Lading',
+                    'Packing List in triplicate',
+                    'Insurance Policy/Certificate for 110% of invoice value covering All Risks',
+                    'Certificate of Origin FORM A (EU GSP)',
+                    'Inspection Certificate issued by CCIC',
+                    'Beneficiary Certificate certifying that shipping advice has been sent',
+                ],
+                'issued_at': now - timedelta(days=28),
+                'advised_at': now - timedelta(days=27),
+                'submitted_at': now - timedelta(days=2),
+                'negotiated_at': now - timedelta(days=1),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 信用证 {lc.lc_no}')
+
+        # 银行操作记录
+        bank_ops = [
+            ('issue', 'system', lc_issue_date),
+            ('advise', 'system', lc_issue_date + timedelta(days=1)),
+            ('negotiate', 'system', now - timedelta(days=1)),
+        ]
+        for op_type, processed_by, op_date in bank_ops:
+            BankOperation.objects.get_or_create(
+                lc=lc, operation_type=op_type,
+                defaults={
+                    'processed_by': processed_by,
+                    'notes': f'{dict(BankOperation.OPERATION_TYPES).get(op_type, op_type)}操作',
+                    'result': {'status': 'success', 'date': str(op_date)},
+                }
+            )
+
+        # ── 采购订单 ──────────────────────────────────────
+        self.stdout.write('\n[5/10] 创建采购订单 (Textile EU)...')
+
+        po_delivery = (now - timedelta(days=8)).date()
+
+        po, created = PurchaseOrder.objects.get_or_create(
+            order_no='PO20260603003',
+            defaults={
+                'transaction': transaction,
+                'buyer': exp03,
+                'seller': companies['factory'],
+                'product_name': '棉质女式针织外套',
+                'product_code': 'T001',
+                'quantity': Decimal('10000'),
+                'unit': 'PCS',
+                'unit_price': Decimal('45.00'),
+                'currency': 'CNY',
+                'total_amount': Decimal('450000.00'),
+                'delivery_date': po_delivery,
+                'delivery_address': '杭州市萧山区市心北路188号丝绸之大厦仓库',
+                'status': 'completed',
+                'notes': '棉质女式针织外套，60%棉40%聚酯纤维，尺码S-XL，4色各2500件',
+                'shipped_at': now - timedelta(days=6),
+                'invoiced_at': now - timedelta(days=5),
+                'completed_at': now - timedelta(days=5),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 采购订单 {po.order_no}')
+
+        # ── 货运 ──────────────────────────────────────────
+        self.stdout.write('\n[6/10] 创建货运订单 (Textile EU)...')
+
+        etd = (now - timedelta(days=3)).date()
+        eta = etd + timedelta(days=28)
+
+        shipment, created = Shipment.objects.get_or_create(
+            shipment_no='SH20260605001',
+            defaults={
+                'contract': contract,
+                'shipper': exp03,
+                'carrier': companies['shipping'],
+                'booking_no': 'MSC26MA05SH002',
+                'bl_no': 'MSCU8234569200',
+                'vessel_name': 'MSC GÜLSÜN V.012W',
+                'port_of_loading': 'Shanghai (Waigaoqiao), China',
+                'port_of_discharge': 'Hamburg, Germany',
+                'etd': etd,
+                'eta': eta,
+                'container_no': 'MSKU7234891 / 40GP',
+                'freight_amount': Decimal('4500.00'),
+                'freight_currency': 'USD',
+                'status': 'shipped',
+                'notes': "CY to CY, 1x40'GP Container",
+                'booked_at': now - timedelta(days=10),
+                'loaded_at': now - timedelta(days=3),
+                'shipped_at': now - timedelta(days=2),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 货运订单 {shipment.shipment_no}')
+
+        # ── 保险 ──────────────────────────────────────────
+        self.stdout.write('\n[7/10] 创建保险单 (Textile EU)...')
+
+        insurance, created = InsurancePolicy.objects.get_or_create(
+            policy_no='PICC2026SH06050001',
+            defaults={
+                'contract': contract,
+                'shipment': shipment,
+                'insured': exp03,
+                'insurer': companies['insurance'],
+                'cargo_description': (
+                    '10000 PCS Cotton Knitted Coat as per Contract No. SR2026SC001 '
+                    'Shipped per MSC GÜLSÜN V.012W '
+                    'from Shanghai to Hamburg'
+                ),
+                'insured_amount': Decimal('93500.00'),  # EUR 85000 × 110%
+                'premium': Decimal('561.00'),  # ~0.6%
+                'premium_currency': 'CNY',
+                'coverage_type': 'all_risk',
+                'status': 'issued',
+                'notes': 'Covering All Risks and War Risk as per CIC 1/1/1981',
+                'underwritten_at': now - timedelta(days=4),
+                'issued_at': now - timedelta(days=3),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 保险单 {insurance.policy_no}')
+
+        # ── 报检 ──────────────────────────────────────────
+        self.stdout.write('\n[8/10] 创建报检记录 (Textile EU)...')
+
+        inspection, created = InspectionApplication.objects.get_or_create(
+            application_no='IA20260601003',
+            defaults={
+                'shipment': shipment,
+                'applicant': exp03,
+                'inspector': companies['inspection'],
+                'product_name': '棉质女式针织外套',
+                'product_spec': '60%棉 40%聚酯纤维, 针织, 女式外套',
+                'quantity': Decimal('10000'),
+                'goods_value': Decimal('85000.00'),
+                'inspection_type': 'legal',
+                'fee': Decimal('1200.00'),
+                'fee_currency': 'CNY',
+                'certificate_no': 'CIQ20260603003',
+                'origin_certificate_no': 'GSP/CCPIT2026/002',
+                'status': 'certified',
+                'notes': '依据 GB 18401-2010 国家纺织产品基本安全技术规范，外观/色牢度/甲醛/pH值检验合格',
+                'inspecting_at': now - timedelta(days=5),
+                'passed_at': now - timedelta(days=4),
+                'certified_at': now - timedelta(days=3),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报检记录 {inspection.application_no}')
+
+        # ── 报关 ──────────────────────────────────────────
+        self.stdout.write('\n[9/10] 创建报关单 (Textile EU)...')
+
+        customs, created = CustomsDeclaration.objects.get_or_create(
+            declaration_no='CD20260605003',
+            defaults={
+                'shipment': shipment,
+                'declarant': exp03,
+                'customs_office': companies['customs'],
+                'hs_code': '6104',
+                'goods_name': "Women's Cotton Knitted Coat",
+                'quantity': Decimal('10000'),
+                'unit_value': Decimal('8.50'),
+                'total_value': Decimal('85000.00'),
+                'currency': 'EUR',
+                'duty_rate': Decimal('0'),
+                'duty_amount': Decimal('0'),
+                'vat_rate': Decimal('0.13'),
+                'vat_amount': Decimal('0'),
+                'status': 'cleared',
+                'notes': '纺织品出口，退税率9%',
+                'reviewed_at': now - timedelta(days=3),
+                'assessed_at': now - timedelta(days=3),
+                'cleared_at': now - timedelta(days=3),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报关单 {customs.declaration_no}')
+
+        # ── 外汇结算（单笔，EUR）──────────────────────────
+        self.stdout.write('\n[10/10] 创建外汇结算与退税 (Textile EU)...')
+
+        forex, created = ForexSettlement.objects.get_or_create(
+            settlement_no='FX20260607003',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp03,
+                'forex_bureau': companies['forex'],
+                'foreign_currency': 'EUR',
+                'foreign_amount': Decimal('85000.00'),
+                'reference_rate': Decimal('7.8500'),
+                'reference_cny_amount': Decimal('667250.00'),
+                'settlement_rate': Decimal('7.8420'),
+                'settlement_cny_amount': Decimal('666570.00'),
+                'status': 'settled',
+                'notes': 'EUR 收汇结汇，收汇金额与报关金额一致',
+                'verified_at': now - timedelta(days=1),
+                'settled_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 外汇结算 {forex.settlement_no}')
+
+        # ── 退税（纺织品 9%）──────────────────────────────
+        total_value_cny = Decimal('666570.00')  # EUR 等值 CNY
+
+        tax_refund, created = TaxRefundApplication.objects.get_or_create(
+            application_no='TR20260608003',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp03,
+                'tax_bureau': companies['tax'],
+                'hs_code': '6104',
+                'total_value': total_value_cny,
+                'refund_rate': Decimal('0.09'),
+                'refund_amount': Decimal('53089.65'),  # 666570 × 9% / 1.13
+                'refund_currency': 'CNY',
+                'status': 'approved',
+                'notes': '纺织品退税率9%，依据出口报关单及增值税发票核准',
+                'reviewing_at': now - timedelta(days=1),
+                'approved_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 退税申请 {tax_refund.application_no}')
+
+        # ── 单证 ──────────────────────────────────────────
+        self.stdout.write('\n[单证] 生成场景 3 单证记录...')
+
+        self._create_textile_eu_documents(
+            now, contract, transaction, lc, shipment,
+            insurance, inspection, customs, companies,
+            exp03, imp03, sample_user)
+
+        return {
+            'transaction': transaction,
+            'contract': contract,
+            'lc': lc,
+            'po': po,
+            'shipment': shipment,
+            'insurance': insurance,
+            'inspection': inspection,
+            'customs': customs,
+            'forex': forex,
+            'tax_refund': tax_refund,
+        }
+
+    def _create_textile_eu_documents(self, now, contract, transaction, lc,
+                                      shipment, insurance, inspection, customs,
+                                      companies, exp03, imp03, sample_user):
+        """创建 CIF + L/C 纺织品出口欧盟场景的单证记录（11 种）"""
+
+        invoice_date = (now - timedelta(days=3)).strftime('%Y-%m-%d')
+        bl_date = (now - timedelta(days=2)).strftime('%Y-%m-%d')
+
+        documents_data = [
+            # 1. 商业发票
+            {
+                'template_code': 'commercial_invoice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'invoice_no': 'SR-INV-2026-001',
+                    'invoice_date': invoice_date,
+                    'seller_name': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'seller_address': 'Silk Road Building, 188 Shixin North Rd, Xiaoshan, Hangzhou, China',
+                    'buyer_name': 'Fashion Europe GmbH',
+                    'buyer_address': 'Mönckebergstraße 7, 20095 Hamburg, Germany',
+                    'contract_no': 'SR2026SC001',
+                    'lc_no': 'COMMB/2026/LC00234',
+                    'trade_term': 'CIF Hamburg, Incoterms 2020',
+                    'payment_term': 'L/C at sight',
+                    'from_port': 'Shanghai (Waigaoqiao), China',
+                    'to_port': 'Hamburg, Germany',
+                    'vessel': 'MSC GÜLSÜN V.012W',
+                    'container_no': 'MSKU7234891',
+                    'items': [
+                        {
+                            'marks': 'SR2026SC001\nHAMBURG\nC/NO.1-200\nG.W.:18.0KGS',
+                            'description': "Women's Cotton Knitted Coat\n60% Cotton 40% Polyester, Knitted, Sizes S/M/L/XL, Multi-color\nHS Code: 6104",
+                            'quantity': '10000',
+                            'unit': 'PCS',
+                            'unit_price': '8.50',
+                            'amount': '85000.00',
+                        }
+                    ],
+                    'total_amount': 'EUR 85,000.00',
+                    'packing': '200 cartons',
+                    'gross_weight': '3,600.00 KGS',
+                    'net_weight': '3,000.00 KGS',
+                    'total_packages': '200 CARTONS',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 2. 装箱单
+            {
+                'template_code': 'packing_list',
+                'status': 'approved',
+                'data': json.dumps({
+                    'packing_list_no': 'SR-PL-2026-001',
+                    'invoice_no': 'SR-INV-2026-001',
+                    'packing_date': invoice_date,
+                    'shipper': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'consignee': 'Fashion Europe GmbH',
+                    'destination': 'Hamburg, Germany',
+                    'shipping_marks': 'SR2026SC001 / HAMBURG / C/NO.1-200',
+                    'items': [
+                        {
+                            'carton_no': 'C/NO. 1-50',
+                            'description': "Women's Cotton Knitted Coat (Size S, Multi-color)",
+                            'qty_per_carton': '50 PCS',
+                            'total_qty': '2500 PCS',
+                            'net_weight': '750.00 KGS',
+                            'gross_weight': '900.00 KGS',
+                            'measurement': '60×45×50 CM × 50',
+                        },
+                        {
+                            'carton_no': 'C/NO. 51-100',
+                            'description': "Women's Cotton Knitted Coat (Size M, Multi-color)",
+                            'qty_per_carton': '50 PCS',
+                            'total_qty': '2500 PCS',
+                            'net_weight': '750.00 KGS',
+                            'gross_weight': '900.00 KGS',
+                            'measurement': '60×45×50 CM × 50',
+                        },
+                        {
+                            'carton_no': 'C/NO. 101-150',
+                            'description': "Women's Cotton Knitted Coat (Size L, Multi-color)",
+                            'qty_per_carton': '50 PCS',
+                            'total_qty': '2500 PCS',
+                            'net_weight': '750.00 KGS',
+                            'gross_weight': '900.00 KGS',
+                            'measurement': '60×45×50 CM × 50',
+                        },
+                        {
+                            'carton_no': 'C/NO. 151-200',
+                            'description': "Women's Cotton Knitted Coat (Size XL, Multi-color)",
+                            'qty_per_carton': '50 PCS',
+                            'total_qty': '2500 PCS',
+                            'net_weight': '750.00 KGS',
+                            'gross_weight': '900.00 KGS',
+                            'measurement': '60×45×50 CM × 50',
+                        },
+                    ],
+                    'total_cartons': '200',
+                    'total_net_weight': '3,000.00 KGS',
+                    'total_gross_weight': '3,600.00 KGS',
+                    'total_measurement': '27.0 CBM',
+                    'package_type': 'Carton',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 3. 海运提单
+            {
+                'template_code': 'bill_of_lading',
+                'status': 'approved',
+                'data': json.dumps({
+                    'bl_no': 'MSCU8234569200',
+                    'booking_no': 'MSC26MA05SH002',
+                    'shipper': 'Hangzhou Silk Road Textiles Co., Ltd.\nSilk Road Building, 188 Shixin North Rd\nXiaoshan District, Hangzhou 311200, China',
+                    'consignee': 'TO ORDER OF SHIPPER',
+                    'notify_party': 'Fashion Europe GmbH\nMönckebergstraße 7\n20095 Hamburg, Germany\nAttn: Ms. Anna Müller\nTel: +49-40-3001234',
+                    'vessel': 'MSC GÜLSÜN',
+                    'voyage': '012W',
+                    'port_of_loading': 'Shanghai (Waigaoqiao), China',
+                    'port_of_discharge': 'Hamburg, Germany',
+                    'etd': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'eta': (now + timedelta(days=25)).strftime('%Y-%m-%d'),
+                    'container_no': 'MSKU7234891',
+                    'container_type': "1×40'GP",
+                    'seal_no': 'MS260605C',
+                    'description': "10000 PCS Women's Cotton Knitted Coat\nHS Code: 6104\nGW: 3,600 KGS\n200 CARTONS",
+                    'freight': 'FREIGHT PREPAID',
+                    'bl_issued_at': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'bl_originals': '3/3 ORIGINAL',
+                    'on_board_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 4. 汇票
+            {
+                'template_code': 'bill_of_exchange',
+                'status': 'approved',
+                'data': json.dumps({
+                    'draft_no': 'SR-DRAFT-2026-001',
+                    'draft_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'draft_amount': 'EUR 85,000.00',
+                    'amount_in_words': 'EURO EIGHTY-FIVE THOUSAND ONLY',
+                    'tenor': 'AT SIGHT',
+                    'drawer': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'drawee': 'Commerzbank AG, Hamburg',
+                    'payee': 'Bank of China, Hangzhou Branch',
+                    'lc_no': 'COMMB/2026/LC00234',
+                    'drawn_under': 'Irrevocable Letter of Credit No. COMMB/2026/LC00234\nDated 2026-04-29\nIssued by Commerzbank AG, Hamburg',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 5. 信用证（单证副本）
+            {
+                'template_code': 'letter_of_credit',
+                'status': 'approved',
+                'data': json.dumps({
+                    'lc_no': 'COMMB/2026/LC00234',
+                    'lc_issue_date': (now - timedelta(days=28)).strftime('%Y-%m-%d'),
+                    'lc_type': 'IRREVOCABLE, UNCONFIRMED',
+                    'issuing_bank': 'Commerzbank AG, Hamburg',
+                    'advising_bank': 'Bank of China, Hangzhou Branch',
+                    'applicant': 'Fashion Europe GmbH\nMönckebergstraße 7\n20095 Hamburg, Germany',
+                    'beneficiary': 'Hangzhou Silk Road Textiles Co., Ltd.\nSilk Road Building, 188 Shixin North Rd\nXiaoshan District, Hangzhou 311200, China',
+                    'amount': 'EUR 85,000.00 (EURO EIGHTY-FIVE THOUSAND ONLY)',
+                    'expiry_date': (now + timedelta(days=15)).strftime('%Y-%m-%d'),
+                    'expiry_place': 'China',
+                    'latest_shipment': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'port_of_loading': 'Shanghai, China',
+                    'port_of_discharge': 'Hamburg, Germany',
+                    'partial_shipment': 'NOT ALLOWED',
+                    'transshipment': 'NOT ALLOWED',
+                    'trade_term': 'CIF Hamburg, Incoterms 2020',
+                    'documents_required': [
+                        'Signed Commercial Invoice in triplicate, currency EUR',
+                        'Full set 3/3 clean on board B/L consigned to order of shipper, blank endorsed',
+                        'Packing List in triplicate',
+                        'Insurance Policy/Certificate for 110% invoice value covering All Risks',
+                        'Certificate of Origin FORM A (EU GSP) in 1 original + 1 copy',
+                        'Inspection Certificate of Quality/Quantity issued by CCIC',
+                        'Beneficiary Certificate that shipping advice has been sent within 24 hours after shipment',
+                    ],
+                    'period_for_presentation': 'Within 15 days after the date of shipment',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 6. 保险单
+            {
+                'template_code': 'insurance_policy',
+                'status': 'approved',
+                'data': json.dumps({
+                    'policy_no': 'PICC2026SH06050001',
+                    'insured': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'insurer': 'PICC Property and Casualty Co., Ltd.',
+                    'insured_amount': 'EUR 93,500.00',
+                    'insured_amount_in_words': 'EURO NINETY-THREE THOUSAND FIVE HUNDRED ONLY',
+                    'coverage': 'ALL RISKS AND WAR RISK',
+                    'coverage_clause': 'As per Ocean Marine Cargo Clauses (1/1/1981) of CIC',
+                    'cargo_description': "10000 PCS Women's Cotton Knitted Coat (60% Cotton 40% Polyester)",
+                    'voyage_from': 'Shanghai (Waigaoqiao), China',
+                    'voyage_to': 'Hamburg, Germany',
+                    'vessel': 'MSC GÜLSÜN V.012W',
+                    'bl_no': 'MSCU8234569200',
+                    'container_no': 'MSKU7234891',
+                    'premium': 'CNY 561.00',
+                    'issue_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'claim_settling_agent': 'PICC Europe GmbH, Hamburg',
+                    'special_conditions': 'Covering warehouse to warehouse, including loading and unloading',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 7. 产地证 (FORM A 欧盟普惠制)
+            {
+                'template_code': 'certificate_of_origin',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'GSP/CCPIT2026/002',
+                    'certificate_type': 'FORM A (EU Generalized System of Preferences)',
+                    'goods_consigned_from': 'Hangzhou Silk Road Textiles Co., Ltd.\nSilk Road Building, 188 Shixin North Rd\nXiaoshan District, Hangzhou 311200, China',
+                    'goods_consigned_to': 'Fashion Europe GmbH\nMönckebergstraße 7\n20095 Hamburg, Germany',
+                    'means_of_transport': 'BY VESSEL: MSC GÜLSÜN V.012W',
+                    'port_of_loading': 'Shanghai (Waigaoqiao), China',
+                    'port_of_discharge': 'Hamburg, Germany',
+                    'item_details': [
+                        {
+                            'marks': 'SR2026SC001\nHAMBURG',
+                            'description': "Women's Cotton Knitted Coat (60% Cotton 40% Polyester)",
+                            'quantity': '10,000 PCS',
+                            'origin_criterion': 'P (Wholly produced in China)',
+                        }
+                    ],
+                    'issue_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'issuing_authority': 'China Council for the Promotion of International Trade (CCPIT)',
+                    'certification': 'It is hereby certified that the goods described above originate in China. FORM A issued for EU GSP preferential tariff treatment.',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 8. 报检单
+            {
+                'template_code': 'inspection_application',
+                'status': 'approved',
+                'data': json.dumps({
+                    'application_no': 'IA20260601003',
+                    'applicant': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'product_name': '棉质女式针织外套',
+                    'product_spec': '60%棉 40%聚酯纤维, 针织, 女式外套',
+                    'hs_code': '6104',
+                    'quantity': '10,000 PCS',
+                    'goods_value': 'EUR 85,000.00',
+                    'inspection_type': '法定检验',
+                    'inspection_standard': 'GB 18401-2010',
+                    'inspection_items': '外观检查、色牢度、甲醛含量、pH值、异味、可分解致癌芳香胺染料',
+                    'result': '合格',
+                    'certificate_no': 'CIQ20260603003',
+                    'application_date': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+                    'inspection_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'pass_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 9. 检验证书
+            {
+                'template_code': 'inspection_certificate',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'CIQ20260603003',
+                    'applicant': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'product_name': "Women's Cotton Knitted Coat",
+                    'hs_code': '6104',
+                    'quantity': '10,000 PCS',
+                    'contract_no': 'SR2026SC001',
+                    'lc_no': 'COMMB/2026/LC00234',
+                    'inspection_result': 'QUALITY AND QUANTITY FOUND TO BE IN CONFORMITY WITH THE CONTRACT STIPULATIONS',
+                    'inspection_standard': 'GB 18401-2010 (National General Safety Technical Code for Textile Products)',
+                    'inspection_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'issue_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'remarks': 'Textile product category: Class B (direct skin contact). Color fastness, formaldehyde, pH value all within standards.',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 10. 出口报关单
+            {
+                'template_code': 'export_declaration',
+                'status': 'approved',
+                'data': json.dumps({
+                    'declaration_no': 'CD20260605003',
+                    'declaration_type': '出口报关',
+                    'declarant': '杭州丝绸之纺织品有限公司',
+                    'customs_office': '上海海关（浦江海关）',
+                    'trade_mode': '一般贸易 (0110)',
+                    'transport_mode': '海运 (2)',
+                    'hs_code': '6104.42',
+                    'goods_name': "Women's Cotton Knitted Coat",
+                    'specification': '60%棉 40%聚酯纤维, 针织, 女式外套',
+                    'quantity': '10,000',
+                    'unit': '件',
+                    'unit_price': '8.50',
+                    'total_value': 'EUR 85,000.00',
+                    'currency': 'EUR',
+                    'country_of_destination': '德国 (DE)',
+                    'port_of_loading': '上海外高桥 (CNSHA)',
+                    'port_of_discharge': '汉堡 (DEHAM)',
+                    'container_no': 'MSKU7234891',
+                    'gross_weight': '3,600 KGS',
+                    'net_weight': '3,000 KGS',
+                    'package_count': '200 纸箱',
+                    'contract_no': 'SR2026SC001',
+                    'supervision_code': '无',
+                    'rebate_rate': '9%',
+                    'declaration_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'clearance_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 11. 装船通知
+            {
+                'template_code': 'shipping_advice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'advice_no': 'SR-SA-2026-001',
+                    'advice_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'from': 'Hangzhou Silk Road Textiles Co., Ltd.',
+                    'to': 'Fashion Europe GmbH',
+                    'contract_no': 'SR2026SC001',
+                    'lc_no': 'COMMB/2026/LC00234',
+                    'commodity': "10000 PCS Women's Cotton Knitted Coat",
+                    'vessel': 'MSC GÜLSÜN V.012W',
+                    'bl_no': 'MSCU8234569200',
+                    'container_no': 'MSKU7234891',
+                    'etd': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'eta': (now + timedelta(days=25)).strftime('%Y-%m-%d'),
+                    'port_of_loading': 'Shanghai (Waigaoqiao), China',
+                    'port_of_discharge': 'Hamburg, Germany',
+                    'shipping_marks': 'SR2026SC001 / HAMBURG / C/NO.1-200',
+                    'message': (
+                        'We hereby inform you that the above mentioned goods have been shipped '
+                        'on board the above vessel on the date shown. Please arrange for import '
+                        'clearance and cargo reception accordingly.\n\n'
+                        'Full set of original documents will be presented to Commerzbank AG '
+                        'for L/C negotiation.'
                     ),
                 }, ensure_ascii=False, indent=2),
             },
