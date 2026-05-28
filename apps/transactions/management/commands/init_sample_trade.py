@@ -230,6 +230,12 @@ class Command(BaseCommand):
         self.stdout.write('=' * 60)
         result3 = self._create_scenario_textile_eu(now, companies, huaxin_user)
 
+        # ── 场景 4：机械设备出口东南亚 ──────────────────────────────
+        self.stdout.write('\n' + '=' * 60)
+        self.stdout.write('场景 4：机械设备出口东南亚（CIF + L/C）')
+        self.stdout.write('=' * 60)
+        result4 = self._create_scenario_machinery_sea(now, companies, huaxin_user)
+
         # ── 汇总 ─────────────────────────────────────────────────
         self.stdout.write('\n' + '=' * 60)
         self.stdout.write(self.style.SUCCESS('样本交易数据生成完毕！'))
@@ -270,6 +276,18 @@ class Command(BaseCommand):
         self.stdout.write(f'  报关: {result3["customs"].declaration_no}')
         self.stdout.write(f'  外汇结算: {result3["forex"].settlement_no}')
         self.stdout.write(f'  退税: {result3["tax_refund"].application_no}')
+        self.stdout.write('')
+        self.stdout.write('  场景 4: CIF + L/C（数控车床出口泰国）')
+        self.stdout.write(f'  交易: #{result4["transaction"].id}')
+        self.stdout.write(f'  合同: {result4["contract"].contract_no}')
+        self.stdout.write(f'  信用证: {result4["lc"].lc_no}')
+        self.stdout.write(f'  采购订单: {result4["po"].order_no}')
+        self.stdout.write(f'  货运: {result4["shipment"].shipment_no}')
+        self.stdout.write(f'  保险: {result4["insurance"].policy_no}')
+        self.stdout.write(f'  报检: {result4["inspection"].application_no}')
+        self.stdout.write(f'  报关: {result4["customs"].declaration_no}')
+        self.stdout.write(f'  外汇结算: {result4["forex"].settlement_no}')
+        self.stdout.write(f'  退税: {result4["tax_refund"].application_no}')
         self.stdout.write(f'  单证记录: {Document.objects.count()} 份')
 
     # ──────────────────────────────────────────────────────────────
@@ -1917,6 +1935,745 @@ class Command(BaseCommand):
                         'on board the above vessel on the date shown. Please arrange for import '
                         'clearance and cargo reception accordingly.\n\n'
                         'Full set of original documents will be presented to Commerzbank AG '
+                        'for L/C negotiation.'
+                    ),
+                }, ensure_ascii=False, indent=2),
+            },
+        ]
+
+        for doc_data in documents_data:
+            template = DocumentTemplate.objects.filter(
+                code=doc_data['template_code']
+            ).first()
+            if not template:
+                self.stdout.write(self.style.WARNING(
+                    f"  [SKIP] 模板不存在: {doc_data['template_code']}"))
+                continue
+
+            doc, created = Document.objects.get_or_create(
+                template=template,
+                transaction_id=transaction.id,
+                defaults={
+                    'status': doc_data['status'],
+                    'data': doc_data['data'],
+                    'created_by': sample_user,
+                }
+            )
+            if not created and not doc.created_by:
+                doc.created_by = sample_user
+                doc.save(update_fields=['created_by'])
+            tag = 'CREATE' if created else 'SKIP'
+            self.stdout.write(f'  [{tag}] {template.name}')
+
+    # ──────────────────────────────────────────────────────────────
+    # 场景：CIF + L/C 机械设备出口泰国（数控车床）
+    # ──────────────────────────────────────────────────────────────
+
+    def _create_scenario_machinery_sea(self, now, companies, sample_user):
+        """CIF + L/C 场景：数控车床出口泰国（开顶柜，FORM E 产地证）"""
+
+        # ── 新公司 ──────────────────────────────────────────
+        self.stdout.write('\n[新增公司] 创建场景 4 公司...')
+
+        exp04, created = self._create_company(
+            'EXP04', '广州重工机械有限公司',
+            'Guangzhou Heavy Machinery Co., Ltd.',
+            'CN', 'machinery',
+            '广州市黄埔区开发大道388号重工产业园',
+            '+86-20-82201234', 'export@gz-heavy.com')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {exp04.name}')
+
+        imp04, created = self._create_company(
+            'IMP04', 'Siam Industrial Co., Ltd.',
+            'Siam Industrial Co., Ltd.',
+            'TH', 'manufacturing',
+            '888 Vibhavadi Rangsit Road, Chatuchak, Bangkok 10900',
+            '+66-2-6101234', 'procurement@siam-industrial.co.th')
+        self.stdout.write(f'  [{"CREATE" if created else "SKIP"}] {imp04.name}')
+
+        # ── 商品 ──────────────────────────────────────────
+        product = self._ensure_product(
+            'M001', '数控车床 CNC Lathe', 'CNC Lathe GZ-CK6150',
+            'machinery', 'SET', '845811',
+            '最大加工直径500mm, 最大加工长度1000mm, 主轴转速50-3000rpm, 精度0.01mm')
+        self.stdout.write(f'  [OK] 商品 {product.name}')
+
+        # ── 交易 ──────────────────────────────────────────
+        self.stdout.write('\n[2/10] 创建交易记录 (Machinery SEA CIF+L/C)...')
+
+        transaction, created = Transaction.objects.get_or_create(
+            pk=9004,
+            defaults={
+                'buyer': imp04,
+                'seller': exp04,
+                'product': product,
+                'status': 'completed',
+                'quantity': 3,
+                'unit_price': Decimal('35000.00'),
+                'currency': 'USD',
+                'trade_term': 'CIF',
+                'port_of_loading': 'Guangzhou',
+                'port_of_discharge': 'Laem Chabang, Thailand',
+                'notes': '样本交易：数控车床出口泰国，CIF Bangkok，L/C at sight',
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 交易 #{transaction.id}')
+
+        # ── 合同 ──────────────────────────────────────────
+        self.stdout.write('\n[3/10] 创建外销合同 (Machinery SEA CIF+L/C)...')
+
+        delivery_date = (now - timedelta(days=4)).date()
+
+        contract, created = Contract.objects.get_or_create(
+            contract_no='GZH2026SC001',
+            defaults={
+                'transaction': transaction,
+                'status': 'effective',
+                'trade_term': 'CIF',
+                'payment_term': 'L/C at sight',
+                'delivery_time': delivery_date,
+                'port_of_loading': 'Guangzhou (Huangpu)',
+                'port_of_discharge': 'Laem Chabang, Thailand',
+                'product_name': '数控车床 CNC Lathe GZ-CK6150',
+                'product_spec': '最大加工直径500mm, 最大加工长度1000mm, 主轴转速50-3000rpm, 精度0.01mm',
+                'quantity': 3,
+                'unit': 'SET',
+                'unit_price': Decimal('35000.00'),
+                'total_amount': Decimal('105000.00'),
+                'currency': 'USD',
+                'packing': '每台固定于开顶集装箱内，防锈处理，木质底座加固绑扎',
+                'shipping_marks': (
+                    'GZH2026SC001\n'
+                    'LAEM CHABANG\n'
+                    'C/NO.: 1-3\n'
+                    'G.W.: 3500 KGS\n'
+                    'N.W.: 3200 KGS\n'
+                    'MEAS: 300×180×200 CM'
+                ),
+                'remarks': (
+                    '1. 装运期：不迟于2026年6月15日\n'
+                    '2. 允许分批装运：不允许\n'
+                    '3. 允许转船：不允许\n'
+                    '4. 品质以中国商品检验局检验证书为准\n'
+                    '5. 按 CIF Laem Chabang 成交，卖方负责投保一切险\n'
+                    '6. 卖方负责指导安装调试，质保期12个月\n'
+                    '7. 产地证要求 FORM E（中国-东盟自贸区）'
+                ),
+                'seller_signed_at': now - timedelta(days=25),
+                'buyer_signed_at': now - timedelta(days=24),
+                'effective_at': now - timedelta(days=24),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 合同 {contract.contract_no}')
+
+        # ── 信用证 ──────────────────────────────────────────
+        self.stdout.write('\n[4/10] 创建信用证 (Machinery SEA)...')
+
+        lc_issue_date = (now - timedelta(days=22)).date()
+        lc_expiry_date = (now + timedelta(days=15)).date()
+        latest_shipment = (now - timedelta(days=2)).date()
+
+        lc, created = LetterOfCredit.objects.get_or_create(
+            lc_no='BANGKOK/2026/LC00567',
+            defaults={
+                'contract': contract,
+                'transaction': transaction,
+                'status': 'negotiated',
+                'issuing_bank': 'Bangkok Bank Public Company Limited',
+                'advising_bank': '中国银行广州市分行',
+                'applicant': imp04,
+                'beneficiary': exp04,
+                'amount': Decimal('105000.00'),
+                'currency': 'USD',
+                'issue_date': lc_issue_date,
+                'expiry_date': lc_expiry_date,
+                'latest_shipment_date': latest_shipment,
+                'port_of_loading': 'Guangzhou, China',
+                'port_of_discharge': 'Laem Chabang, Thailand',
+                'documents_required': [
+                    'Signed Commercial Invoice in triplicate',
+                    'Full set of 3/3 clean on board ocean Bills of Lading',
+                    'Packing List in triplicate',
+                    'Insurance Policy/Certificate for 110% of invoice value covering All Risks',
+                    'Certificate of Origin FORM E (ASEAN-China FTA)',
+                    'Inspection Certificate issued by CCIC',
+                    'Beneficiary Certificate certifying that shipping advice has been sent',
+                ],
+                'issued_at': now - timedelta(days=22),
+                'advised_at': now - timedelta(days=21),
+                'submitted_at': now - timedelta(days=2),
+                'negotiated_at': now - timedelta(days=1),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 信用证 {lc.lc_no}')
+
+        # 银行操作记录
+        bank_ops = [
+            ('issue', 'system', lc_issue_date),
+            ('advise', 'system', lc_issue_date + timedelta(days=1)),
+            ('negotiate', 'system', now - timedelta(days=1)),
+        ]
+        for op_type, processed_by, op_date in bank_ops:
+            BankOperation.objects.get_or_create(
+                lc=lc, operation_type=op_type,
+                defaults={
+                    'processed_by': processed_by,
+                    'notes': f'{dict(BankOperation.OPERATION_TYPES).get(op_type, op_type)}操作',
+                    'result': {'status': 'success', 'date': str(op_date)},
+                }
+            )
+
+        # ── 采购订单 ──────────────────────────────────────
+        self.stdout.write('\n[5/10] 创建采购订单 (Machinery SEA)...')
+
+        po_delivery = (now - timedelta(days=8)).date()
+
+        po, created = PurchaseOrder.objects.get_or_create(
+            order_no='PO20260608004',
+            defaults={
+                'transaction': transaction,
+                'buyer': exp04,
+                'seller': companies['factory'],
+                'product_name': '数控车床 GZ-CK6150',
+                'product_code': 'M001',
+                'quantity': Decimal('3'),
+                'unit': 'SET',
+                'unit_price': Decimal('180000.00'),
+                'currency': 'CNY',
+                'total_amount': Decimal('540000.00'),
+                'delivery_date': po_delivery,
+                'delivery_address': '广州市黄埔区开发大道388号重工产业园仓库',
+                'status': 'completed',
+                'notes': '数控车床GZ-CK6150，最大加工直径500mm，含安装调试服务',
+                'shipped_at': now - timedelta(days=6),
+                'invoiced_at': now - timedelta(days=5),
+                'completed_at': now - timedelta(days=5),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 采购订单 {po.order_no}')
+
+        # ── 货运 ──────────────────────────────────────────
+        self.stdout.write('\n[6/10] 创建货运订单 (Machinery SEA)...')
+
+        etd = (now - timedelta(days=4)).date()
+        eta = etd + timedelta(days=7)
+
+        shipment, created = Shipment.objects.get_or_create(
+            shipment_no='SH20260608001',
+            defaults={
+                'contract': contract,
+                'shipper': exp04,
+                'carrier': companies['shipping'],
+                'booking_no': 'EVER26MA08GZ001',
+                'bl_no': 'EGLV492083700',
+                'vessel_name': 'EVER GREEN V.036E',
+                'port_of_loading': 'Guangzhou (Huangpu), China',
+                'port_of_discharge': 'Laem Chabang, Thailand',
+                'etd': etd,
+                'eta': eta,
+                'container_no': 'BMOU5234817 / 40OFR',
+                'freight_amount': Decimal('5800.00'),
+                'freight_currency': 'USD',
+                'status': 'shipped',
+                'notes': 'Open-top container, cargo lashed and secured, heavy-lift surcharge applied',
+                'booked_at': now - timedelta(days=10),
+                'loaded_at': now - timedelta(days=4),
+                'shipped_at': now - timedelta(days=3),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 货运订单 {shipment.shipment_no}')
+
+        # ── 保险 ──────────────────────────────────────────
+        self.stdout.write('\n[7/10] 创建保险单 (Machinery SEA)...')
+
+        insurance, created = InsurancePolicy.objects.get_or_create(
+            policy_no='PICC2026GZ06080001',
+            defaults={
+                'contract': contract,
+                'shipment': shipment,
+                'insured': exp04,
+                'insurer': companies['insurance'],
+                'cargo_description': (
+                    '3 SET CNC Lathe (GZ-CK6150) as per Contract No. GZH2026SC001 '
+                    'Shipped per EVER GREEN V.036E '
+                    'from Guangzhou to Laem Chabang'
+                ),
+                'insured_amount': Decimal('115500.00'),  # USD 105000 × 110%
+                'premium': Decimal('693.00'),  # ~0.6%
+                'premium_currency': 'CNY',
+                'coverage_type': 'all_risk',
+                'status': 'issued',
+                'notes': 'Covering loading/unloading risks for heavy machinery',
+                'underwritten_at': now - timedelta(days=5),
+                'issued_at': now - timedelta(days=4),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 保险单 {insurance.policy_no}')
+
+        # ── 报检 ──────────────────────────────────────────
+        self.stdout.write('\n[8/10] 创建报检记录 (Machinery SEA)...')
+
+        inspection, created = InspectionApplication.objects.get_or_create(
+            application_no='IA20260604004',
+            defaults={
+                'shipment': shipment,
+                'applicant': exp04,
+                'inspector': companies['inspection'],
+                'product_name': '数控车床 CNC Lathe GZ-CK6150',
+                'product_spec': '最大加工直径500mm, 最大加工长度1000mm, 主轴转速50-3000rpm, 精度0.01mm',
+                'quantity': Decimal('3'),
+                'goods_value': Decimal('105000.00'),
+                'inspection_type': 'legal',
+                'fee': Decimal('2000.00'),
+                'fee_currency': 'CNY',
+                'certificate_no': 'CIQ20260606004',
+                'origin_certificate_no': 'FORME/CCPIT2026/001',
+                'status': 'certified',
+                'notes': '机械设备法定检验，依据 GB/T 16462-2007 标准，精度/安全/性能检验合格',
+                'inspecting_at': now - timedelta(days=5),
+                'passed_at': now - timedelta(days=4),
+                'certified_at': now - timedelta(days=3),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报检记录 {inspection.application_no}')
+
+        # ── 报关 ──────────────────────────────────────────
+        self.stdout.write('\n[9/10] 创建报关单 (Machinery SEA)...')
+
+        customs, created = CustomsDeclaration.objects.get_or_create(
+            declaration_no='CD20260608004',
+            defaults={
+                'shipment': shipment,
+                'declarant': exp04,
+                'customs_office': companies['customs'],
+                'hs_code': '845811',
+                'goods_name': '数控车床 CNC Lathe',
+                'quantity': Decimal('3'),
+                'unit_value': Decimal('35000.00'),
+                'total_value': Decimal('105000.00'),
+                'currency': 'USD',
+                'duty_rate': Decimal('0'),
+                'duty_amount': Decimal('0'),
+                'vat_rate': Decimal('0.13'),
+                'vat_amount': Decimal('0'),
+                'status': 'cleared',
+                'notes': '机械设备出口，退税率13%',
+                'reviewed_at': now - timedelta(days=4),
+                'assessed_at': now - timedelta(days=4),
+                'cleared_at': now - timedelta(days=4),
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 报关单 {customs.declaration_no}')
+
+        # ── 外汇结算 ──────────────────────────────────────
+        self.stdout.write('\n[10/10] 创建外汇结算与退税 (Machinery SEA)...')
+
+        forex, created = ForexSettlement.objects.get_or_create(
+            settlement_no='FX20260610004',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp04,
+                'forex_bureau': companies['forex'],
+                'foreign_currency': 'USD',
+                'foreign_amount': Decimal('105000.00'),
+                'reference_rate': Decimal('7.2450'),
+                'reference_cny_amount': Decimal('760725.00'),
+                'settlement_rate': Decimal('7.2380'),
+                'settlement_cny_amount': Decimal('759990.00'),
+                'status': 'settled',
+                'notes': 'USD 收汇结汇，收汇金额与报关金额一致',
+                'verified_at': now - timedelta(days=1),
+                'settled_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 外汇结算 {forex.settlement_no}')
+
+        # ── 退税（机械设备 13%）──────────────────────────
+        total_value_cny = Decimal('759990.00')
+
+        tax_refund, created = TaxRefundApplication.objects.get_or_create(
+            application_no='TR20260611004',
+            defaults={
+                'customs_declaration': customs,
+                'applicant': exp04,
+                'tax_bureau': companies['tax'],
+                'hs_code': '845811',
+                'total_value': total_value_cny,
+                'refund_rate': Decimal('0.13'),
+                'refund_amount': Decimal('87354.78'),  # 759990 × 13% / 1.13
+                'refund_currency': 'CNY',
+                'status': 'approved',
+                'notes': '机械设备退税率13%，依据出口报关单及增值税发票核准',
+                'reviewing_at': now - timedelta(days=1),
+                'approved_at': now,
+            }
+        )
+        tag = 'CREATE' if created else 'SKIP'
+        self.stdout.write(f'  [{tag}] 退税申请 {tax_refund.application_no}')
+
+        # ── 单证 ──────────────────────────────────────────
+        self.stdout.write('\n[单证] 生成场景 4 单证记录...')
+
+        self._create_machinery_sea_documents(
+            now, contract, transaction, lc, shipment,
+            insurance, inspection, customs, companies,
+            exp04, imp04, sample_user)
+
+        return {
+            'transaction': transaction,
+            'contract': contract,
+            'lc': lc,
+            'po': po,
+            'shipment': shipment,
+            'insurance': insurance,
+            'inspection': inspection,
+            'customs': customs,
+            'forex': forex,
+            'tax_refund': tax_refund,
+        }
+
+    def _create_machinery_sea_documents(self, now, contract, transaction, lc,
+                                         shipment, insurance, inspection, customs,
+                                         companies, exp04, imp04, sample_user):
+        """创建 CIF + L/C 机械设备出口东南亚场景的单证记录（11 种）"""
+
+        invoice_date = (now - timedelta(days=4)).strftime('%Y-%m-%d')
+        bl_date = (now - timedelta(days=3)).strftime('%Y-%m-%d')
+
+        documents_data = [
+            # 1. 商业发票
+            {
+                'template_code': 'commercial_invoice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'invoice_no': 'GZH-INV-2026-001',
+                    'invoice_date': invoice_date,
+                    'seller_name': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'seller_address': 'Heavy Industry Park, 388 Kaifa Avenue, Huangpu District, Guangzhou, China',
+                    'buyer_name': 'Siam Industrial Co., Ltd.',
+                    'buyer_address': '888 Vibhavadi Rangsit Road, Chatuchak, Bangkok 10900, Thailand',
+                    'contract_no': 'GZH2026SC001',
+                    'lc_no': 'BANGKOK/2026/LC00567',
+                    'trade_term': 'CIF Laem Chabang, Incoterms 2020',
+                    'payment_term': 'L/C at sight',
+                    'from_port': 'Guangzhou (Huangpu), China',
+                    'to_port': 'Laem Chabang, Thailand',
+                    'vessel': 'EVER GREEN V.036E',
+                    'container_no': 'BMOU5234817',
+                    'items': [
+                        {
+                            'marks': 'GZH2026SC001\nLAEM CHABANG\nC/NO.1-3\nG.W.:3500KGS',
+                            'description': 'CNC Lathe Model GZ-CK6150\nMax turning dia. 500mm, Max turning length 1000mm\nSpindle speed 50-3000rpm, Precision 0.01mm\nHS Code: 845811',
+                            'quantity': '3',
+                            'unit': 'SET',
+                            'unit_price': '35000.00',
+                            'amount': '105000.00',
+                        }
+                    ],
+                    'total_amount': 'USD 105,000.00',
+                    'packing': '3 open-top containers, anti-rust treated, wooden base secured and lashed',
+                    'gross_weight': '10,500.00 KGS',
+                    'net_weight': '9,600.00 KGS',
+                    'total_packages': '3 SETS',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 2. 装箱单
+            {
+                'template_code': 'packing_list',
+                'status': 'approved',
+                'data': json.dumps({
+                    'packing_list_no': 'GZH-PL-2026-001',
+                    'invoice_no': 'GZH-INV-2026-001',
+                    'packing_date': invoice_date,
+                    'shipper': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'consignee': 'Siam Industrial Co., Ltd.',
+                    'destination': 'Laem Chabang, Thailand',
+                    'shipping_marks': 'GZH2026SC001 / LAEM CHABANG / C/NO.1-3',
+                    'items': [
+                        {
+                            'carton_no': 'C/NO. 1',
+                            'description': 'CNC Lathe GZ-CK6150 (Unit 1)',
+                            'qty_per_carton': '1 SET',
+                            'total_qty': '1 SET',
+                            'net_weight': '3,200.00 KGS',
+                            'gross_weight': '3,500.00 KGS',
+                            'measurement': '300×180×200 CM',
+                        },
+                        {
+                            'carton_no': 'C/NO. 2',
+                            'description': 'CNC Lathe GZ-CK6150 (Unit 2)',
+                            'qty_per_carton': '1 SET',
+                            'total_qty': '1 SET',
+                            'net_weight': '3,200.00 KGS',
+                            'gross_weight': '3,500.00 KGS',
+                            'measurement': '300×180×200 CM',
+                        },
+                        {
+                            'carton_no': 'C/NO. 3',
+                            'description': 'CNC Lathe GZ-CK6150 (Unit 3)',
+                            'qty_per_carton': '1 SET',
+                            'total_qty': '1 SET',
+                            'net_weight': '3,200.00 KGS',
+                            'gross_weight': '3,500.00 KGS',
+                            'measurement': '300×180×200 CM',
+                        },
+                    ],
+                    'total_cartons': '3',
+                    'total_net_weight': '9,600.00 KGS',
+                    'total_gross_weight': '10,500.00 KGS',
+                    'total_measurement': '32.4 CBM',
+                    'package_type': 'Open-top Container (40\'OFR)',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 3. 海运提单
+            {
+                'template_code': 'bill_of_lading',
+                'status': 'approved',
+                'data': json.dumps({
+                    'bl_no': 'EGLV492083700',
+                    'booking_no': 'EVER26MA08GZ001',
+                    'shipper': 'Guangzhou Heavy Machinery Co., Ltd.\nHeavy Industry Park, 388 Kaifa Avenue\nHuangpu District, Guangzhou 510700, China',
+                    'consignee': 'TO ORDER OF SHIPPER',
+                    'notify_party': 'Siam Industrial Co., Ltd.\n888 Vibhavadi Rangsit Road, Chatuchak\nBangkok 10900, Thailand\nAttn: Mr. Somchai Rattanakosin\nTel: +66-2-6101234',
+                    'vessel': 'EVER GREEN',
+                    'voyage': '036E',
+                    'port_of_loading': 'Guangzhou (Huangpu), China',
+                    'port_of_discharge': 'Laem Chabang, Thailand',
+                    'etd': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'eta': (now + timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'container_no': 'BMOU5234817',
+                    'container_type': "1×40'OFR (Open-top)",
+                    'seal_no': 'EV260608A',
+                    'description': '3 SETS CNC Lathe GZ-CK6150\nHS Code: 845811\nGW: 10,500 KGS\nHEAVY-LIFT CARGO',
+                    'freight': 'FREIGHT PREPAID',
+                    'bl_issued_at': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'bl_originals': '3/3 ORIGINAL',
+                    'on_board_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 4. 汇票
+            {
+                'template_code': 'bill_of_exchange',
+                'status': 'approved',
+                'data': json.dumps({
+                    'draft_no': 'GZH-DRAFT-2026-001',
+                    'draft_date': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'draft_amount': 'USD 105,000.00',
+                    'amount_in_words': 'US DOLLARS ONE HUNDRED AND FIVE THOUSAND ONLY',
+                    'tenor': 'AT SIGHT',
+                    'drawer': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'drawee': 'Bangkok Bank Public Company Limited',
+                    'payee': 'Bank of China, Guangzhou Branch',
+                    'lc_no': 'BANGKOK/2026/LC00567',
+                    'drawn_under': 'Irrevocable Letter of Credit No. BANGKOK/2026/LC00567\nDated ' + (now - timedelta(days=22)).strftime('%Y-%m-%d') + '\nIssued by Bangkok Bank Public Company Limited',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 5. 信用证（单证副本）
+            {
+                'template_code': 'letter_of_credit',
+                'status': 'approved',
+                'data': json.dumps({
+                    'lc_no': 'BANGKOK/2026/LC00567',
+                    'lc_issue_date': (now - timedelta(days=22)).strftime('%Y-%m-%d'),
+                    'lc_type': 'IRREVOCABLE, UNCONFIRMED',
+                    'issuing_bank': 'Bangkok Bank Public Company Limited',
+                    'advising_bank': 'Bank of China, Guangzhou Branch',
+                    'applicant': 'Siam Industrial Co., Ltd.\n888 Vibhavadi Rangsit Road, Chatuchak\nBangkok 10900, Thailand',
+                    'beneficiary': 'Guangzhou Heavy Machinery Co., Ltd.\nHeavy Industry Park, 388 Kaifa Avenue\nHuangpu District, Guangzhou 510700, China',
+                    'amount': 'USD 105,000.00 (US DOLLARS ONE HUNDRED AND FIVE THOUSAND ONLY)',
+                    'expiry_date': (now + timedelta(days=15)).strftime('%Y-%m-%d'),
+                    'expiry_place': 'China',
+                    'latest_shipment': (now - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    'port_of_loading': 'Guangzhou, China',
+                    'port_of_discharge': 'Laem Chabang, Thailand',
+                    'partial_shipment': 'NOT ALLOWED',
+                    'transshipment': 'NOT ALLOWED',
+                    'trade_term': 'CIF Laem Chabang, Incoterms 2020',
+                    'documents_required': [
+                        'Signed Commercial Invoice in 3 folds',
+                        'Full set 3/3 clean on board B/L consigned to order of shipper, blank endorsed',
+                        'Packing List in 3 folds',
+                        'Insurance Policy/Certificate for 110% invoice value covering All Risks',
+                        'Certificate of Origin FORM E (ASEAN-China FTA) in 1 original + 1 copy',
+                        'Inspection Certificate of Quality/Quantity issued by CCIC',
+                        'Beneficiary Certificate that shipping advice has been sent within 24 hours after shipment',
+                    ],
+                    'period_for_presentation': 'Within 15 days after the date of shipment',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 6. 保险单
+            {
+                'template_code': 'insurance_policy',
+                'status': 'approved',
+                'data': json.dumps({
+                    'policy_no': 'PICC2026GZ06080001',
+                    'insured': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'insurer': 'PICC Property and Casualty Co., Ltd.',
+                    'insured_amount': 'USD 115,500.00',
+                    'insured_amount_in_words': 'US DOLLARS ONE HUNDRED AND FIFTEEN THOUSAND FIVE HUNDRED ONLY',
+                    'coverage': 'ALL RISKS',
+                    'coverage_clause': 'As per Ocean Marine Cargo Clauses (1/1/1981) of CIC',
+                    'cargo_description': '3 SETS CNC Lathe GZ-CK6150 (Heavy Machinery)',
+                    'voyage_from': 'Guangzhou (Huangpu), China',
+                    'voyage_to': 'Laem Chabang, Thailand',
+                    'vessel': 'EVER GREEN V.036E',
+                    'bl_no': 'EGLV492083700',
+                    'container_no': 'BMOU5234817',
+                    'premium': 'CNY 693.00',
+                    'issue_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'claim_settling_agent': 'PICC Thailand Co., Ltd., Bangkok',
+                    'special_conditions': 'Covering loading/unloading risks for heavy machinery, including warehouse to warehouse',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 7. 产地证 (FORM E 中国-东盟自贸区)
+            {
+                'template_code': 'certificate_of_origin',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'FORME/CCPIT2026/001',
+                    'certificate_type': 'FORM E (ASEAN-China Free Trade Area)',
+                    'goods_consigned_from': 'Guangzhou Heavy Machinery Co., Ltd.\nHeavy Industry Park, 388 Kaifa Avenue\nHuangpu District, Guangzhou 510700, China',
+                    'goods_consigned_to': 'Siam Industrial Co., Ltd.\n888 Vibhavadi Rangsit Road, Chatuchak\nBangkok 10900, Thailand',
+                    'means_of_transport': 'BY VESSEL: EVER GREEN V.036E',
+                    'port_of_loading': 'Guangzhou (Huangpu), China',
+                    'port_of_discharge': 'Laem Chabang, Thailand',
+                    'item_details': [
+                        {
+                            'marks': 'GZH2026SC001\nLAEM CHABANG',
+                            'description': 'CNC Lathe Model GZ-CK6150\nHS Code: 845811',
+                            'quantity': '3 SETS',
+                            'origin_criterion': 'WO (Wholly Obtained)',
+                            'hs_code': '845811.00',
+                        }
+                    ],
+                    'issue_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'issuing_authority': 'China Council for the Promotion of International Trade (CCPIT)',
+                    'certification': 'It is hereby certified that the goods described above originate in China. FORM E issued for ASEAN-China FTA preferential tariff treatment.',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 8. 报检单
+            {
+                'template_code': 'inspection_application',
+                'status': 'approved',
+                'data': json.dumps({
+                    'application_no': 'IA20260604004',
+                    'applicant': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'product_name': '数控车床 CNC Lathe GZ-CK6150',
+                    'product_spec': '最大加工直径500mm, 最大加工长度1000mm, 主轴转速50-3000rpm, 精度0.01mm',
+                    'hs_code': '845811',
+                    'quantity': '3 SETS',
+                    'goods_value': 'USD 105,000.00',
+                    'inspection_type': '法定检验',
+                    'inspection_standard': 'GB/T 16462-2007',
+                    'inspection_items': '精度检测、安全防护、电气安全、噪声等级、性能测试',
+                    'result': '合格',
+                    'certificate_no': 'CIQ20260606004',
+                    'application_date': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+                    'inspection_date': (now - timedelta(days=5)).strftime('%Y-%m-%d'),
+                    'pass_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 9. 检验证书
+            {
+                'template_code': 'inspection_certificate',
+                'status': 'approved',
+                'data': json.dumps({
+                    'certificate_no': 'CIQ20260606004',
+                    'applicant': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'product_name': 'CNC Lathe Model GZ-CK6150',
+                    'hs_code': '845811',
+                    'quantity': '3 SETS',
+                    'contract_no': 'GZH2026SC001',
+                    'lc_no': 'BANGKOK/2026/LC00567',
+                    'inspection_result': 'QUALITY AND QUANTITY FOUND TO BE IN CONFORMITY WITH THE CONTRACT STIPULATIONS',
+                    'inspection_standard': 'GB/T 16462-2007 (CNC Lathe - Testing of the Accuracy)',
+                    'inspection_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'issue_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'inspector': 'Shenzhen Entry-Exit Inspection and Quarantine Bureau',
+                    'remarks': 'All 3 units tested individually. Machining precision 0.01mm confirmed. Safety guards and emergency stops verified.',
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 10. 出口报关单
+            {
+                'template_code': 'export_declaration',
+                'status': 'approved',
+                'data': json.dumps({
+                    'declaration_no': 'CD20260608004',
+                    'declaration_type': '出口报关',
+                    'declarant': '广州重工机械有限公司',
+                    'customs_office': '广州海关（黄埔海关）',
+                    'trade_mode': '一般贸易 (0110)',
+                    'transport_mode': '海运 (2)',
+                    'hs_code': '845811.00',
+                    'goods_name': '数控车床 CNC Lathe',
+                    'specification': 'GZ-CK6150',
+                    'quantity': '3',
+                    'unit': '台',
+                    'unit_price': '35,000.00',
+                    'total_value': 'USD 105,000.00',
+                    'currency': 'USD',
+                    'country_of_destination': '泰国 (TH)',
+                    'port_of_loading': '广州黄埔 (CNGGZ)',
+                    'port_of_discharge': '林查班 (THLCH)',
+                    'container_no': 'BMOU5234817',
+                    'gross_weight': '10,500 KGS',
+                    'net_weight': '9,600 KGS',
+                    'package_count': '3 台（开顶集装箱）',
+                    'contract_no': 'GZH2026SC001',
+                    'supervision_code': '无',
+                    'rebate_rate': '13%',
+                    'declaration_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'clearance_date': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                }, ensure_ascii=False, indent=2),
+            },
+
+            # 11. 装船通知
+            {
+                'template_code': 'shipping_advice',
+                'status': 'approved',
+                'data': json.dumps({
+                    'advice_no': 'GZH-SA-2026-001',
+                    'advice_date': (now - timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'from': 'Guangzhou Heavy Machinery Co., Ltd.',
+                    'to': 'Siam Industrial Co., Ltd.',
+                    'contract_no': 'GZH2026SC001',
+                    'lc_no': 'BANGKOK/2026/LC00567',
+                    'commodity': '3 SETS CNC Lathe (GZ-CK6150)',
+                    'vessel': 'EVER GREEN V.036E',
+                    'bl_no': 'EGLV492083700',
+                    'container_no': 'BMOU5234817',
+                    'etd': (now - timedelta(days=4)).strftime('%Y-%m-%d'),
+                    'eta': (now + timedelta(days=3)).strftime('%Y-%m-%d'),
+                    'port_of_loading': 'Guangzhou (Huangpu), China',
+                    'port_of_discharge': 'Laem Chabang, Thailand',
+                    'shipping_marks': 'GZH2026SC001 / LAEM CHABANG / C/NO.1-3',
+                    'message': (
+                        'We hereby inform you that the above mentioned goods have been shipped '
+                        'on board the above vessel on the date shown. Please arrange for import '
+                        'clearance and cargo reception accordingly.\n\n'
+                        'As per contract terms, we will send engineers for installation and '
+                        'commissioning guidance upon your notification of readiness. '
+                        'The warranty period is 12 months from the date of commissioning.\n\n'
+                        'Full set of original documents will be presented to Bangkok Bank '
                         'for L/C negotiation.'
                     ),
                 }, ensure_ascii=False, indent=2),
