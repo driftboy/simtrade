@@ -323,3 +323,25 @@ class AssignmentSubmission(models.Model):
 
     def __str__(self):
         return f'{self.student.username} - {self.assignment.title}'
+
+
+class StudentProfile(models.Model):
+    """学生扩展信息"""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='student_profile',
+    )
+    student_id = models.CharField('学号', max_length=50, unique=True)
+    admin_class = models.CharField('行政班级', max_length=100, blank=True)
+    grade = models.CharField('年级', max_length=20, blank=True)
+    phone = models.CharField('手机号', max_length=20, blank=True)
+    enrollment_year = models.IntegerField('入学年份', null=True, blank=True)
+
+    class Meta:
+        db_table = 'student_profiles'
+        verbose_name = '学生档案'
+        verbose_name_plural = '学生档案'
+
+    def __str__(self):
+        return f'{self.student_id} - {self.user.username}'
