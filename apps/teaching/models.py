@@ -135,6 +135,11 @@ class TeachingClass(models.Model):
         verbose_name = '教学班级'
         verbose_name_plural = '教学班级'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['course', '-created_at']),
+            models.Index(fields=['created_by']),
+            models.Index(fields=['status']),
+        ]
 
     def __str__(self):
         return f'{self.course.semester.name} - {self.course.name} - {self.name}'

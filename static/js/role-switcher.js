@@ -53,12 +53,13 @@
 
         for (var i = 0; i < data.length; i++) {
             var item = data[i];
-            if (item.status === 'approved') {
+            // 处理已批准/激活的角色
+            if (item.status === 'approved' || item.status === 'active') {
                 activeRoles.push(item);
             } else if (item.status === 'pending') {
                 pendingRoles.push(item);
             }
-            // rejected 状态不显示
+            // rejected/suspended 状态不显示
         }
 
         // 已激活角色
@@ -125,13 +126,51 @@
         // 加载当前激活角色
         $.get('/api/v1/my-roles/current/', function(resp) {
             updateButton(resp.data);
+        }).fail(function() {
+            console.error('Failed to load current role');
         });
 
-        // dropdown 展开时加载角色列表
+        // 加载角色列表（页面加载时预加载）
+        loadRoleList();
+
+        // dropdown 展开时重新加载角色列表
         $('#role-dropdown').on('show.bs.dropdown', function() {
-            $.get('/api/v1/my-roles/', function(resp) {
-                renderRoles(resp.data);
-            });
+            loadRoleList();
+        });
+    }
+
+    /**
+     * 加载角色列表
+     */
+    function loadRoleList() {
+        $.get('/api/v1/my-roles/', function(resp) {
+            renderRoles(resp.data);
+        }).fail(function() {
+            $('#role-dropdown-menu').html('<li class="role-empty-hint">加载失败，请刷新页面</li>');
+        });
+    }
+
+    /**
+     * 初始化角色切换器
+     */
+    function init() {
+        if (!window.user || !window.user.is_authenticated) {
+            return;
+        }
+
+        // 加载当前激活角色
+        $.get('/api/v1/my-roles/current/', function(resp) {
+            updateButton(resp.data);
+        }).fail(function() {
+            console.error('Failed to load current role');
+        });
+
+        // 加载角色列表（页面加载时预加载）
+        loadRoleList();
+
+        // dropdown 展开时重新加载角色列表
+        $('#role-dropdown').on('show.bs.dropdown', function() {
+            loadRoleList();
         });
 
         // 点击角色项切换

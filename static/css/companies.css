@@ -1,0 +1,178 @@
+/* 公司列表样式 */
+
+.company-card {
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    background: #fff;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.company-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.company-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.company-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #262626;
+    margin: 0;
+}
+
+.company-card-title-en {
+    font-size: 13px;
+    color: #8c8c8c;
+    margin-top: 4px;
+}
+
+.company-card-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f0f0f0;
+    color: #595959;
+}
+
+.company-card-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #595959;
+}
+
+.company-card-info-item {
+    display: flex;
+    align-items: center;
+}
+
+.company-card-info-item .glyphicon {
+    margin-right: 6px;
+    color: #8c8c8c;
+}
+
+.company-card-desc {
+    font-size: 13px;
+    color: #595959;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.company-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.company-card-members {
+    font-size: 12px;
+    color: #8c8c8c;
+}
+
+.company-card-actions .btn {
+    min-width: 100px;
+}
+
+.company-card-actions .btn-applied {
+    background: #52c41a;
+    border-color: #52c41a;
+    color: #fff;
+}
+
+/* 角色选项样式 */
+.role-options {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.role-option {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.role-option:hover {
+    background: #f5f5f5;
+}
+
+.role-option input[type="radio"] {
+    margin-right: 12px;
+}
+
+.role-option-code {
+    display: inline-block;
+    min-width: 60px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #e8e8e8;
+    color: #595959;
+    margin-right: 10px;
+}
+
+.role-option-name {
+    font-weight: 500;
+    color: #262626;
+}
+
+.role-option-desc {
+    font-size: 12px;
+    color: #8c8c8c;
+    margin-left: auto;
+    max-width: 150px;
+    text-align: right;
+}
+
+/* 角色类型颜色 */
+.role-option-code[data-role="exporter"] { background: #e6f7ff; color: #1890ff; }
+.role-option-code[data-role="importer"] { background: #f6ffed; color: #52c41a; }
+.role-option-code[data-role="bank"] { background: #fff7e6; color: #fa8c16; }
+.role-option-code[data-role="shipping"] { background: #f9f0ff; color: #722ed1; }
+.role-option-code[data-role="insurance"] { background: #fff1f0; color: #f5222d; }
+.role-option-code[data-role="factory"] { background: #f0f5ff; color: #2f54eb; }
+.role-option-code[data-role="customs"] { background: #fcffe6; color: #a0d911; }
+.role-option-code[data-role="inspection"] { background: #e6fffb; color: #13c2c2; }
+.role-option-code[data-role="forex"] { background: #fff0f6; color: #eb2f96; }
+.role-option-code[data-role="tax"] { background: #fffbe6; color: #faad14; }
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8c8c8c;
+}
+
+.empty-state .glyphicon {
+    font-size: 48px;
+    color: #d9d9d9;
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin: 0;
+}

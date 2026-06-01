@@ -3,12 +3,13 @@ URL configuration for users app.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from apps.users.views import LoginView, LogoutView, CurrentUserView, RegisterView, UserManagementViewSet
+from apps.users.views import LoginView, LogoutView, CurrentUserView, RegisterView, UserManagementViewSet, UserSearchViewSet
 
 app_name = 'users'
 
 router = DefaultRouter()
 router.register(r'auth/users', UserManagementViewSet, basename='user-management')
+router.register(r'', UserSearchViewSet, basename='user')
 
 urlpatterns = [
     path('', include(router.urls)),

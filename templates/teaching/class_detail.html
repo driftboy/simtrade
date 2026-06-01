@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}班级详情{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teaching/css/class_management.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="class-management-container">
+    <div class="breadcrumb">
+        <a href="/teaching/">教学管理</a> &gt; <a href="/teaching/classes/">班级管理</a> &gt; <span id="className"></span>
+    </div>
+
+    <div class="page-header">
+        <h1 id="classTitle">班级详情</h1>
+        <div class="class-info">
+            <span>选课码: <strong id="enrollmentCode"></strong></span>
+            <span>已选: <strong id="studentCount"></strong> 人</span>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <select id="roleFilter" class="filter-select">
+            <option value="">全部角色</option>
+            <option value="student">学生</option>
+            <option value="assistant">助教</option>
+            <option value="monitor">班长</option>
+        </select>
+
+        <select id="statusFilter" class="filter-select">
+            <option value="">全部状态</option>
+            <option value="enrolled">已选课</option>
+            <option value="dropped">已退课</option>
+        </select>
+
+        <button id="addStudentBtn" class="btn btn-primary">添加学生</button>
+        <button id="importBtn" class="btn btn-secondary">批量导入</button>
+        <button id="exportBtn" class="btn btn-secondary">导出</button>
+        <button id="batchUpdateBtn" class="btn btn-secondary" disabled>批量修改角色</button>
+    </div>
+
+    <div id="studentList" class="student-list">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>选课时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="studentTableBody">
+                <tr><td colspan="7">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 添加学生弹窗 -->
+<div id="addStudentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>添加学生</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="studentSearchInput" placeholder="输入学号或姓名搜索..." class="search-input">
+            <div id="searchResults" class="search-results"></div>
+            <div id="newStudentForm" class="new-student-form" style="display:none;">
+                <h3>创建新学生</h3>
+                <div class="form-group">
+                    <label>学号 *</label>
+                    <input type="text" id="newStudentId" required>
+                </div>
+                <div class="form-group">
+                    <label>姓名 *</label>
+                    <input type="text" id="newStudentName" required>
+                </div>
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="text" id="newStudentPhone">
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="text" id="newStudentEmail">
+                </div>
+                <div class="form-group">
+                    <label>行政班级</label>
+                    <input type="text" id="newStudentAdminClass">
+                </div>
+                <div class="form-group">
+                    <label>年级</label>
+                    <input type="text" id="newStudentGrade">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="newStudentRole">
+                        <option value="student">学生</option>
+                        <option value="assistant">助教</option>
+                        <option value="monitor">班长</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="addStudentCancel" class="btn btn-secondary">取消</button>
+            <button id="addStudentConfirm" class="btn btn-primary">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- 批量导入弹窗 -->
+<div id="importModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>批量导入学生</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <a href="/api/v1/teaching/downloads/import-template/" class="download-link">下载导入模板</a>
+            <div id="uploadArea" class="upload-area">
+                <p>拖拽文件到此处或点击选择文件</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+            </div>
+            <div id="importPreview" class="import-preview" style="display:none;">
+                <h3>导入预览</h3>
+                <table class="preview-table">
+                    <thead>
+                        <tr><th>学号</th><th>姓名</th><th>状态</th></tr>
+                    </thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="importCancel" class="btn btn-secondary">取消</button>
+            <button id="importConfirm" class="btn btn-primary" disabled>确认导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- 批量修改角色弹窗 -->
+<div id="batchRoleModal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>批量修改角色</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>选择角色</label>
+                <select id="batchRoleSelect">
+                    <option value="student">学生</option>
+                    <option value="assistant">助教</option>
+                    <option value="monitor">班长</option>
+                </select>
+            </div>
+            <p>已选择 <span id="selectedCount">0</span> 名学生</p>
+        </div>
+        <div class="modal-footer">
+            <button id="batchRoleCancel" class="btn btn-secondary">取消</button>
+            <button id="batchRoleConfirm" class="btn btn-primary">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导入结果弹窗 -->
+<div id="importResultModal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>导入完成</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="importSummary"></p>
+            <div id="importErrors" class="import-errors"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary close-btn">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'teaching/js/class_management.js' %}"></script>
+{% endblock %}

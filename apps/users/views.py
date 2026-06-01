@@ -2,6 +2,7 @@
 API views for user authentication.
 """
 from django.contrib.auth import login, logout
+from django.db import models as db_models
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +15,8 @@ from django.contrib.auth import get_user_model
 from apps.users.serializers import (
     LoginSerializer,
     UserSerializer,
-    RoleSerializer
+    RoleSerializer,
+    UserSearchSerializer
 )
 
 User = get_user_model()
@@ -197,3 +199,32 @@ class UserManagementViewSet(viewsets.ModelViewSet):
         user.set_password(new_password)
         user.save()
         return Response({'code': 0, 'message': f'密码已重置为: {new_password}', 'data': {'new_password': new_password}})
+
+
+class UserSearchViewSet(viewsets.ViewSet):
+    """用户搜索视图集"""
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """按学号或姓名搜索用户"""
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({'code': 0, 'message': 'success', 'data': []})
+
+        from apps.teaching.models import StudentProfile
+
+        # 按学号或姓名搜索学生
+        users = User.objects.filter(
+            user_type='student',
+        ).filter(
+            db_models.Q(username__icontains=query) |
+            db_models.Q(student_profile__student_id__icontains=query)
+        ).select_related('student_profile').distinct()[:10]
+
+        serializer = UserSearchSerializer(users, many=True)
+        return Response({
+            'code': 0,
+            'message': 'success',
+            'data': serializer.data,
+        })

@@ -15,6 +15,7 @@ class Company(models.Model):
         null=True,
         related_name='companies'
     )
+    description = models.TextField('公司简介', blank=True)
     address = models.TextField('地址', blank=True)
     phone = models.CharField('电话', max_length=50, blank=True)
     email = models.EmailField('邮箱', blank=True)

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}公司列表 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/companies.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>公司列表 <small style="color:#999;font-size:14px;">选择公司并申请角色</small></h2>
+        <hr>
+    </div>
+</div>
+
+<!-- 搜索和筛选 -->
+<div class="row" style="margin-bottom:20px;">
+    <div class="col-md-6">
+        <input type="text" id="searchInput" class="form-control" placeholder="搜索公司名称...">
+    </div>
+    <div class="col-md-3">
+        <select id="typeFilter" class="form-control">
+            <option value="">全部类型</option>
+            <option value="贸易公司">贸易公司</option>
+            <option value="银行">银行</option>
+            <option value="物流公司">物流公司</option>
+            <option value="保险公司">保险公司</option>
+            <option value="工厂">工厂</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button id="refreshBtn" class="btn btn-default btn-block">
+            <span class="glyphicon glyphicon-refresh"></span> 刷新
+        </button>
+    </div>
+</div>
+
+<!-- 公司卡片列表 -->
+<div id="companyList">
+    <div class="text-center text-muted" style="padding:40px;">加载中...</div>
+</div>
+
+<!-- 申请角色模态框 -->
+<div class="modal fade" id="roleApplyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">申请加入 <span id="modalCompanyName"></span></h4>
+            </div>
+            <div class="modal-body">
+                <form id="roleApplyForm">
+                    <input type="hidden" id="applyCompanyId">
+                    <div class="form-group">
+                        <label>选择角色 <span style="color:red;">*</span></label>
+                        <div id="roleOptions" class="role-options">
+                            <div class="text-center">加载中...</div>
+                        </div>
+                        <div id="roleError" class="text-danger" style="display:none;font-size:12px;">请选择一个角色</div>
+                    </div>
+                    <div class="form-group">
+                        <label>申请理由 <span style="color:#999;">(选填)</span></label>
+                        <textarea id="applyNotes" class="form-control" rows="3" placeholder="简单说明你的申请理由..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" id="submitApplyBtn" class="btn btn-primary">提交申请</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/companies.js' %}"></script>
+{% endblock %}

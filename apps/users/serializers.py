@@ -131,3 +131,17 @@ class LoginResponseSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['user', 'roles']
+
+
+class UserSearchSerializer(serializers.ModelSerializer):
+    """用户搜索序列化器"""
+    student_id = serializers.CharField(
+        source='student_profile.student_id', read_only=True, allow_null=True
+    )
+    admin_class = serializers.CharField(
+        source='student_profile.admin_class', read_only=True, allow_null=True
+    )
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'student_id', 'admin_class', 'user_type']

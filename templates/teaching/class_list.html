@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}班级管理{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'teaching/css/class_management.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="class-management-container">
+    <div class="breadcrumb">
+        <a href="/teaching/">教学管理</a> &gt; <span>班级管理</span>
+    </div>
+
+    <div class="page-header">
+        <h1>班级管理</h1>
+        <div class="page-actions">
+            <input type="text" id="searchInput" placeholder="搜索班级..." class="search-input">
+            <button id="createClassBtn" class="btn btn-primary">创建班级</button>
+        </div>
+    </div>
+
+    <div id="classList" class="class-list">
+        <div class="loading">加载中...</div>
+    </div>
+</div>
+
+<!-- 创建/编辑班级模态框 -->
+<div id="classModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="classModalTitle">创建班级</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="classForm">
+                <div class="form-group">
+                    <label for="classCourse">课程 *</label>
+                    <select id="classCourse" name="course" required>
+                        <option value="">请选择课程</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="className">班级名称 *</label>
+                    <input type="text" id="className" name="name" required placeholder="如：2024级1班">
+                </div>
+                <div class="form-group">
+                    <label for="classCapacity">容量</label>
+                    <input type="number" id="classCapacity" name="capacity" min="1" placeholder="默认50">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="classCancelBtn">取消</button>
+            <button type="button" class="btn btn-primary" id="classSaveBtn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>确认删除</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>确定要删除班级 <strong id="deleteClassName"></strong> 吗？</p>
+            <p class="text-muted">此操作不可撤销，且会删除该班级的所有学生数据。</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="deleteCancelBtn">取消</button>
+            <button type="button" class="btn btn-danger" id="deleteConfirmBtn">删除</button>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'teaching/js/class_management.js' %}"></script>
+{% endblock %}

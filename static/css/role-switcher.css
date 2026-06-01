@@ -9,6 +9,12 @@
     cursor: pointer;
 }
 
+/* 确保下拉菜单宽度足够 */
+.role-switcher .dropdown-menu {
+    min-width: 200px;
+    max-width: 300px;
+}
+
 .role-switcher .dropdown-toggle:hover,
 .role-switcher .dropdown-toggle:focus {
     color: #fff;

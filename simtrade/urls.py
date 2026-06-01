@@ -4,10 +4,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import render, redirect
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpResponse, JsonResponse
 import json
 from django.contrib.auth.decorators import login_required
 from apps.documents.models import Document, DocumentTemplate
+from apps.transactions.models import Transaction
 from apps.roles.services import RoleService
 
 
@@ -33,116 +35,116 @@ PANEL_MAP = {
 ROLE_CONFIGS = {
     'exporter': {
         'nav_items': [
-            {'label': 'My Orders', 'icon': 'bi-box-seam', 'href': '/workspace/exporter/'},
-            {'label': 'Create Contract', 'icon': 'bi-file-earmark-plus', 'href': '/workspace/exporter/'},
-            {'label': 'Shipments', 'icon': 'bi-truck', 'href': '/workspace/exporter/'},
-            {'label': 'Documents', 'icon': 'bi-folder2-open', 'href': '/documents/'},
+            {'label': '我的订单 (Orders)', 'icon': 'bi-box-seam', 'href': '/workspace/exporter/', 'api': '/api/v1/purchase-orders/'},
+            {'label': '销售合同 (Contracts)', 'icon': 'bi-file-earmark-text', 'href': '/workspace/exporter/', 'api': '/api/v1/contracts/'},
+            {'label': '货运单证 (Shipments)', 'icon': 'bi-truck', 'href': '/workspace/exporter/', 'api': '/api/v1/shipments/'},
+            {'label': '贸易单证 (Documents)', 'icon': 'bi-folder2-open', 'href': '/documents/', 'external': True},
         ],
         'actions': [
-            {'label': 'Create Sales Contract', 'icon': 'bi-plus-circle', 'api': '/api/v1/contracts/', 'method': 'POST'},
-            {'label': 'Apply for Inspection', 'icon': 'bi-clipboard-check', 'api': '/api/v1/inspection-applications/', 'method': 'POST'},
-            {'label': 'Declare Export', 'icon': 'bi-flag', 'api': '/api/v1/customs-declarations/', 'method': 'POST'},
-            {'label': 'Apply Tax Refund', 'icon': 'bi-cash-stack', 'api': '/api/v1/tax-refund-applications/', 'method': 'POST'},
+            {'label': '创建销售合同', 'icon': 'bi-plus-circle', 'api': '/api/v1/contracts/', 'method': 'POST'},
+            {'label': '申请报检', 'icon': 'bi-clipboard-check', 'api': '/api/v1/inspection-applications/', 'method': 'POST'},
+            {'label': '出口报关', 'icon': 'bi-flag', 'api': '/api/v1/customs-declarations/', 'method': 'POST'},
+            {'label': '申请退税', 'icon': 'bi-cash-stack', 'api': '/api/v1/tax-refund-applications/', 'method': 'POST'},
         ],
         'stats': [
-            {'label': 'Active Orders', 'icon': 'bi-box-seam', 'api': '/api/v1/purchase-orders/', 'color': 'primary'},
-            {'label': 'Pending Shipments', 'icon': 'bi-truck', 'api': '/api/v1/shipments/', 'color': 'info'},
-            {'label': 'Contracts', 'icon': 'bi-file-earmark-text', 'api': '/api/v1/contracts/', 'color': 'success'},
-            {'label': 'Tax Refunds', 'icon': 'bi-cash-stack', 'api': '/api/v1/tax-refund-applications/', 'color': 'warning'},
+            {'label': '活跃订单', 'icon': 'bi-box-seam', 'api': '/api/v1/purchase-orders/', 'color': 'primary'},
+            {'label': '待运货运', 'icon': 'bi-truck', 'api': '/api/v1/shipments/', 'color': 'info'},
+            {'label': '销售合同', 'icon': 'bi-file-earmark-text', 'api': '/api/v1/contracts/', 'color': 'success'},
+            {'label': '退税申请', 'icon': 'bi-cash-stack', 'api': '/api/v1/tax-refund-applications/', 'color': 'warning'},
         ],
         'list_api': '/api/v1/purchase-orders/',
         'panel': 'trader',
     },
     'importer': {
         'nav_items': [
-            {'label': 'My Orders', 'icon': 'bi-bag-check', 'href': '/workspace/importer/'},
-            {'label': 'Contracts', 'icon': 'bi-file-earmark-text', 'href': '/workspace/importer/'},
-            {'label': 'Shipments', 'icon': 'bi-truck', 'href': '/workspace/importer/'},
-            {'label': 'Documents', 'icon': 'bi-folder2-open', 'href': '/documents/'},
+            {'label': '采购订单 (Orders)', 'icon': 'bi-bag-check', 'href': '/workspace/importer/'},
+            {'label': '采购合同 (Contracts)', 'icon': 'bi-file-earmark-text', 'href': '/workspace/importer/'},
+            {'label': '货运单证 (Shipments)', 'icon': 'bi-truck', 'href': '/workspace/importer/'},
+            {'label': '贸易单证 (Documents)', 'icon': 'bi-folder2-open', 'href': '/documents/'},
         ],
         'actions': [
-            {'label': 'Create Purchase Order', 'icon': 'bi-plus-circle', 'api': '/api/v1/purchase-orders/', 'method': 'POST'},
-            {'label': 'Apply for L/C', 'icon': 'bi-bank', 'api': '/api/v1/letters-of-credit/', 'method': 'POST'},
-            {'label': 'Declare Import', 'icon': 'bi-flag', 'api': '/api/v1/customs-declarations/', 'method': 'POST'},
-            {'label': 'Forex Settlement', 'icon': 'bi-currency-exchange', 'api': '/api/v1/forex-settlements/', 'method': 'POST'},
+            {'label': '创建采购订单', 'icon': 'bi-plus-circle', 'api': '/api/v1/purchase-orders/', 'method': 'POST'},
+            {'label': '申请信用证', 'icon': 'bi-bank', 'api': '/api/v1/letters-of-credit/', 'method': 'POST'},
+            {'label': '进口报关', 'icon': 'bi-flag', 'api': '/api/v1/customs-declarations/', 'method': 'POST'},
+            {'label': '外汇结算', 'icon': 'bi-currency-exchange', 'api': '/api/v1/forex-settlements/', 'method': 'POST'},
         ],
         'stats': [
-            {'label': 'Purchase Orders', 'icon': 'bi-bag-check', 'api': '/api/v1/purchase-orders/', 'color': 'primary'},
-            {'label': 'Pending L/C', 'icon': 'bi-bank', 'api': '/api/v1/letters-of-credit/', 'color': 'info'},
-            {'label': 'Shipments', 'icon': 'bi-truck', 'api': '/api/v1/shipments/', 'color': 'success'},
-            {'label': 'Forex Settlements', 'icon': 'bi-currency-exchange', 'api': '/api/v1/forex-settlements/', 'color': 'warning'},
+            {'label': '采购订单', 'icon': 'bi-bag-check', 'api': '/api/v1/purchase-orders/', 'color': 'primary'},
+            {'label': '待审信用证', 'icon': 'bi-bank', 'api': '/api/v1/letters-of-credit/', 'color': 'info'},
+            {'label': '货运单证', 'icon': 'bi-truck', 'api': '/api/v1/shipments/', 'color': 'success'},
+            {'label': '外汇结算', 'icon': 'bi-currency-exchange', 'api': '/api/v1/forex-settlements/', 'color': 'warning'},
         ],
         'list_api': '/api/v1/purchase-orders/',
         'panel': 'trader',
     },
     'customs': {
         'nav_items': [
-            {'label': 'Declarations', 'icon': 'bi-clipboard-data', 'href': '/workspace/customs/'},
-            {'label': 'Pending Review', 'icon': 'bi-hourglass-split', 'href': '/workspace/customs/'},
-            {'label': 'History', 'icon': 'bi-clock-history', 'href': '/workspace/customs/'},
+            {'label': '报关单据 (Declarations)', 'icon': 'bi-clipboard-data', 'href': '/workspace/customs/'},
+            {'label': '待审核 (Pending)', 'icon': 'bi-hourglass-split', 'href': '/workspace/customs/'},
+            {'label': '历史记录 (History)', 'icon': 'bi-clock-history', 'href': '/workspace/customs/'},
         ],
         'actions': [
-            {'label': 'Approve Declaration', 'icon': 'bi-check-circle', 'api': '/api/v1/customs-declarations/', 'method': 'PATCH'},
-            {'label': 'Reject Declaration', 'icon': 'bi-x-circle', 'api': '/api/v1/customs-declarations/', 'method': 'PATCH'},
+            {'label': '批准报关单', 'icon': 'bi-check-circle', 'api': '/api/v1/customs-declarations/', 'method': 'PATCH'},
+            {'label': '拒绝报关单', 'icon': 'bi-x-circle', 'api': '/api/v1/customs-declarations/', 'method': 'PATCH'},
         ],
         'stats': [
-            {'label': 'Pending', 'icon': 'bi-hourglass-split', 'api': '/api/v1/customs-declarations/', 'color': 'warning'},
-            {'label': 'Approved Today', 'icon': 'bi-check-circle', 'api': '/api/v1/customs-declarations/', 'color': 'success'},
-            {'label': 'Total Processed', 'icon': 'bi-clipboard-data', 'api': '/api/v1/customs-declarations/', 'color': 'primary'},
+            {'label': '待审核', 'icon': 'bi-hourglass-split', 'api': '/api/v1/customs-declarations/', 'color': 'warning'},
+            {'label': '今日批准', 'icon': 'bi-check-circle', 'api': '/api/v1/customs-declarations/', 'color': 'success'},
+            {'label': '已处理总数', 'icon': 'bi-clipboard-data', 'api': '/api/v1/customs-declarations/', 'color': 'primary'},
         ],
         'list_api': '/api/v1/customs-declarations/',
         'panel': 'approver',
     },
     'inspection': {
         'nav_items': [
-            {'label': 'Applications', 'icon': 'bi-clipboard-check', 'href': '/workspace/inspection/'},
-            {'label': 'Pending Review', 'icon': 'bi-hourglass-split', 'href': '/workspace/inspection/'},
-            {'label': 'Certificates', 'icon': 'bi-award', 'href': '/workspace/inspection/'},
+            {'label': '报检申请 (Applications)', 'icon': 'bi-clipboard-check', 'href': '/workspace/inspection/'},
+            {'label': '待审核 (Pending)', 'icon': 'bi-hourglass-split', 'href': '/workspace/inspection/'},
+            {'label': '检验证书 (Certificates)', 'icon': 'bi-award', 'href': '/workspace/inspection/'},
         ],
         'actions': [
-            {'label': 'Approve Application', 'icon': 'bi-check-circle', 'api': '/api/v1/inspection-applications/', 'method': 'PATCH'},
-            {'label': 'Reject Application', 'icon': 'bi-x-circle', 'api': '/api/v1/inspection-applications/', 'method': 'PATCH'},
+            {'label': '批准申请', 'icon': 'bi-check-circle', 'api': '/api/v1/inspection-applications/', 'method': 'PATCH'},
+            {'label': '拒绝申请', 'icon': 'bi-x-circle', 'api': '/api/v1/inspection-applications/', 'method': 'PATCH'},
         ],
         'stats': [
-            {'label': 'Pending', 'icon': 'bi-hourglass-split', 'api': '/api/v1/inspection-applications/', 'color': 'warning'},
-            {'label': 'Issued Certificates', 'icon': 'bi-award', 'api': '/api/v1/inspection-applications/', 'color': 'success'},
-            {'label': 'Total Processed', 'icon': 'bi-clipboard-check', 'api': '/api/v1/inspection-applications/', 'color': 'primary'},
+            {'label': '待审核', 'icon': 'bi-hourglass-split', 'api': '/api/v1/inspection-applications/', 'color': 'warning'},
+            {'label': '已发证书', 'icon': 'bi-award', 'api': '/api/v1/inspection-applications/', 'color': 'success'},
+            {'label': '已处理总数', 'icon': 'bi-clipboard-check', 'api': '/api/v1/inspection-applications/', 'color': 'primary'},
         ],
         'list_api': '/api/v1/inspection-applications/',
         'panel': 'approver',
     },
     'forex': {
         'nav_items': [
-            {'label': 'Settlements', 'icon': 'bi-currency-exchange', 'href': '/workspace/forex/'},
-            {'label': 'Pending Review', 'icon': 'bi-hourglass-split', 'href': '/workspace/forex/'},
-            {'label': 'History', 'icon': 'bi-clock-history', 'href': '/workspace/forex/'},
+            {'label': '结算申请 (Settlements)', 'icon': 'bi-currency-exchange', 'href': '/workspace/forex/'},
+            {'label': '待审核 (Pending)', 'icon': 'bi-hourglass-split', 'href': '/workspace/forex/'},
+            {'label': '历史记录 (History)', 'icon': 'bi-clock-history', 'href': '/workspace/forex/'},
         ],
         'actions': [
-            {'label': 'Approve Settlement', 'icon': 'bi-check-circle', 'api': '/api/v1/forex-settlements/', 'method': 'PATCH'},
-            {'label': 'Reject Settlement', 'icon': 'bi-x-circle', 'api': '/api/v1/forex-settlements/', 'method': 'PATCH'},
+            {'label': '批准结算', 'icon': 'bi-check-circle', 'api': '/api/v1/forex-settlements/', 'method': 'PATCH'},
+            {'label': '拒绝结算', 'icon': 'bi-x-circle', 'api': '/api/v1/forex-settlements/', 'method': 'PATCH'},
         ],
         'stats': [
-            {'label': 'Pending', 'icon': 'bi-hourglass-split', 'api': '/api/v1/forex-settlements/', 'color': 'warning'},
-            {'label': 'Settled Today', 'icon': 'bi-check-circle', 'api': '/api/v1/forex-settlements/', 'color': 'success'},
-            {'label': 'Total Settled', 'icon': 'bi-currency-exchange', 'api': '/api/v1/forex-settlements/', 'color': 'primary'},
+            {'label': '待审核', 'icon': 'bi-hourglass-split', 'api': '/api/v1/forex-settlements/', 'color': 'warning'},
+            {'label': '今日结算', 'icon': 'bi-check-circle', 'api': '/api/v1/forex-settlements/', 'color': 'success'},
+            {'label': '已结算总数', 'icon': 'bi-currency-exchange', 'api': '/api/v1/forex-settlements/', 'color': 'primary'},
         ],
         'list_api': '/api/v1/forex-settlements/',
         'panel': 'approver',
     },
     'tax': {
         'nav_items': [
-            {'label': 'Refund Applications', 'icon': 'bi-cash-stack', 'href': '/workspace/tax/'},
-            {'label': 'Pending Review', 'icon': 'bi-hourglass-split', 'href': '/workspace/tax/'},
-            {'label': 'History', 'icon': 'bi-clock-history', 'href': '/workspace/tax/'},
+            {'label': '退税申请 (Refunds)', 'icon': 'bi-cash-stack', 'href': '/workspace/tax/'},
+            {'label': '待审核 (Pending)', 'icon': 'bi-hourglass-split', 'href': '/workspace/tax/'},
+            {'label': '历史记录 (History)', 'icon': 'bi-clock-history', 'href': '/workspace/tax/'},
         ],
         'actions': [
-            {'label': 'Approve Refund', 'icon': 'bi-check-circle', 'api': '/api/v1/tax-refund-applications/', 'method': 'PATCH'},
-            {'label': 'Reject Refund', 'icon': 'bi-x-circle', 'api': '/api/v1/tax-refund-applications/', 'method': 'PATCH'},
+            {'label': '批准退税', 'icon': 'bi-check-circle', 'api': '/api/v1/tax-refund-applications/', 'method': 'PATCH'},
+            {'label': '拒绝退税', 'icon': 'bi-x-circle', 'api': '/api/v1/tax-refund-applications/', 'method': 'PATCH'},
         ],
         'stats': [
-            {'label': 'Pending', 'icon': 'bi-hourglass-split', 'api': '/api/v1/tax-refund-applications/', 'color': 'warning'},
-            {'label': 'Approved Today', 'icon': 'bi-check-circle', 'api': '/api/v1/tax-refund-applications/', 'color': 'success'},
-            {'label': 'Total Refunded', 'icon': 'bi-cash-stack', 'api': '/api/v1/tax-refund-applications/', 'color': 'primary'},
+            {'label': '待审核', 'icon': 'bi-hourglass-split', 'api': '/api/v1/tax-refund-applications/', 'color': 'warning'},
+            {'label': '今日批准', 'icon': 'bi-check-circle', 'api': '/api/v1/tax-refund-applications/', 'color': 'success'},
+            {'label': '已退税总数', 'icon': 'bi-cash-stack', 'api': '/api/v1/tax-refund-applications/', 'color': 'primary'},
         ],
         'list_api': '/api/v1/tax-refund-applications/',
         'panel': 'approver',
@@ -310,6 +312,193 @@ def admin_dashboard_stats(request):
 
 
 @login_required
+def teacher_dashboard_stats(request):
+    """Teacher dashboard statistics API"""
+    from django.db.models import Count, Q
+    from apps.users.models import User
+    from apps.teaching.models import Course, TeachingClass, StudentEnrollment
+    from apps.roles.models import UserCompanyRole
+
+    # Only teachers can access this
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    # Get teacher's courses (using teachers field which is ManyToMany)
+    teacher_courses = Course.objects.filter(teachers=request.user)
+
+    # Get teacher's class IDs
+    teacher_class_ids = list(TeachingClass.objects.filter(
+        course__teachers=request.user
+    ).values_list('id', flat=True))
+
+    # Get students in teacher's classes via StudentEnrollment
+    student_ids = list(StudentEnrollment.objects.filter(
+        teaching_class_id__in=teacher_class_ids,
+        status='enrolled'
+    ).values_list('student_id', flat=True).distinct())
+
+    teacher_students = User.objects.filter(id__in=student_ids)
+
+    # Get documents from teacher's students
+    student_documents = Document.objects.filter(created_by_id__in=student_ids)
+
+    # Course progress distribution
+    course_progress = list(teacher_courses.annotate(
+        student_count=Count('classes__enrollments')
+    ).values('id', 'name', 'student_count'))
+
+    # Document status distribution for teacher's students
+    doc_status_dist = list(student_documents.values('status').annotate(count=Count('id')))
+
+    # Pending review documents
+    pending_review = student_documents.filter(status='pending_review').count()
+
+    # Pending role requests (students with pending role assignments)
+    pending_role_requests = UserCompanyRole.objects.filter(
+        status='pending',
+        user__user_type='student'
+    ).count()
+
+    # Class activity (students per class)
+    class_activity = list(
+        TeachingClass.objects.filter(id__in=teacher_class_ids)
+        .annotate(student_count=Count('enrollments'))
+        .values('name', 'student_count')
+    )
+
+    # Recent activities from students
+    recent_activities = list(
+        student_documents.select_related('template', 'created_by')
+        .order_by('-created_at')[:10]
+        .values('id', 'template__name', 'created_by__username', 'status', 'created_at')
+    )
+
+    return JsonResponse({
+        'summary': {
+            'courses_count': teacher_courses.count(),
+            'classes_count': len(teacher_class_ids),
+            'students_count': teacher_students.count(),
+            'pending_review': pending_review,
+            'pending_role_requests': pending_role_requests,
+        },
+        'course_progress_distribution': [
+            {'status': 'in_progress' if c['student_count'] > 0 else 'not_started', 'count': 1}
+            for c in course_progress
+        ],
+        'document_status_distribution': [
+            {'status': item['status'], 'count': item['count']}
+            for item in doc_status_dist
+        ],
+        'class_activity': [
+            {'name': item['name'], 'count': item['student_count']}
+            for item in class_activity
+        ],
+        'recent_activities': [
+            {
+                'description': d['template__name'] + ' - ' + (d['created_by__username'] or '未知'),
+                'status': d['status'],
+                'created_at': d['created_at'].isoformat() if d['created_at'] else None,
+            }
+            for d in recent_activities
+        ],
+    })
+
+
+@login_required
+def student_dashboard_stats(request):
+    """Student dashboard statistics API"""
+    from django.db.models import Count, Q
+    from apps.users.models import User
+    from apps.transactions.models import Transaction
+    from apps.roles.models import UserCompanyRole, Company
+
+    # Only students can access this
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    # Get student's documents
+    my_documents = Document.objects.filter(created_by=request.user)
+
+    # Get student's companies (via UserCompanyRole)
+    my_company_ids = list(UserCompanyRole.objects.filter(
+        user=request.user,
+        status__in=['approved', 'active']
+    ).values_list('company_id', flat=True).distinct())
+
+    # Get transactions involving student's companies
+    my_transactions = Transaction.objects.filter(
+        Q(buyer_id__in=my_company_ids) | Q(seller_id__in=my_company_ids)
+    ).distinct()
+
+    # Pending documents (draft or submitted but not approved)
+    pending_documents = my_documents.filter(
+        Q(status='draft') | Q(status='pending_review') | Q(status='submitted')
+    ).count()
+
+    # Documents that need attention (rejected or need revision)
+    pending_reviews = my_documents.filter(status='rejected').count()
+
+    # Expiring transactions (mock - logic depends on transaction model)
+    expiring_transactions = 0
+
+    # Unread notifications (mock - depends on notification system)
+    unread_notifications = 0
+
+    # Document status distribution
+    doc_status_dist = list(my_documents.values('status').annotate(count=Count('id')))
+
+    # Transaction status distribution
+    transaction_status_dist = list(
+        my_transactions.values('status').annotate(count=Count('id'))
+    )
+
+    # Role distribution - using UserCompanyRole
+    my_roles = UserCompanyRole.objects.filter(user=request.user).select_related('role')
+    role_dist = {}
+    for ur in my_roles:
+        key = ur.role.name or ur.role.code
+        role_dist[key] = role_dist.get(key, 0) + 1
+
+    # Recent activities
+    recent_activities = list(
+        my_documents.select_related('template')
+        .order_by('-created_at')[:10]
+        .values('id', 'template__name', 'status', 'created_at')
+    )
+
+    return JsonResponse({
+        'summary': {
+            'transactions_count': my_transactions.count(),
+            'documents_count': my_documents.count(),
+            'pending_documents': pending_documents,
+            'unread_notifications': unread_notifications,
+            'pending_reviews': pending_reviews,
+            'expiring_transactions': expiring_transactions,
+        },
+        'document_status_distribution': [
+            {'status': item['status'], 'count': item['count']}
+            for item in doc_status_dist
+        ],
+        'transaction_status_distribution': [
+            {'status': item['status'], 'count': item['count']}
+            for item in transaction_status_dist
+        ],
+        'role_distribution': [
+            {'name': key, 'count': value}
+            for key, value in role_dist.items()
+        ],
+        'recent_activities': [
+            {
+                'description': d['template__name'] or '单证更新',
+                'status': d['status'],
+                'created_at': d['created_at'].isoformat() if d['created_at'] else None,
+            }
+            for d in recent_activities
+        ],
+    })
+
+
+@login_required
 def workspace_view(request, role_code=None):
     """Workspace page - role-specific workbench"""
     current_role = RoleService.get_current_role(request.user)
@@ -370,18 +559,21 @@ def register_view(request):
 
 
 @login_required
+@ensure_csrf_cookie
 def teaching_dashboard(request):
     """Teaching module dashboard"""
     return render(request, 'teaching/dashboard.html', {'user': request.user})
 
 
 @login_required
+@ensure_csrf_cookie
 def teaching_course_list(request):
     """Course list page"""
     return render(request, 'teaching/course_list.html', {'user': request.user})
 
 
 @login_required
+@ensure_csrf_cookie
 def teaching_course_detail(request, course_id):
     """Course detail page"""
     return render(request, 'teaching/course_detail.html', {
@@ -391,15 +583,31 @@ def teaching_course_detail(request, course_id):
 
 
 @login_required
+@ensure_csrf_cookie
 def teaching_grading(request):
     """Grading page"""
     return render(request, 'teaching/grading.html', {'user': request.user})
 
 
 @login_required
+@ensure_csrf_cookie
 def teaching_experiments(request):
     """Experiment templates management page"""
     return render(request, 'teaching/experiments.html', {'user': request.user})
+
+
+@login_required
+@ensure_csrf_cookie
+def teaching_class_list(request):
+    """Class list page"""
+    return render(request, 'teaching/class_list.html', {'user': request.user})
+
+
+@login_required
+@ensure_csrf_cookie
+def teaching_class_detail(request, id):
+    """Class detail page"""
+    return render(request, 'teaching/class_detail.html', {'user': request.user, 'class_id': id})
 
 
 @login_required
@@ -454,6 +662,8 @@ def document_preview(request, id):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/dashboard/stats/', admin_dashboard_stats, name='admin-dashboard-stats'),
+    path('api/v1/dashboard/teacher/', teacher_dashboard_stats, name='teacher-dashboard-stats'),
+    path('api/v1/dashboard/student/', student_dashboard_stats, name='student-dashboard-stats'),
     path('api/v1/', include('apps.users.urls')),
     path('api/v1/documents/', include('apps.documents.urls')),
     path('api/v1/products/', include('apps.products.urls')),
@@ -477,6 +687,8 @@ urlpatterns += [
     path('dashboard/', dashboard_view, name='dashboard'),
     path('workspace/', workspace_view, name='workspace'),
     path('workspace/<str:role_code>/', workspace_view, name='workspace-role'),
+    # Companies & roles
+    path('companies/', lambda r: render(r, 'companies/list.html'), name='company-list'),
     # Market & transactions
     path('market/', lambda r: render(r, 'products/market.html'), name='market'),
     path('transactions/', lambda r: render(r, 'transactions/list.html'), name='transaction-list'),
@@ -491,6 +703,9 @@ urlpatterns += [
     path('teaching/courses/<int:course_id>/', teaching_course_detail, name='teaching-course-detail'),
     path('teaching/grading/', teaching_grading, name='teaching-grading'),
     path('teaching/experiments/', teaching_experiments, name='teaching-experiments'),
+    # Class management
+    path('teaching/classes/', teaching_class_list, name='class-list'),
+    path('teaching/classes/<int:id>/', teaching_class_detail, name='class-detail'),
     # Admin panel
     path('admin-panel/', admin_panel_dashboard, name='admin-dashboard'),
     path('admin-panel/users/', admin_panel_users, name='admin-users'),

@@ -116,6 +116,15 @@
     }
 
     // ---------------------------------------------------------------
+    // 获取 Tab 对应的 API URL
+    // ---------------------------------------------------------------
+    function getTabApi(tabIndex) {
+        var $tabLink = $('#workspace-tab-nav a[data-tab="' + tabIndex + '"]');
+        if (!$tabLink.length) return null;
+        return $tabLink.data('api');
+    }
+
+    // ---------------------------------------------------------------
     // 加载统计数据
     // ---------------------------------------------------------------
     function loadStats() {
@@ -291,8 +300,11 @@
         // 加载统计
         loadStats();
 
-        // 加载列表
-        loadList(config.listApi, config.roleCode);
+        // 加载初始激活 tab 的列表
+        var initialTabApi = getTabApi(1);
+        if (initialTabApi) {
+            loadList(initialTabApi, config.roleCode);
+        }
 
         // Tab 切换：点击侧边栏导航切换 tab
         $(document).on('click', '#sidebar-nav a[data-sidebar-tab]', function(e) {
@@ -311,8 +323,22 @@
             $('#sidebar-nav li').removeClass('active');
             $('#sidebar-nav a[data-sidebar-tab="' + tabTarget + '"]').closest('li').addClass('active');
 
+            // 获取当前 tab 的 API URL
+            var tabIndex = $(this).data('tab');
+            var tabApi = getTabApi(tabIndex);
+
+            // 检查是否是外部链接
+            var isExternal = $(this).data('external');
+            if (isExternal) {
+                // 外部链接，跳转到指定页面
+                window.location.href = $(this).attr('href');
+                return;
+            }
+
             // 加载当前 tab 的列表
-            loadList(config.listApi, config.roleCode);
+            if (tabApi) {
+                loadList(tabApi, config.roleCode);
+            }
         });
 
         // 操作按钮点击

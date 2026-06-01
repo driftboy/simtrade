@@ -4,6 +4,7 @@ from apps.teaching.views import (
     SemesterViewSet, CourseViewSet, TeachingClassViewSet,
     ExperimentTemplateViewSet, ExperimentGroupViewSet,
     AssignmentViewSet, SubmissionViewSet, ReportViewSet,
+    DownloadViewSet,
 )
 
 router = DefaultRouter()
@@ -15,6 +16,7 @@ router.register(r'experiment-groups', ExperimentGroupViewSet, basename='experime
 router.register(r'assignments', AssignmentViewSet, basename='assignment')
 router.register(r'submissions', SubmissionViewSet, basename='submission')
 router.register(r'reports', ReportViewSet, basename='report')
+router.register(r'downloads', DownloadViewSet, basename='download')
 
 urlpatterns = [
     path('', include(router.urls)),

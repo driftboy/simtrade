@@ -41,19 +41,17 @@ class CourseSerializer(serializers.ModelSerializer):
 class TeachingClassSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     course_name = serializers.CharField(source='course.name', read_only=True)
-    student_count = serializers.SerializerMethodField()
+    semester_name = serializers.CharField(source='course.semester.name', read_only=True)
+    student_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = TeachingClass
         fields = [
-            'id', 'course', 'course_name', 'name', 'capacity',
+            'id', 'course', 'course_name', 'semester_name', 'name', 'capacity',
             'enrollment_code', 'status', 'status_display',
             'student_count', 'created_by', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'enrollment_code', 'created_at', 'updated_at', 'created_by']
-
-    def get_student_count(self, obj):
-        return obj.enrollments.filter(status='enrolled').count()
 
 
 class StudentEnrollmentSerializer(serializers.ModelSerializer):
@@ -125,3 +123,62 @@ class AssignmentSubmissionSerializer(serializers.ModelSerializer):
 class GradeSerializer(serializers.Serializer):
     score = serializers.DecimalField(max_digits=6, decimal_places=2, min_value=0)
     feedback = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+
+
+class StudentListSerializer(serializers.ModelSerializer):
+    """学生列表序列化器"""
+    id = serializers.IntegerField(source='pk', read_only=True)
+    student_id = serializers.CharField(
+        source='student.student_profile.student_id', read_only=True, allow_null=True
+    )
+    username = serializers.CharField(source='student.username', read_only=True)
+    email = serializers.CharField(source='student.email', read_only=True, allow_null=True)
+    role = serializers.CharField()
+    status = serializers.CharField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    enrolled_at = serializers.DateTimeField()
+
+    class Meta:
+        model = StudentEnrollment
+        fields = [
+            'id', 'student_id', 'username', 'email', 'role', 'role_display',
+            'status', 'status_display', 'enrolled_at',
+        ]
+
+
+class AddStudentSerializer(serializers.Serializer):
+    """添加学生序列化器"""
+    student_id = serializers.CharField(max_length=50, required=False)
+    username = serializers.CharField(max_length=150, required=False)
+    student_id_new = serializers.CharField(max_length=50, required=False)
+    name = serializers.CharField(max_length=150, required=False)
+    phone = serializers.CharField(max_length=20, required=False)
+    email = serializers.EmailField(required=False)
+    admin_class = serializers.CharField(max_length=100, required=False)
+    grade = serializers.CharField(max_length=20, required=False)
+    role = serializers.CharField(max_length=20, default='student')
+
+    def validate(self, data):
+        # 验证至少提供了一种添加方式
+        has_existing = 'student_id' in data and data['student_id']
+        has_new = ('username' in data and data['username'] and
+                   'student_id_new' in data and data['student_id_new'])
+
+        if not has_existing and not has_new:
+            raise serializers.ValidationError(
+                '必须提供现有学生的ID或新学生的完整信息'
+            )
+
+        return data
+
+
+class UpdateRoleSerializer(serializers.Serializer):
+    """修改角色序列化器"""
+    role = serializers.ChoiceField(choices=['student', 'assistant', 'monitor'])
+
+
+class BatchUpdateRoleSerializer(serializers.Serializer):
+    """批量修改角色序列化器"""
+    student_ids = serializers.ListField(child=serializers.IntegerField(), min_length=1)
+    role = serializers.ChoiceField(choices=['student', 'assistant', 'monitor'])
