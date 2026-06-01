@@ -313,10 +313,20 @@ class CompanyViewSet(viewsets.ModelViewSet):
     - Create a new company
     - Get company members
     - Join a company
+
+    Note: list() action allows anonymous access for browsing,
+    but create/update/delete require authentication.
     """
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = []  # Override per-action
+
+    def get_permissions(self):
+        """Set permissions based on action."""
+        if self.action in ['list', 'retrieve']:
+            # Allow anonymous users to browse companies
+            return []
+        return [IsAuthenticated()]
 
     def create(self, request):
         """
