@@ -1,104 +1,370 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bilingual %}
 
 {% block title %}教师仪表盘 - SimTrade{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+<style>
+.chart-container {
+    position: relative;
+    height: 220px;
+    margin: 10px 0;
+}
+.dash-section { margin-bottom: 20px; }
+.dash-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 2px solid #4a90d9;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+.todo-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.todo-item:last-child { border-bottom: none; }
+.todo-badge {
+    display: inline-block;
+    min-width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+.todo-badge.badge-warning { background: #f0ad4e; }
+.todo-badge.badge-info { background: #5bc0de; }
+.todo-badge.badge-danger { background: #d9534f; }
+.activity-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-time { color: #999; font-size: 12px; }
+.status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+.status-dot.draft { background: #999; }
+.status-dot.pending_review { background: #f0ad4e; }
+.status-dot.approved { background: #5cb85c; }
+.status-dot.rejected { background: #d9534f; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h2>欢迎回来，{{ user.username }}</h2>
-    <p class="text-muted">教师管理面板</p>
+<div class="row" style="margin-bottom:8px;">
+    <div class="col-md-12">
+        <h4 style="font-weight:600;color:#262626;margin:0;">教师仪表盘</h4>
+        <p class="text-muted" style="margin:4px 0 0;">欢迎回来，{{ user.username }}</p>
+    </div>
 </div>
 
 <!-- 统计卡片 -->
 <div class="row dashboard-stats">
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-book"></span>
+    <div class="col-md-3">
+        <a href="/teaching/courses/" class="dash-stat-card card-blue">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-book"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "我的课程"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-courses">-</div>
-            <div class="dash-stat-label">我的课程</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-courses">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-education"></span>
+    <div class="col-md-3">
+        <a href="/teaching/classes/" class="dash-stat-card card-green">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-book"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "我的班级"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-active-classes">-</div>
-            <div class="dash-stat-label">活跃班级</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-classes">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-pencil"></span>
+    <div class="col-md-3">
+        <a href="/documents/?status=pending_review" class="dash-stat-card card-orange">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-file"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "待批改单证"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-pending-grades">-</div>
-            <div class="dash-stat-label">待评分</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-pending">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-user"></span>
+    <div class="col-md-3">
+        <a href="/teaching/grading/" class="dash-stat-card card-purple">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-check"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "成绩管理"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-pending-roles">-</div>
-            <div class="dash-stat-label">待审核角色</div>
-        </div>
+            <div class="dash-stat-right">
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
 </div>
 
-<!-- 两栏内容 -->
+<!-- 图表区域 -->
 <div class="row">
-    <div class="col-md-6">
-        <div class="dash-section">
-            <h3>课程概览</h3>
-            <div id="course-overview">
-                <div class="text-muted">加载中...</div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "课程进度分布"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="chart-container"><canvas id="chartCourseProgress"></canvas></div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="dash-section">
-            <h3>待处理事项</h3>
-            <div id="teacher-todo-list">
-                <div class="dash-todo-item">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                    审核学生角色申请
-                </div>
-                <div class="dash-todo-item todo-warning">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                    批改交易实训报告
-                </div>
-                <div class="dash-todo-item todo-danger">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                    提交本学期成绩
-                </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "学生单证状态"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="chart-container"><canvas id="chartStudentDocStatus"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "班级活跃度"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="chart-container"><canvas id="chartClassActivity"></canvas></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 快捷操作 -->
-<div class="dash-quick-actions">
-    <h3>快捷操作</h3>
-    <a href="/teaching/" class="btn btn-primary">
-        <span class="glyphicon glyphicon-blackboard"></span> 教学管理
-    </a>
-    <a href="/teaching/grading/" class="btn btn-success">
-        <span class="glyphicon glyphicon-check"></span> 评分管理
-    </a>
+<!-- 最近活动 + 待办事项 -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "最近活动"|bilingual }}</h3></div>
+            <div class="panel-body" id="recent-activity" style="padding:0;">
+                <div class="text-muted text-center" style="padding:20px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "待办事项"|bilingual }}</h3></div>
+            <div class="panel-body" id="todo-list" style="padding:0;">
+                <div class="text-muted text-center" style="padding:20px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快捷入口 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "快捷入口"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="dash-quick-actions">
+                    <a href="/teaching/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-blackboard"></span> {{ "教学管理"|bilingual }}
+                    </a>
+                    <a href="/teaching/grading/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-check"></span> {{ "成绩管理"|bilingual }}
+                    </a>
+                    <a href="/teaching/courses/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-list"></span> {{ "课程管理"|bilingual }}
+                    </a>
+                    <a href="/documents/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-file"></span> {{ "单证管理"|bilingual }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboard.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
-window.dashboardUserType = 'teacher';
+$(document).ready(function() {
+    'use strict';
+
+    var statusLabels = {
+        'draft': '草稿', 'pending_review': '待审核',
+        'approved': '已审核', 'rejected': '已驳回',
+        'submitted': '已提交', 'received': '已接收', 'archived': '已归档'
+    };
+    var statusColors = {
+        'draft': '#999', 'pending_review': '#f0ad4e',
+        'approved': '#5cb85c', 'rejected': '#d9534f',
+        'submitted': '#5bc0de', 'received': '#3b5998', 'archived': '#777'
+    };
+    var progressLabels = {
+        'not_started': '未开始', 'in_progress': '进行中',
+        'completed': '已完成', 'archived': '已归档'
+    };
+    var progressColors = {
+        'not_started': '#999', 'in_progress': '#5bc0de',
+        'completed': '#5cb85c', 'archived': '#777'
+    };
+
+    $.get('/api/v1/dashboard/teacher/', function(resp) {
+        // Summary cards
+        $('#stat-courses').text(resp.summary.courses_count || 0);
+        $('#stat-classes').text(resp.summary.classes_count || 0);
+        $('#stat-students').text(resp.summary.students_count || 0);
+        $('#stat-pending').text(resp.summary.pending_review || 0);
+
+        // Course progress chart
+        var cpLabels = resp.course_progress_distribution ? resp.course_progress_distribution.map(function(d) { return progressLabels[d.status] || d.status; }) : [];
+        var cpData = resp.course_progress_distribution ? resp.course_progress_distribution.map(function(d) { return d.count; }) : [];
+        var cpColors = resp.course_progress_distribution ? resp.course_progress_distribution.map(function(d) { return progressColors[d.status] || '#999'; }) : [];
+        if (cpData.length > 0) {
+            new Chart($('#chartCourseProgress'), {
+                type: 'doughnut',
+                data: {
+                    labels: cpLabels,
+                    datasets: [{ data: cpData, backgroundColor: cpColors, borderWidth: 1 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                return cpLabels[idx] + ': ' + cpData[idx] + ' 门';
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartCourseProgress').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
+        }
+
+        // Student document status chart
+        var dsLabels = resp.document_status_distribution ? resp.document_status_distribution.map(function(d) { return statusLabels[d.status] || d.status; }) : [];
+        var dsData = resp.document_status_distribution ? resp.document_status_distribution.map(function(d) { return d.count; }) : [];
+        var dsColors = resp.document_status_distribution ? resp.document_status_distribution.map(function(d) { return statusColors[d.status] || '#999'; }) : [];
+        if (dsData.length > 0) {
+            new Chart($('#chartStudentDocStatus'), {
+                type: 'doughnut',
+                data: {
+                    labels: dsLabels,
+                    datasets: [{ data: dsData, backgroundColor: dsColors, borderWidth: 1 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                return dsLabels[idx] + ': ' + dsData[idx] + ' 份';
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartStudentDocStatus').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
+        }
+
+        // Class activity chart
+        var caLabels = resp.class_activity ? resp.class_activity.map(function(d) { return d.name || '未知班级'; }) : [];
+        var caData = resp.class_activity ? resp.class_activity.map(function(d) { return d.count; }) : [];
+        if (caData.length > 0) {
+            var caBgColors = caData.map(function(_, i) {
+                var colors = ['#4479C1', '#81C14B', '#FF9933', '#DC3912', '#990099'];
+                return colors[i % colors.length];
+            });
+            new Chart($('#chartClassActivity'), {
+                type: 'doughnut',
+                data: {
+                    labels: caLabels,
+                    datasets: [{ data: caData, backgroundColor: caBgColors, borderWidth: 1 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                return caLabels[idx] + ': ' + caData[idx] + ' 人';
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartClassActivity').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
+        }
+
+        // Recent activity
+        var actHtml = '';
+        if (resp.recent_activities && resp.recent_activities.length > 0) {
+            resp.recent_activities.forEach(function(d) {
+                var st = d.status || 'draft';
+                actHtml += '<div class="activity-item">'
+                    + '<span class="status-dot ' + st + '"></span>'
+                    + '<strong>' + (d.description || '') + '</strong>'
+                    + ' <span class="activity-time">' + formatTime(d.created_at) + '</span>'
+                    + '</div>';
+            });
+        } else {
+            actHtml = '<div class="text-muted text-center" style="padding:20px;">暂无活动</div>';
+        }
+        $('#recent-activity').html(actHtml);
+
+        // Todo list
+        var todoHtml = '';
+        var todos = [];
+        if (resp.summary.pending_review > 0) {
+            todos.push({ badge: 'badge-warning', count: resp.summary.pending_review, text: '待批改单证', href: '/teaching/grading/' });
+        }
+        if (resp.summary.pending_role_requests > 0) {
+            todos.push({ badge: 'badge-info', count: resp.summary.pending_role_requests, text: '待审核角色申请', href: '/teaching/roles/' });
+        }
+        if (todos.length === 0) {
+            todoHtml = '<div class="text-muted text-center" style="padding:20px;">暂无待办</div>';
+        } else {
+            todos.forEach(function(t) {
+                todoHtml += '<a href="' + t.href + '" class="todo-item">'
+                    + '<span class="todo-badge ' + t.badge + '">' + t.count + '</span> '
+                    + t.text
+                    + '</a>';
+            });
+        }
+        $('#todo-list').html(todoHtml);
+    }).fail(function() {
+        // If API fails, show empty state
+        $('#stat-courses').text('0');
+        $('#stat-students').text('0');
+        $('#stat-pending').text('0');
+        $('.chart-container').parent().html('<div class="text-muted text-center" style="padding:80px 0;">数据加载失败</div>');
+    });
+
+    function formatTime(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+            + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function pad(n) { return n < 10 ? '0'+n : n; }
+});
 </script>
 {% endblock %}
