@@ -116,8 +116,28 @@ $(document).ready(function() {
         return classes[status] || '';
     }
 
-    // 初始加载
-    loadDocuments();
+    // 初始加载 - 从 URL 参数获取筛选条件
+    function getUrlParams() {
+        var params = {};
+        var queryString = window.location.search.substring(1);
+        if (queryString) {
+            var pairs = queryString.split('&');
+            pairs.forEach(function(pair) {
+                var parts = pair.split('=');
+                params[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1] || '');
+            });
+        }
+        return params;
+    }
+
+    var urlParams = getUrlParams();
+    if (urlParams.status) {
+        $('#filterStatus').val(urlParams.status);
+    }
+    if (urlParams.template) {
+        $('#filterType').val(urlParams.template);
+    }
+    loadDocuments(urlParams);
 
     // 筛选按钮
     $('#filterBtn').click(function() {
