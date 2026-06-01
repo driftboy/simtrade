@@ -30,7 +30,7 @@
         <ul class="nav nav-tabs" id="workspace-tab-nav" role="tablist">
             {% for nav in role_config.nav_items %}
             <li role="presentation"{% if forloop.first %} class="active"{% endif %}>
-                <a href="#list-{{ forloop.counter }}" data-tab="{{ forloop.counter }}" data-api="{{ nav.api }}" aria-controls="list-{{ forloop.counter }}" role="tab" data-toggle="tab">{{ nav.label|bilingual }}</a>
+                <a href="{% if nav.external %}{{ nav.href }}{% else %}#list-{{ forloop.counter }}{% endif %}" data-tab="{{ forloop.counter }}" {% if nav.api %}data-api="{{ nav.api }}"{% endif %} aria-controls="list-{{ forloop.counter }}" role="tab" {% if not nav.external %}data-toggle="tab"{% endif %}>{{ nav.label|bilingual }}</a>
             </li>
             {% endfor %}
         </ul>
