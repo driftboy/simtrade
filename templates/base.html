@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load bilingual %}
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -41,21 +42,21 @@
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    <li><a href="/dashboard/">仪表盘</a></li>
+                    <li><a href="/dashboard/">{{ "仪表盘"|bilingual }}</a></li>
                     {% if user.is_authenticated %}
                         {% if user.user_type == 'student' %}
-                        <li><a href="/workspace/">工作台</a></li>
+                        <li><a href="/workspace/">{{ "工作台"|bilingual }}</a></li>
                         {% endif %}
                         {% if user.user_type == 'teacher' %}
-                        <li><a href="/teaching/">教学管理</a></li>
+                        <li><a href="/teaching/">{{ "教学管理"|bilingual }}</a></li>
                         {% endif %}
                         {% if user.user_type == 'admin' %}
-                        <li><a href="/admin-panel/">管理后台</a></li>
-                        <li><a href="/teaching/">教学管理</a></li>
+                        <li><a href="/admin-panel/">{{ "管理后台"|bilingual }}</a></li>
+                        <li><a href="/teaching/">{{ "教学管理"|bilingual }}</a></li>
                         {% endif %}
-                        <li><a href="/market/">市场</a></li>
-                        <li><a href="/transactions/">交易</a></li>
-                        <li><a href="/documents/">单证</a></li>
+                        <li><a href="/market/">{{ "市场"|bilingual }}</a></li>
+                        <li><a href="/transactions/">{{ "交易"|bilingual }}</a></li>
+                        <li><a href="/documents/">{{ "单证"|bilingual }}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
@@ -85,14 +86,14 @@
                                 {{ user.username }} <span class="caret"></span>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a href="/profile/">个人中心</a></li>
+                                <li><a href="/profile/">{{ "个人中心"|bilingual }}</a></li>
                                 <li role="separator" class="divider"></li>
-                                <li><a href="#" id="logout-link">退出登录</a></li>
+                                <li><a href="#" id="logout-link">{{ "退出登录"|bilingual }}</a></li>
                             </ul>
                         </li>
                     {% else %}
-                        <li><a href="/login/">登录</a></li>
-                        <li><a href="/register/">注册</a></li>
+                        <li><a href="/login/">{{ "登录"|bilingual }}</a></li>
+                        <li><a href="/register/">{{ "注册"|bilingual }}</a></li>
                     {% endif %}
                 </ul>
             </div><!--/.nav-collapse -->
