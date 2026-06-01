@@ -62,6 +62,18 @@ class Transaction(models.Model):
         return f"交易 #{self.id}"
 
 
+class PaymentTerm(models.TextChoices):
+    """付款方式枚举"""
+    LC = 'lc', '信用证 (L/C)'
+    DP = 'dp', '付款交单 (D/P)'
+    DA = 'da', '承兑交单 (D/A)'
+    TT = 'tt', '电汇 (T/T)'
+    TT_IN_ADVANCE = 'tt_advance', '前T/T (预付)'
+    TT_AT_SIGHT = 'tt_sight', '后T/T (货到付款)'
+    WESTERN_UNION = 'wu', '西联汇款'
+    OTHER = 'other', '其他'
+
+
 class InquiryMessage(models.Model):
     """询盘/发盘/还盘消息"""
 
