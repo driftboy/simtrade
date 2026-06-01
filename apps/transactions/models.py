@@ -106,6 +106,23 @@ class InquiryMessage(models.Model):
     offered_price = models.DecimalField('报价单价', max_digits=12, decimal_places=2, null=True, blank=True)
     offered_trade_term = models.CharField('报价贸易术语', max_length=10, blank=True)
     attachment = models.FileField('附件', upload_to='inquiry_attachments/', blank=True)
+
+    # 报价商品信息
+    offered_product_name = models.CharField('报价商品名称', max_length=200)
+    offered_product_code = models.CharField('报价商品编码', max_length=50, blank=True)
+
+    # 报价交易条款
+    offered_payment_term = models.CharField(
+        '报价付款方式',
+        max_length=20,
+        choices=PaymentTerm.choices,
+        blank=True
+    )
+    offered_delivery_date = models.DateField('报价交货日期', null=True, blank=True)
+    offered_packing = models.TextField('报价包装要求', blank=True)
+    offered_quality_standard = models.TextField('报价质量标准', blank=True)
+    offered_insurance = models.CharField('报价保险条款', max_length=200, blank=True)
+
     is_read = models.BooleanField('是否已读', default=False)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
 
