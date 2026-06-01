@@ -1,5 +1,6 @@
 {% extends "workspace/base.html" %}
 {% load static %}
+{% load bilingual %}
 
 {% block title %}角色工作台 - SimTrade{% endblock %}
 
@@ -29,7 +30,7 @@
         <ul class="nav nav-tabs" id="workspace-tab-nav" role="tablist">
             {% for nav in role_config.nav_items %}
             <li role="presentation"{% if forloop.first %} class="active"{% endif %}>
-                <a href="#list-{{ forloop.counter }}" data-tab="{{ forloop.counter }}" aria-controls="list-{{ forloop.counter }}" role="tab" data-toggle="tab">{{ nav.label }}</a>
+                <a href="#list-{{ forloop.counter }}" data-tab="{{ forloop.counter }}" data-api="{{ nav.api }}" aria-controls="list-{{ forloop.counter }}" role="tab" data-toggle="tab">{{ nav.label|bilingual }}</a>
             </li>
             {% endfor %}
         </ul>
@@ -38,7 +39,7 @@
             {% for nav in role_config.nav_items %}
             <div role="tabpanel" class="tab-pane{% if forloop.first %} active{% endif %}" id="list-{{ forloop.counter }}">
                 <div class="text-center" style="padding: 40px; color: #999;">
-                    <span class="spinner"></span> 加载中...
+                    <span class="spinner"></span> {{ "加载中"|bilingual }}
                 </div>
             </div>
             {% endfor %}
