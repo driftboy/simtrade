@@ -10,6 +10,7 @@ register = template.Library()
 TRANSLATION_MAP = {
     # 主导航
     '仪表盘': 'Dashboard',
+    '公司列表': 'Company List',
     '工作台': 'Workspace',
     '教学管理': 'Teaching Management',
     '管理后台': 'Admin Panel',

@@ -45,6 +45,7 @@
                     <li><a href="/dashboard/">{{ "仪表盘"|bilingual }}</a></li>
                     {% if user.is_authenticated %}
                         {% if user.user_type == 'student' %}
+                        <li><a href="/companies/">{{ "公司列表"|bilingual }}</a></li>
                         <li><a href="/workspace/">{{ "工作台"|bilingual }}</a></li>
                         {% endif %}
                         {% if user.user_type == 'teacher' %}
