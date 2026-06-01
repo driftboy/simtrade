@@ -1,107 +1,412 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bilingual %}
 
 {% block title %}学生仪表盘 - SimTrade{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+<style>
+.chart-container {
+    position: relative;
+    height: 220px;
+    margin: 10px 0;
+}
+.dash-section { margin-bottom: 20px; }
+.dash-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 2px solid #4a90d9;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+.todo-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    text-decoration: none;
+    color: inherit;
+}
+.todo-item:hover { background: #f9f9f9; }
+.todo-item:last-child { border-bottom: none; }
+.todo-badge {
+    display: inline-block;
+    min-width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+.todo-badge.badge-warning { background: #f0ad4e; }
+.todo-badge.badge-info { background: #5bc0de; }
+.todo-badge.badge-danger { background: #d9534f; }
+.todo-badge.badge-success { background: #5cb85c; }
+.activity-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-time { color: #999; font-size: 12px; }
+.status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+.status-dot.draft { background: #999; }
+.status-dot.pending_review { background: #f0ad4e; }
+.status-dot.approved { background: #5cb85c; }
+.status-dot.rejected { background: #d9534f; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h2>欢迎回来，{{ user.username }}</h2>
-    <p class="text-muted">当前角色：<span id="stat-active-role">加载中...</span></p>
+<div class="row" style="margin-bottom:8px;">
+    <div class="col-md-12">
+        <h4 style="font-weight:600;color:#262626;margin:0;">学生仪表盘</h4>
+        <p class="text-muted" style="margin:4px 0 0;">欢迎回来，{{ user.username }}</p>
+    </div>
 </div>
 
 <!-- 统计卡片 -->
 <div class="row dashboard-stats">
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-transfer"></span>
+    <div class="col-md-3">
+        <a href="/transactions/" class="dash-stat-card card-blue">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-transfer"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "活跃交易"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-active-transactions">-</div>
-            <div class="dash-stat-label">活跃交易</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-transactions">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-file"></span>
+    <div class="col-md-3">
+        <a href="/documents/" class="dash-stat-card card-green">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-file"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "我的单证"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-pending-documents">-</div>
-            <div class="dash-stat-label">待处理单证</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-documents">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-envelope"></span>
+    <div class="col-md-3">
+        <a href="/documents/?status=pending" class="dash-stat-card card-orange">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-alert"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "待处理单证"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-unread-count">-</div>
-            <div class="dash-stat-label">未读通知</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-pending">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="dash-stat-card">
-            <div class="dash-stat-icon">
-                <span class="glyphicon glyphicon-user"></span>
+    <div class="col-md-3">
+        <a href="/notifications/" class="dash-stat-card card-purple">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-envelope"></span></div>
+            <div class="dash-stat-info">
+                <div class="dash-stat-label">{{ "未读通知"|bilingual }}</div>
             </div>
-            <div class="dash-stat-value" id="stat-active-role">-</div>
-            <div class="dash-stat-label">已激活角色</div>
-        </div>
+            <div class="dash-stat-right">
+                <div class="dash-stat-value" id="stat-notifications">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
+            </div>
+        </a>
     </div>
 </div>
 
-<!-- 两栏内容 -->
+<!-- 图表区域 -->
 <div class="row">
-    <div class="col-md-6">
-        <div class="dash-section">
-            <h3>最近交易动态</h3>
-            <div id="recent-activity">
-                <div class="text-muted">加载中...</div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "我的单证状态"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="chart-container"><canvas id="chartDocStatus"></canvas></div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="dash-section">
-            <h3>待办事项</h3>
-            <div id="todo-list">
-                <div class="dash-todo-item">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                    检查待处理的交易询盘
-                </div>
-                <div class="dash-todo-item todo-warning">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                    完成到期单证的填制
-                </div>
-                <div class="dash-todo-item todo-danger">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                    确认信用证条款
-                </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "交易进度"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="chart-container"><canvas id="chartTransactionProgress"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "角色分布"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="chart-container"><canvas id="chartRoleDist"></canvas></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 快捷操作 -->
-<div class="dash-quick-actions">
-    <h3>快捷操作</h3>
-    <a href="/workspace/" class="btn btn-primary">
-        <span class="glyphicon glyphicon-briefcase"></span> 进入工作台
-    </a>
-    <a href="/market/" class="btn btn-success">
-        <span class="glyphicon glyphicon-shopping-cart"></span> 浏览市场
-    </a>
-    <a href="/transactions/" class="btn btn-info">
-        <span class="glyphicon glyphicon-list"></span> 我的交易
-    </a>
+<!-- 最近活动 + 待办事项 -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "最近活动"|bilingual }}</h3></div>
+            <div class="panel-body" id="recent-activity" style="padding:0;">
+                <div class="text-muted text-center" style="padding:20px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "待办事项"|bilingual }}</h3></div>
+            <div class="panel-body" id="todo-list" style="padding:0;">
+                <div class="text-muted text-center" style="padding:20px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快捷入口 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{{ "快捷入口"|bilingual }}</h3></div>
+            <div class="panel-body">
+                <div class="dash-quick-actions">
+                    <a href="/workspace/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-briefcase"></span> {{ "工作台"|bilingual }}
+                    </a>
+                    <a href="/market/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-shopping-cart"></span> {{ "市场大厅"|bilingual }}
+                    </a>
+                    <a href="/transactions/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-list"></span> {{ "我的交易"|bilingual }}
+                    </a>
+                    <a href="/documents/" class="dash-quick-link">
+                        <span class="glyphicon glyphicon-file"></span> {{ "单证管理"|bilingual }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboard.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
-window.dashboardUserType = 'student';
+$(document).ready(function() {
+    'use strict';
+
+    var statusLabels = {
+        'draft': '草稿', 'pending_review': '待审核',
+        'approved': '已审核', 'rejected': '已驳回',
+        'submitted': '已提交', 'received': '已接收', 'archived': '已归档'
+    };
+    var statusColors = {
+        'draft': '#999', 'pending_review': '#f0ad4e',
+        'approved': '#5cb85c', 'rejected': '#d9534f',
+        'submitted': '#5bc0de', 'received': '#3b5998', 'archived': '#777'
+    };
+    var transactionStatusLabels = {
+        'inquiry': '询盘', 'negotiating': '谈判中',
+        'contract_signed': '已签约', 'in_progress': '执行中',
+        'completed': '已完成', 'cancelled': '已取消'
+    };
+    var transactionStatusColors = {
+        'inquiry': '#5bc0de', 'negotiating': '#f0ad4e',
+        'contract_signed': '#4479C1', 'in_progress': '#81C14B',
+        'completed': '#5cb85c', 'cancelled': '#999'
+    };
+
+    $.get('/api/v1/dashboard/student/', function(resp) {
+        // Summary cards
+        $('#stat-transactions').text(resp.summary.transactions_count || 0);
+        $('#stat-documents').text(resp.summary.documents_count || 0);
+        $('#stat-pending').text(resp.summary.pending_documents || 0);
+        $('#stat-notifications').text(resp.summary.unread_notifications || 0);
+
+        // Document status chart - aggregate by status
+        var dsAgg = {};
+        if (resp.document_status_distribution) {
+            resp.document_status_distribution.forEach(function(d) {
+                var key = statusLabels[d.status] || d.status;
+                dsAgg[key] = (dsAgg[key] || 0) + (d.count || 1);
+            });
+        }
+        var dsLabels = Object.keys(dsAgg);
+        var dsData = dsLabels.map(function(k) { return dsAgg[k]; });
+        var dsColors = dsLabels.map(function(label) {
+            for (var status in statusLabels) {
+                if (statusLabels[status] === label) return statusColors[status];
+            }
+            return '#999';
+        });
+        if (dsData.length > 0) {
+            new Chart($('#chartDocStatus'), {
+                type: 'doughnut',
+                data: {
+                    labels: dsLabels,
+                    datasets: [{ data: dsData, backgroundColor: dsColors, borderWidth: 1 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                return dsLabels[idx] + ': ' + dsData[idx] + ' 份';
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartDocStatus').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
+        }
+
+        // Transaction progress chart - aggregate by status
+        var tpAgg = {};
+        if (resp.transaction_status_distribution) {
+            resp.transaction_status_distribution.forEach(function(d) {
+                var key = transactionStatusLabels[d.status] || d.status;
+                tpAgg[key] = (tpAgg[key] || 0) + (d.count || 1);
+            });
+        }
+        var tpLabels = Object.keys(tpAgg);
+        var tpData = tpLabels.map(function(k) { return tpAgg[k]; });
+        var tpColors = tpLabels.map(function(label) {
+            for (var status in transactionStatusLabels) {
+                if (transactionStatusLabels[status] === label) return transactionStatusColors[status];
+            }
+            return '#999';
+        });
+        if (tpData.length > 0) {
+            new Chart($('#chartTransactionProgress'), {
+                type: 'doughnut',
+                data: {
+                    labels: tpLabels,
+                    datasets: [{ data: tpData, backgroundColor: tpColors, borderWidth: 1 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                return tpLabels[idx] + ': ' + tpData[idx] + ' 笔';
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartTransactionProgress').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
+        }
+
+        // Role distribution chart - aggregate by name
+        var rdAgg = {};
+        if (resp.role_distribution) {
+            resp.role_distribution.forEach(function(d) {
+                var key = d.name || '未知';
+                rdAgg[key] = (rdAgg[key] || 0) + (d.count || 1);
+            });
+        }
+        var rdLabels = Object.keys(rdAgg);
+        var rdData = rdLabels.map(function(k) { return rdAgg[k]; });
+        if (rdData.length > 0) {
+            var rdBgColors = rdData.map(function(_, i) {
+                var colors = ['#4479C1', '#81C14B', '#FF9933', '#DC3912', '#990099'];
+                return colors[i % colors.length];
+            });
+            new Chart($('#chartRoleDist'), {
+                type: 'doughnut',
+                data: {
+                    labels: rdLabels,
+                    datasets: [{ data: rdData, backgroundColor: rdBgColors, borderWidth: 1 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                return rdLabels[idx] + ': ' + rdData[idx] + ' 个';
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartRoleDist').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
+        }
+
+        // Recent activity
+        var actHtml = '';
+        if (resp.recent_activities && resp.recent_activities.length > 0) {
+            resp.recent_activities.forEach(function(d) {
+                var st = d.status || 'draft';
+                actHtml += '<div class="activity-item">'
+                    + '<span class="status-dot ' + st + '"></span>'
+                    + '<strong>' + (d.description || '') + '</strong>'
+                    + ' <span class="activity-time">' + formatTime(d.created_at) + '</span>'
+                    + '</div>';
+            });
+        } else {
+            actHtml = '<div class="text-muted text-center" style="padding:20px;">暂无活动</div>';
+        }
+        $('#recent-activity').html(actHtml);
+
+        // Todo list
+        var todoHtml = '';
+        var todos = [];
+        if (resp.summary.pending_documents > 0) {
+            todos.push({ badge: 'badge-warning', count: resp.summary.pending_documents, text: '待处理单证', href: '/documents/?status=pending' });
+        }
+        if (resp.summary.pending_reviews > 0) {
+            todos.push({ badge: 'badge-info', count: resp.summary.pending_reviews, text: '待审核反馈', href: '/documents/?status=submitted' });
+        }
+        if (resp.summary.expiring_transactions > 0) {
+            todos.push({ badge: 'badge-danger', count: resp.summary.expiring_transactions, text: '即将到期交易', href: '/transactions/' });
+        }
+        if (todos.length === 0) {
+            todoHtml = '<div class="text-muted text-center" style="padding:20px;">暂无待办</div>';
+        } else {
+            todos.forEach(function(t) {
+                todoHtml += '<a href="' + t.href + '" class="todo-item">'
+                    + '<span class="todo-badge ' + t.badge + '">' + t.count + '</span> '
+                    + t.text
+                    + '</a>';
+            });
+        }
+        $('#todo-list').html(todoHtml);
+    }).fail(function() {
+        // If API fails, show empty state
+        $('#stat-transactions').text('0');
+        $('#stat-documents').text('0');
+        $('#stat-pending').text('0');
+        $('#stat-notifications').text('0');
+        $('.chart-container').parent().html('<div class="text-muted text-center" style="padding:80px 0;">数据加载失败</div>');
+    });
+
+    function formatTime(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+            + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function pad(n) { return n < 10 ? '0'+n : n; }
+});
 </script>
 {% endblock %}
