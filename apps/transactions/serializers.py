@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.products.models import Product
+from apps.roles.models import Company
 from apps.transactions.models import (
     Transaction, InquiryMessage, Contract, ContractSignature,
     ContractAmendment, LetterOfCredit, LcAmendment, BankOperation,
@@ -22,6 +23,23 @@ class TransactionSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_code = serializers.CharField(source='product.code', read_only=True)
+    # seller 可选：市场询盘时买方不知道卖方是谁
+    seller = serializers.PrimaryKeyRelatedField(
+        queryset=Company.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    # quantity, unit_price 可选：询盘时买方可能只询问不指定数量价格
+    quantity = serializers.IntegerField(required=False, allow_null=True)
+    unit_price = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True
+    )
+    # 新增共识字段
+    payment_term = serializers.CharField(allow_blank=True, required=False)
+    payment_term_display = serializers.CharField(source='get_payment_term_display', read_only=True)
+    delivery_date = serializers.DateField(allow_null=True, required=False)
+    packing = serializers.CharField(allow_blank=True, required=False)
+    insurance = serializers.CharField(allow_blank=True, max_length=200, required=False)
 
     class Meta:
         model = Transaction
@@ -30,7 +48,9 @@ class TransactionSerializer(serializers.ModelSerializer):
                   'product', 'product_name', 'product_code',
                   'status', 'status_display', 'quantity',
                   'unit_price', 'currency', 'trade_term', 'port_of_loading',
-                  'port_of_discharge', 'notes', 'created_at', 'updated_at']
+                  'port_of_discharge',
+                  'payment_term', 'payment_term_display', 'delivery_date', 'packing', 'insurance',
+                  'notes', 'created_at', 'updated_at']
         read_only_fields = ['id', 'buyer', 'created_at', 'updated_at']
 
 
@@ -39,13 +59,35 @@ class InquiryMessageSerializer(serializers.ModelSerializer):
 
     sender_username = serializers.CharField(source='sender.username', read_only=True)
     message_type_display = serializers.CharField(source='get_message_type_display', read_only=True)
+    # 报价商品信息 - offered_product_name 对新消息必填，但数据库允许空白以兼容现有记录
+    offered_product_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    offered_product_code = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    # 报价交易条款 - 均为可选
+    offered_payment_term = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    offered_payment_term_display = serializers.CharField(source='get_offered_payment_term_display', read_only=True)
+    offered_delivery_date = serializers.DateField(required=False, allow_null=True)
+    offered_packing = serializers.CharField(required=False, allow_blank=True)
+    offered_quality_standard = serializers.CharField(required=False, allow_blank=True)
+    offered_insurance = serializers.CharField(max_length=200, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        """验证：新消息必须包含 offered_product_name（排除历史遗留记录）"""
+        # 对于新创建的消息（没有pk），要求 offered_product_name
+        if not self.instance and not attrs.get('offered_product_name'):
+            raise serializers.ValidationError({
+                'offered_product_name': '此字段为新消息必填项。'
+            })
+        return attrs
 
     class Meta:
         model = InquiryMessage
         fields = ['id', 'transaction', 'sender', 'sender_username', 'sender_role',
+                  'offered_product_name', 'offered_product_code',
+                  'offered_payment_term', 'offered_payment_term_display',
+                  'offered_delivery_date', 'offered_packing', 'offered_quality_standard', 'offered_insurance',
                   'message_type', 'message_type_display', 'content',
                   'offered_quantity', 'offered_price', 'offered_trade_term',
-                  'is_read', 'created_at']
+                  'attachment', 'is_read', 'created_at']
         read_only_fields = ['id', 'transaction', 'sender', 'sender_username', 'sender_role', 'created_at']
 
 
