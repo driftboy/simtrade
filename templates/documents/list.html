@@ -59,19 +59,109 @@
 $(document).ready(function() {
     'use strict';
 
-    function loadDocuments(filters) {
+    // 分页状态
+    var paginationState = {
+        currentPage: 1,
+        pageSize: 5,
+        totalCount: 0,
+        totalPages: 1,
+        nextUrl: null,
+        previousUrl: null
+    };
+
+    function getStatusClass(status) {
+        var classes = {
+            'draft': 'status-draft',
+            'pending_review': 'status-pending',
+            'approved': 'status-approved',
+            'rejected': 'status-rejected'
+        };
+        return classes[status] || '';
+    }
+
+    // 渲染分页控件
+    function renderPaginationControls() {
+        var controlsHtml = `
+            <div class="row">
+                <div class="col-md-4">
+                    <select id="pageSizeSelect" class="form-control input-sm">
+                        <option value="5" ${paginationState.pageSize === 5 ? 'selected' : ''}>每页 5 条</option>
+                        <option value="10" ${paginationState.pageSize === 10 ? 'selected' : ''}>每页 10 条</option>
+                        <option value="20" ${paginationState.pageSize === 20 ? 'selected' : ''}>每页 20 条</option>
+                        <option value="50" ${paginationState.pageSize === 50 ? 'selected' : ''}>每页 50 条</option>
+                    </select>
+                </div>
+                <div class="col-md-8 text-right">
+                    <span class="page-info" style="margin-right: 10px;">
+                        第 ${paginationState.currentPage} / ${paginationState.totalPages} 页，共 ${paginationState.totalCount} 条
+                    </span>
+                    <button class="btn btn-sm btn-default pagination-first" ${!paginationState.previousUrl ? 'disabled' : ''}>首页</button>
+                    <button class="btn btn-sm btn-default pagination-prev" ${!paginationState.previousUrl ? 'disabled' : ''}>上一页</button>
+                    <button class="btn btn-sm btn-default pagination-next" ${!paginationState.nextUrl ? 'disabled' : ''}>下一页</button>
+                    <button class="btn btn-sm btn-default pagination-last" ${!paginationState.nextUrl ? 'disabled' : ''}>末页</button>
+                </div>
+            </div>
+        `;
+
+        $('#paginationControlsTop').html(controlsHtml);
+        $('#paginationControlsBottom').html(controlsHtml);
+
+        // 绑定事件（仅顶部控件）
+        $('#paginationControlsTop #pageSizeSelect').change(function() {
+            var newSize = parseInt($(this).val());
+            saveUserPreference(newSize);
+        });
+
+        $('#paginationControlsTop .pagination-prev').click(function() {
+            if (paginationState.previousUrl) {
+                loadPageFromUrl(paginationState.previousUrl);
+            }
+        });
+
+        $('#paginationControlsTop .pagination-next').click(function() {
+            if (paginationState.nextUrl) {
+                loadPageFromUrl(paginationState.nextUrl);
+            }
+        });
+
+        $('#paginationControlsTop .pagination-first').click(function() {
+            loadPage(1);
+        });
+
+        $('#paginationControlsTop .pagination-last').click(function() {
+            loadPage(paginationState.totalPages);
+        });
+    }
+
+    function loadDocuments(page, pageSize, filters) {
+        page = page || 1;
+        pageSize = pageSize || paginationState.pageSize;
         filters = filters || {};
+
         var params = $.param(filters);
+        var url = '/api/v1/documents/documents/?page=' + page + '&page_size=' + pageSize;
+        if (params) {
+            url += '&' + params;
+        }
 
         $.ajax({
-            url: '/api/v1/documents/documents/?' + params,
+            url: url,
             method: 'GET',
             headers: {
                 'X-CSRFToken': $.cookie('csrftoken')
             },
             success: function(response) {
+                // 更新分页状态
+                paginationState.currentPage = page;
+                paginationState.pageSize = pageSize;
+                paginationState.totalCount = response.count;
+                paginationState.totalPages = Math.ceil(response.count / pageSize);
+                paginationState.nextUrl = response.next ? extractPageFromUrl(response.next) : null;
+                paginationState.previousUrl = response.previous ? extractPageFromUrl(response.previous) : null;
+
+                // 渲染列表
                 var html = '';
-                var items = response.data || response.results || [];
+                var items = response.results || [];
                 if (items.length === 0) {
                     html = '<div class="alert alert-info">暂无单证</div>';
                 } else {
@@ -98,6 +188,7 @@ $(document).ready(function() {
                     });
                 }
                 $('#documentList').html(html);
+                renderPaginationControls();
             },
             error: function(xhr) {
                 var msg = '加载失败';
@@ -111,17 +202,36 @@ $(document).ready(function() {
         });
     }
 
-    function getStatusClass(status) {
-        var classes = {
-            'draft': 'status-draft',
-            'pending_review': 'status-pending',
-            'approved': 'status-approved',
-            'rejected': 'status-rejected'
-        };
-        return classes[status] || '';
+    // 从 URL 中提取页码
+    function extractPageFromUrl(url) {
+        var match = url.match(/[?&]page=(\d+)/);
+        return match ? parseInt(match[1]) : null;
     }
 
-    // 初始加载 - 从 URL 参数获取筛选条件
+    // 加载指定页
+    function loadPage(pageNum) {
+        loadDocuments(pageNum, paginationState.pageSize, getCurrentFilters());
+    }
+
+    // 从 URL 加载页面
+    function loadPageFromUrl(url) {
+        if (!url) return;
+        var page = extractPageFromUrl(url);
+        if (page) {
+            loadPage(page);
+        }
+    }
+
+    // 获取当前筛选条件
+    function getCurrentFilters() {
+        var filters = {};
+        if ($('#filterType').val()) filters.template = $('#filterType').val();
+        if ($('#filterStatus').val()) filters.status = $('#filterStatus').val();
+        if ($('#filterTransaction').val()) filters.transaction_id = $('#filterTransaction').val();
+        return filters;
+    }
+
+    // 从 URL 参数获取筛选条件
     function getUrlParams() {
         var params = {};
         var queryString = window.location.search.substring(1);
@@ -135,21 +245,58 @@ $(document).ready(function() {
         return params;
     }
 
-    var urlParams = getUrlParams();
-    if (urlParams.status) {
-        $('#filterStatus').val(urlParams.status);
+    // 保存用户偏好设置
+    function saveUserPreference(pageSize) {
+        $.ajax({
+            url: '/api/v1/auth/me/',
+            method: 'PUT',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({ documents_per_page: pageSize }),
+            success: function(response) {
+                // 保存成功，重新加载第一页
+                loadDocuments(1, pageSize, getCurrentFilters());
+            },
+            error: function() {
+                // 保存失败，仍使用新设置但仅本地生效
+                loadDocuments(1, pageSize, getCurrentFilters());
+            }
+        });
     }
-    if (urlParams.template) {
-        $('#filterType').val(urlParams.template);
+
+    // 加载用户偏好设置
+    function loadUserPreferences() {
+        $.ajax({
+            url: '/api/v1/auth/me/',
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': $.cookie('csrftoken')
+            },
+            success: function(response) {
+                var userPref = response.data;
+                if (userPref && userPref.documents_per_page) {
+                    paginationState.pageSize = userPref.documents_per_page;
+                }
+            },
+            complete: function() {
+                // 加载完偏好后加载列表
+                var urlParams = getUrlParams();
+                if (urlParams.status) $('#filterStatus').val(urlParams.status);
+                if (urlParams.template) $('#filterType').val(urlParams.template);
+                loadDocuments(1, paginationState.pageSize, urlParams);
+            }
+        });
     }
-    loadDocuments(urlParams);
+
+    // 初始加载 - 先加载用户偏好
+    loadUserPreferences();
 
     // 筛选按钮
     $('#filterBtn').click(function() {
-        var filters = {};
-        if ($('#filterType').val()) filters.template = $('#filterType').val();
-        if ($('#filterStatus').val()) filters.status = $('#filterStatus').val();
-        loadDocuments(filters);
+        var filters = getCurrentFilters();
+        loadDocuments(1, paginationState.pageSize, filters);
     });
 });
 </script>
