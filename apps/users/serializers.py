@@ -51,8 +51,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'user_type', 'phone',
-            'student_id', 'avatar', 'is_active', 'is_superuser',
-            'roles', 'created_at', 'updated_at'
+            'student_id', 'avatar', 'documents_per_page',
+            'is_active', 'is_superuser', 'roles',
+            'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'is_active', 'is_superuser', 'roles',
@@ -145,3 +146,21 @@ class UserSearchSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'student_id', 'admin_class', 'user_type']
+
+
+class UserPreferenceSerializer(serializers.Serializer):
+    """用户偏好设置序列化器"""
+    documents_per_page = serializers.IntegerField(
+        min_value=5,
+        max_value=50,
+        help_text='单证列表每页显示数量（5/10/20/50）'
+    )
+
+    def validate_documents_per_page(self, value):
+        """验证每页条数必须是预定义选项之一"""
+        valid_values = [5, 10, 20, 50]
+        if value not in valid_values:
+            raise serializers.ValidationError(
+                f'每页显示数量必须是以下值之一: {valid_values}'
+            )
+        return value
