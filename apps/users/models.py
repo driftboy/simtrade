@@ -4,6 +4,7 @@ User models and RBAC (Role-Based Access Control) system for SimTrade Platform.
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.exceptions import PermissionDenied
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class User(AbstractUser):
@@ -27,6 +28,11 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True, null=True)
     student_id = models.CharField(max_length=50, blank=True, null=True)
     avatar = models.URLField(blank=True, null=True)
+    documents_per_page = models.PositiveIntegerField(
+        default=5,
+        validators=[MinValueValidator(5), MaxValueValidator(50)],
+        help_text='单证列表每页显示数量'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
