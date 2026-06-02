@@ -1,11 +1,10 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% load static %}
 {% load bilingual %}
 
-{% block title %}管理员仪表盘 - SimTrade{% endblock %}
+{% block page_title %}{{ "概览"|bilingual }}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
 <style>
 .chart-container {
     position: relative;
@@ -62,18 +61,19 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block admin_content %}
+<!-- Page Header -->
 <div class="row" style="margin-bottom:8px;">
     <div class="col-md-12">
-        <h4 style="font-weight:600;color:#262626;margin:0;">管理员仪表盘</h4>
-        <p class="text-muted" style="margin:4px 0 0;">欢迎回来，{{ user.username }}</p>
+        <h4 style="font-weight:600;color:#262626;margin:0;">{{ "管理员仪表盘"|bilingual }}</h4>
+        <p class="text-muted" style="margin:4px 0 0;">{{ "欢迎回来"|bilingual }}，{{ user.username }}</p>
     </div>
 </div>
 
 <!-- 统计卡片 -->
 <div class="row dashboard-stats">
     <div class="col-md-3">
-        <a href="/admin-panel/users/" class="dash-stat-card card-blue">
+        <a href="/admin/users/" class="dash-stat-card card-blue">
             <div class="dash-stat-icon"><span class="glyphicon glyphicon-user"></span></div>
             <div class="dash-stat-info">
                 <div class="dash-stat-label">{{ "注册用户"|bilingual }}</div>
@@ -109,7 +109,7 @@
         </a>
     </div>
     <div class="col-md-3">
-        <a href="/admin-panel/system/" class="dash-stat-card card-purple">
+        <a href="/teaching/semesters/" class="dash-stat-card card-purple">
             <div class="dash-stat-icon"><span class="glyphicon glyphicon-calendar"></span></div>
             <div class="dash-stat-info">
                 <div class="dash-stat-label">{{ "活跃学期"|bilingual }}</div>
@@ -169,34 +169,6 @@
         </div>
     </div>
 </div>
-
-<!-- 快捷入口 -->
-<div class="row">
-    <div class="col-md-12">
-        <div class="panel panel-default">
-            <div class="panel-heading"><h3 class="panel-title">{{ "快捷入口"|bilingual }}</h3></div>
-            <div class="panel-body">
-                <div class="dash-quick-actions">
-                    <a href="/admin-panel/users/" class="dash-quick-link">
-                        <span class="glyphicon glyphicon-user"></span> {{ "用户管理"|bilingual }}
-                    </a>
-                    <a href="/admin-panel/system/" class="dash-quick-link">
-                        <span class="glyphicon glyphicon-cog"></span> {{ "系统设置"|bilingual }}
-                    </a>
-                    <a href="/teaching/" class="dash-quick-link">
-                        <span class="glyphicon glyphicon-book"></span> {{ "教学管理"|bilingual }}
-                    </a>
-                    <a href="/documents/" class="dash-quick-link">
-                        <span class="glyphicon glyphicon-file"></span> {{ "单证管理"|bilingual }}
-                    </a>
-                    <a href="/market/" class="dash-quick-link">
-                        <span class="glyphicon glyphicon-shopping-cart"></span> {{ "市场大厅"|bilingual }}
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -222,22 +194,14 @@ $(document).ready(function() {
         'admin': '#d9534f', 'teacher': '#5bc0de', 'student': '#5cb85c'
     };
     var docTypeColors = {
-        'commercial_invoice': '#4479C1',
-        'packing_list': '#81C14B',
-        'bill_of_exchange': '#FF9933',
-        'sales_contract': '#DC3912',
-        'letter_of_credit': '#949494',
-        'bill_of_lading': '#109618',
-        'air_waybill': '#990099',
-        'insurance_policy': '#3B3EAC',
-        'insurance_application': '#0099C6',
-        'export_declaration': '#DD4477',
-        'import_declaration': '#66AA00',
-        'inspection_application': '#B82EE8',
-        'inspection_certificate': '#316395',
-        'certificate_of_origin': '#994499',
-        'beneficiary_certificate': '#22AA99',
-        'shipping_advice': '#AA0033'
+        'commercial_invoice': '#4479C1', 'packing_list': '#81C14B',
+        'bill_of_exchange': '#FF9933', 'sales_contract': '#DC3912',
+        'letter_of_credit': '#949494', 'bill_of_lading': '#109618',
+        'air_waybill': '#990099', 'insurance_policy': '#3B3EAC',
+        'insurance_application': '#0099C6', 'export_declaration': '#DD4477',
+        'import_declaration': '#66AA00', 'inspection_application': '#B82EE8',
+        'inspection_certificate': '#316395', 'certificate_of_origin': '#994499',
+        'beneficiary_certificate': '#22AA99', 'shipping_advice': '#AA0033'
     };
 
     $.get('/api/v1/dashboard/stats/', function(resp) {
@@ -246,17 +210,17 @@ $(document).ready(function() {
         $('#stat-documents').text(resp.summary.total_documents);
         $('#stat-courses').text(resp.summary.total_courses);
 
-    // Active semesters
-    $.get('/api/v1/teaching/semesters/', function(semResp) {
-        var semesters = semResp.results || semResp.data || [];
-        var activeCount = 0;
-        for (var i = 0; i < semesters.length; i++) {
-            if (semesters[i].status === 'active') activeCount++;
-        }
-        $('#stat-semesters').text(activeCount);
-    }).fail(function() {
-        $('#stat-semesters').text('-');
-    });
+        // Active semesters
+        $.get('/api/v1/teaching/semesters/', function(semResp) {
+            var semesters = semResp.results || semResp.data || [];
+            var activeCount = 0;
+            for (var i = 0; i < semesters.length; i++) {
+                if (semesters[i].status === 'active') activeCount++;
+            }
+            $('#stat-semesters').text(activeCount);
+        }).fail(function() {
+            $('#stat-semesters').text('-');
+        });
 
         // Document type chart
         var docTypeLabels = resp.document_type_distribution.map(function(d) { return d.name || d.code; });
@@ -389,7 +353,7 @@ $(document).ready(function() {
         var todoHtml = '';
         var todos = [];
         if (resp.summary.pending_review > 0) {
-            todos.push({ badge: 'badge-warning', count: resp.summary.pending_review, text: '待审核单证', href: '/admin-panel/' });
+            todos.push({ badge: 'badge-warning', count: resp.summary.pending_review, text: '待审核单证', href: '/documents/?status=pending_review' });
         }
         if (todos.length === 0) {
             todoHtml = '<div class="text-muted text-center" style="padding:20px;">暂无待办</div>';

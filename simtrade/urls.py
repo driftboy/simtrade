@@ -682,7 +682,7 @@ def admin_panel_dashboard(request):
     """Admin panel dashboard"""
     if not request.user.is_staff:
         return redirect('dashboard')
-    return render(request, 'admin_panel/dashboard.html', {'user': request.user})
+    return render(request, 'admin/dashboard.html', {'user': request.user})
 
 
 @login_required
@@ -690,7 +690,7 @@ def admin_panel_users(request):
     """Admin panel user management"""
     if not request.user.is_staff:
         return redirect('dashboard')
-    return render(request, 'admin_panel/user_list.html', {'user': request.user})
+    return render(request, 'admin/user_list.html', {'user': request.user})
 
 
 @login_required
@@ -698,7 +698,7 @@ def admin_panel_system(request):
     """Admin panel system settings"""
     if not request.user.is_staff:
         return redirect('dashboard')
-    return render(request, 'admin_panel/system.html', {'user': request.user})
+    return render(request, 'admin/system.html', {'user': request.user})
 
 
 # ---------------------------------------------------------------------------
@@ -775,9 +775,9 @@ urlpatterns += [
     path('teaching/classes/', teaching_class_list, name='class-list'),
     path('teaching/classes/<int:id>/', teaching_class_detail, name='class-detail'),
     # Admin panel
-    path('admin-panel/', admin_panel_dashboard, name='admin-dashboard'),
-    path('admin-panel/users/', admin_panel_users, name='admin-users'),
-    path('admin-panel/system/', admin_panel_system, name='admin-system'),
+    path('admin/', admin_panel_dashboard, name='admin-dashboard'),
+    path('admin/users/', admin_panel_users, name='admin-users'),
+    path('admin/system/', admin_panel_system, name='admin-system'),
     # Auth & profile
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),

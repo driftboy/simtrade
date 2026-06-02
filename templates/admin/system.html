@@ -1,221 +1,171 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% load static %}
+{% load bilingual %}
 
-{% block title %}系统设置 - SimTrade{% endblock %}
+{% block page_title %}{{ "系统设置"|bilingual }}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
 <link href="{% static 'css/teaching.css' %}" rel="stylesheet">
 <style>
 @keyframes gly-spin { to { transform: rotate(360deg); } }
 .gly-spin { animation: gly-spin 1s infinite linear; }
+.panel-section {
+    margin-bottom: 25px;
+}
+.panel-section h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
 </style>
 {% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <div class="row">
     <div class="col-md-12">
-        <h2>系统设置</h2>
+        <h2>{{ "系统设置"|bilingual }}</h2>
         <hr>
     </div>
 </div>
 
 <div class="row">
-    <!-- 学期管理 -->
+    <!-- 左侧：海关参数 + HS编码明细 -->
     <div class="col-md-8">
-        <div class="panel panel-default">
-            <div class="panel-heading clearfix">
-                <h3 class="panel-title pull-left">学期管理</h3>
-                <button class="btn btn-success btn-sm pull-right" id="btn-add-semester">新增学期</button>
-            </div>
-            <div class="panel-body">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>学期名称</th>
-                            <th>代码</th>
-                            <th>开始日期</th>
-                            <th>结束日期</th>
-                            <th>状态</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="semester-table-body">
-                        <tr><td colspan="6" class="text-center">加载中...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
         <!-- 海关参数代码表 -->
-        <div class="panel panel-default">
+        <div class="panel panel-default panel-section">
             <div class="panel-heading">
-                <h3 class="panel-title">海关参数代码表</h3>
+                <h3 class="panel-title">{{ "海关参数代码表"|bilingual }}</h3>
             </div>
             <div class="panel-body">
                 <table class="table table-bordered table-striped">
                     <thead>
-                        <tr><th>参数表</th><th>记录数</th><th>启用数</th><th>状态</th><th>操作</th></tr>
+                        <tr><th>{{ "参数表"|bilingual }}</th><th>{{ "记录数"|bilingual }}</th><th>{{ "启用数"|bilingual }}</th><th>{{ "状态"|bilingual }}</th><th>{{ "操作"|bilingual }}</th></tr>
                     </thead>
                     <tbody id="customs-params-body">
-                        <tr><td colspan="5" class="text-center">加载中...</td></tr>
+                        <tr><td colspan="5" class="text-center">{{ "加载中..."|bilingual }}</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <!-- HS编码明细表 -->
-        <div class="panel panel-default">
+        <div class="panel panel-default panel-section">
             <div class="panel-heading clearfix">
-                <h3 class="panel-title pull-left">HS编码明细</h3>
+                <h3 class="panel-title pull-left">{{ "HS编码明细"|bilingual }}</h3>
                 <div class="pull-right" style="display:flex;align-items:center;gap:6px;">
                     <select class="form-control input-sm" id="hs-chapter-filter" style="width:auto;">
-                        <option value="">全部章节</option>
+                        <option value="">{{ "全部章节"|bilingual }}</option>
                     </select>
-                    <input type="text" class="form-control input-sm" id="hs-search-input" placeholder="搜索编码/名称" style="width:140px;">
+                    <input type="text" class="form-control input-sm" id="hs-search-input" placeholder="{{ "搜索编码/名称"|bilingual }}" style="width:140px;">
                 </div>
             </div>
             <div class="panel-body">
                 <table class="table table-bordered table-striped table-condensed">
                     <thead>
-                        <tr><th>HS编码</th><th>商品名称</th><th>单位</th><th>增值税率</th><th>退税率</th><th>最惠国税率</th><th>出口税率</th><th>消费税率</th><th>章节</th><th>状态</th></tr>
+                        <tr><th>{{ "HS编码"|bilingual }}</th><th>{{ "商品名称"|bilingual }}</th><th>{{ "单位"|bilingual }}</th>
+                        <th>{{ "增值税率"|bilingual }}</th><th>{{ "退税率"|bilingual }}</th><th>{{ "最惠国税率"|bilingual }}</th>
+                        <th>{{ "出口税率"|bilingual }}</th><th>{{ "消费税率"|bilingual }}</th><th>{{ "章节"|bilingual }}</th><th>{{ "状态"|bilingual }}</th></tr>
                     </thead>
                     <tbody id="hs-table-body">
-                        <tr><td colspan="10" class="text-center text-muted">暂无数据，请先同步HS编码</td></tr>
+                        <tr><td colspan="10" class="text-center text-muted">{{ "暂无数据，请先同步HS编码"|bilingual }}</td></tr>
                     </tbody>
                 </table>
                 <div class="clearfix">
-                    <span class="pull-left text-muted" style="line-height:30px;font-size:12px;" id="hs-page-info">共 0 条</span>
+                    <span class="pull-left text-muted" style="line-height:30px;font-size:12px;" id="hs-page-info">{{ "共 0 条"|bilingual }}</span>
                     <div class="pull-right btn-group btn-group-xs" id="hs-pagination"></div>
                     <select class="pull-right form-control input-xs" id="hs-page-size" style="width:90px;height:24px;margin-right:6px;font-size:11px;">
-                        <option value="5">5条/页</option>
-                        <option value="10">10条/页</option>
-                        <option value="20">20条/页</option>
-                        <option value="50">50条/页</option>
+                        <option value="5">5{{ "条/页"|bilingual }}</option>
+                        <option value="10">10{{ "条/页"|bilingual }}</option>
+                        <option value="20">20{{ "条/页"|bilingual }}</option>
+                        <option value="50">50{{ "条/页"|bilingual }}</option>
                     </select>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 右侧面板 -->
+    <!-- 右侧：汇率 + HS编码管理 -->
     <div class="col-md-4">
         <!-- 汇率同步 -->
-        <div class="panel panel-info">
+        <div class="panel panel-info panel-section">
             <div class="panel-heading clearfix">
-                <h3 class="panel-title pull-left">汇率管理</h3>
+                <h3 class="panel-title pull-left">{{ "汇率管理"|bilingual }}</h3>
                 <button class="btn btn-primary btn-sm pull-right" id="btn-sync-rates">
-                    <span class="glyphicon glyphicon-refresh"></span> 同步最新汇率
+                    <span class="glyphicon glyphicon-refresh"></span> {{ "同步最新汇率"|bilingual }}
                 </button>
             </div>
             <div class="panel-body">
                 <div id="rate-status">
-                    <p>上次同步日期：<strong id="rate-date-text">-</strong></p>
-                    <p>汇率条数：<strong id="rate-count-text">0</strong></p>
+                    <p>{{ "上次同步日期"|bilingual }}：<strong id="rate-date-text">-</strong></p>
+                    <p>{{ "汇率条数"|bilingual }}：<strong id="rate-count-text">0</strong></p>
                 </div>
                 <table class="table table-condensed table-bordered" id="rate-preview-table">
                     <thead>
-                        <tr><th>货币</th><th>代码</th><th>兑人民币</th></tr>
+                        <tr><th>{{ "货币"|bilingual }}</th><th>{{ "代码"|bilingual }}</th><th>{{ "兑人民币"|bilingual }}</th></tr>
                     </thead>
                     <tbody id="rate-preview-body">
-                        <tr><td colspan="3" class="text-center">加载中...</td></tr>
+                        <tr><td colspan="3" class="text-center">{{ "加载中..."|bilingual }}</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <!-- HS编码管理 -->
-        <div class="panel panel-info">
+        <div class="panel panel-info panel-section">
             <div class="panel-heading clearfix">
-                <h3 class="panel-title pull-left">HS编码管理</h3>
+                <h3 class="panel-title pull-left">{{ "HS编码管理"|bilingual }}</h3>
                 <label class="pull-right" style="margin-right:12px;line-height:30px;font-weight:normal;font-size:13px;cursor:pointer;">
-                    <input type="checkbox" id="chk-sync-tax" style="margin-right:4px;">同步税率
+                    <input type="checkbox" id="chk-sync-tax" style="margin-right:4px;">{{ "同步税率"|bilingual }}
                 </label>
                 <button class="btn btn-primary btn-sm pull-right" id="btn-sync-hs" disabled>
-                    <span class="glyphicon glyphicon-download"></span> 同步选中章节
+                    <span class="glyphicon glyphicon-download"></span> {{ "同步选中章节"|bilingual }}
                 </button>
             </div>
             <div class="panel-body">
                 <div id="hs-stats">
-                    <p>编码总数：<strong id="hs-total-text">-</strong>
-                       （有效 <strong id="hs-active-text">-</strong>）</p>
+                    <p>{{ "编码总数"|bilingual }}：<strong id="hs-total-text">-</strong>
+                       （{{ "有效"|bilingual }} <strong id="hs-active-text">-</strong>）</p>
                 </div>
                 <div style="max-height:260px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:8px;margin-bottom:10px;">
                     <div class="row" id="hs-chapter-grid">
-                        <div class="text-center text-muted" style="width:100%">加载中...</div>
+                        <div class="text-center text-muted" style="width:100%">{{ "加载中..."|bilingual }}</div>
                     </div>
                 </div>
                 <div style="margin-bottom:8px;">
-                    <button class="btn btn-xs btn-default" id="btn-hs-select-all">全选</button>
-                    <button class="btn btn-xs btn-default" id="btn-hs-select-none">取消全选</button>
+                    <button class="btn btn-xs btn-default" id="btn-hs-select-all">{{ "全选"|bilingual }}</button>
+                    <button class="btn btn-xs btn-default" id="btn-hs-select-none">{{ "取消全选"|bilingual }}</button>
                 </div>
                 <div id="hs-sync-log" style="display:none;">
                     <div class="alert alert-info" style="padding:6px 12px;margin-bottom:0;">
                         <span class="glyphicon glyphicon-refresh gly-spin"></span>
-                        <span id="hs-sync-status">同步中...</span>
+                        <span id="hs-sync-status">{{ "同步中..."|bilingual }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 数据初始化 -->
-        <div class="panel panel-default">
+        <!-- 数据初始化说明 -->
+        <div class="panel panel-default panel-section">
             <div class="panel-heading">
-                <h3 class="panel-title">数据初始化</h3>
+                <h3 class="panel-title">{{ "数据初始化"|bilingual }}</h3>
             </div>
             <div class="panel-body">
                 <table class="table table-bordered">
                     <thead>
-                        <tr><th>命令</th><th>说明</th></tr>
+                        <tr><th>{{ "命令"|bilingual }}</th><th>{{ "说明"|bilingual }}</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>init_data</code></td><td>基础数据（角色、国家等）</td></tr>
-                        <tr><td><code>init_products</code></td><td>商品目录数据</td></tr>
-                        <tr><td><code>sync_exchange_rates</code></td><td>同步商务部汇率</td></tr>
-                        <tr><td><code>sync_customs_params</code></td><td>同步海关参数代码表</td></tr>
-                        <tr><td><code>sync_hs_codes</code></td><td>同步HS编码数据</td></tr>
+                        <tr><td><code>init_data</code></td><td>{{ "基础数据（角色、国家等）"|bilingual }}</td></tr>
+                        <tr><td><code>init_products</code></td><td>{{ "商品目录数据"|bilingual }}</td></tr>
+                        <tr><td><code>sync_exchange_rates</code></td><td>{{ "同步商务部汇率"|bilingual }}</td></tr>
+                        <tr><td><code>sync_customs_params</code></td><td>{{ "同步海关参数代码表"|bilingual }}</td></tr>
+                        <tr><td><code>sync_hs_codes</code></td><td>{{ "同步HS编码数据"|bilingual }}</td></tr>
                     </tbody>
                 </table>
-                <p class="text-muted"><small>在命令行执行：<code>python manage.py init_data</code></small></p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 学期编辑模态框 -->
-<div class="modal fade" id="semesterModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                <h4 class="modal-title" id="semester-modal-title">新增学期</h4>
-            </div>
-            <div class="modal-body">
-                <form id="semester-form">
-                    <input type="hidden" id="sem-edit-id">
-                    <div class="form-group">
-                        <label>学期名称 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="sem-name" placeholder="如：2026春季学期" required>
-                    </div>
-                    <div class="form-group">
-                        <label>学期代码 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="sem-code" placeholder="如：2026-SPRING" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label>开始日期 <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="sem-start" required>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label>结束日期 <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="sem-end" required>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="btn-save-semester">保存</button>
+                <p class="text-muted"><small>{{ "在命令行执行"|bilingual }}：<code>python manage.py init_data</code></small></p>
             </div>
         </div>
     </div>
@@ -227,20 +177,20 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                <h4 class="modal-title" id="detail-modal-title">明细</h4>
+                <h4 class="modal-title" id="detail-modal-title">{{ "明细"|bilingual }}</h4>
             </div>
             <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
                 <div class="input-group" style="margin-bottom:10px;max-width:300px;">
-                    <input type="text" class="form-control" id="detail-search-input" placeholder="搜索编码或名称...">
+                    <input type="text" class="form-control" id="detail-search-input" placeholder="{{ "搜索编码或名称..."|bilingual }}">
                     <span class="input-group-btn">
-                        <button class="btn btn-default" id="detail-search-btn">搜索</button>
+                        <button class="btn btn-default" id="detail-search-btn">{{ "搜索"|bilingual }}</button>
                     </span>
                 </div>
-                <p class="text-muted"><small id="detail-count-text">共 0 条</small></p>
+                <p class="text-muted"><small id="detail-count-text">{{ "共 0 条"|bilingual }}</small></p>
                 <table class="table table-bordered table-striped table-condensed">
                     <thead id="detail-thead"></thead>
                     <tbody id="detail-tbody">
-                        <tr><td colspan="10" class="text-center">加载中...</td></tr>
+                        <tr><td colspan="10" class="text-center">{{ "加载中..."|bilingual }}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -254,41 +204,6 @@
 <script>
 $(document).ready(function() {
     'use strict';
-
-    function loadSemesters() {
-        $.get('/api/v1/teaching/semesters/', function(resp) {
-            var semesters = resp.results || [];
-            var html = '';
-            if (semesters.length === 0) {
-                html = '<tr><td colspan="6" class="text-center">暂无学期</td></tr>';
-            } else {
-                semesters.forEach(function(sem) {
-                    var statusLabel = '';
-                    if (sem.status === 'active') {
-                        statusLabel = '<span class="label label-success">进行中</span>';
-                    } else if (sem.status === 'upcoming') {
-                        statusLabel = '<span class="label label-info">未开始</span>';
-                    } else {
-                        statusLabel = '<span class="label label-default">已结束</span>';
-                    }
-                    html += '<tr data-id="' + sem.id + '">' +
-                        '<td>' + SimTrade.escapeHtml(sem.name || '') + '</td>' +
-                        '<td><code>' + SimTrade.escapeHtml(sem.code || '') + '</code></td>' +
-                        '<td>' + (sem.start_date || '-') + '</td>' +
-                        '<td>' + (sem.end_date || '-') + '</td>' +
-                        '<td>' + statusLabel + '</td>' +
-                        '<td>' +
-                            '<button class="btn btn-xs btn-primary btn-activate-sem" data-id="' + sem.id + '"' + (sem.status === 'active' ? ' disabled' : '') + '>激活</button> ' +
-                            '<button class="btn btn-xs btn-warning btn-edit-sem" data-id="' + sem.id + '">编辑</button> ' +
-                            '<button class="btn btn-xs btn-danger btn-delete-sem" data-id="' + sem.id + '">删除</button>' +
-                        '</td></tr>';
-                });
-            }
-            $('#semester-table-body').html(html);
-        });
-    }
-
-    loadSemesters();
 
     // ========== 汇率管理 ==========
     var MAJOR_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'HKD', 'KRW', 'AUD', 'SGD', 'CAD', 'THB', 'CNY'];
@@ -318,7 +233,7 @@ $(document).ready(function() {
                         '<td>' + SimTrade.escapeHtml(r.currency_name) + '</td>' +
                         '<td><code>' + (r.currency_code || '-') + '</code></td>' +
                         '<td>' + cnyRate + '</td>' +
-                    '</tr>';
+                        '</tr>';
                 });
             }
             $('#rate-preview-body').html(html);
@@ -352,7 +267,7 @@ $(document).ready(function() {
                         '<td>' + t.active_count + '</td>' +
                         '<td>' + badge + '</td>' +
                         '<td>' + viewBtn + '</td>' +
-                    '</tr>';
+                        '</tr>';
                 });
                 html += '<tr class="info"><td><strong>合计</strong></td><td><strong>' + total + '</strong></td><td colspan="3"></td></tr>';
             }
@@ -404,10 +319,10 @@ $(document).ready(function() {
             hsChapterMap = {};
             $('#hs-chapter-grid').html(html);
             $('#btn-sync-hs').prop('disabled', false);
-            $('#hs-chapter-filter').html('<option value="">全部章节</option>' + hsChFilterOptions);
+            $('#hs-chapter-filter').html('<option value="">{{ "全部章节"|bilingual }}</option>' + hsChFilterOptions);
             loadHSTable(1);
         }).fail(function() {
-            $('#hs-chapter-grid').html('<div class="text-center text-danger" style="width:100%">加载失败</div>');
+            $('#hs-chapter-grid').html('<div class="text-center text-danger" style="width:100%">{{ "加载失败"|bilingual }}</div>');
         });
     }
 
@@ -457,14 +372,14 @@ $(document).ready(function() {
         var selected = [];
         $('.hs-ch-chk:checked').each(function() { selected.push($(this).val()); });
         if (selected.length === 0) {
-            SimTrade.showError('请先选择要同步的章节');
+            SimTrade.showError('{{ "请先选择要同步的章节"|bilingual }}');
             return;
         }
-        if (!confirm('确认同步 ' + selected.length + ' 个章节的 HS 编码？可能需要几分钟。')) return;
+        if (!confirm('{{ "确认同步"|bilingual }} ' + selected.length + ' {{ "个章节的 HS 编码？可能需要几分钟。"|bilingual }}')) return;
 
         btn.prop('disabled', true);
         $('#hs-sync-log').show();
-        $('#hs-sync-status').text('正在同步 ' + selected.length + ' 个章节...');
+        $('#hs-sync-status').text('{{ "正在同步"|bilingual }} ' + selected.length + ' {{ "个章节..."|bilingual }}');
 
         $.ajax({
             url: '/api/v1/core/hs-codes/sync/',
@@ -478,13 +393,13 @@ $(document).ready(function() {
                     SimTrade.showSuccess(resp.message);
                     loadHSStats();
                 } else {
-                    SimTrade.showError(resp.message || '同步失败');
+                    SimTrade.showError(resp.message || '{{ "同步失败"|bilingual }}');
                 }
             },
             error: function(xhr) {
                 btn.prop('disabled', false);
                 $('#hs-sync-log').hide();
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) || '同步失败，请检查网络连接';
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) || '{{ "同步失败，请检查网络连接"|bilingual }}';
                 SimTrade.showError(msg);
             }
         });
@@ -494,109 +409,25 @@ $(document).ready(function() {
     $('#btn-sync-rates').on('click', function() {
         var btn = $(this);
         if (btn.prop('disabled')) return;
-        if (!confirm('确认从商务部同步最新汇率数据？')) return;
+        if (!confirm('{{ "确认从商务部同步最新汇率数据？"|bilingual }}')) return;
 
-        btn.prop('disabled', true).html('<span class="glyphicon glyphicon-refresh gly-spin"></span> 同步中...');
+        btn.prop('disabled', true).html('<span class="glyphicon glyphicon-refresh gly-spin"></span> {{ "同步中..."|bilingual }}');
         $.ajax({
             url: '/api/v1/core/exchange-rates/sync/',
             method: 'POST',
             success: function(resp) {
-                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh"></span> 同步最新汇率');
+                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh"></span> {{ "同步最新汇率"|bilingual }}');
                 if (resp.code === 0) {
                     SimTrade.showSuccess(resp.message);
                     loadRatePreview();
                 } else {
-                    SimTrade.showError(resp.message || '同步失败');
+                    SimTrade.showError(resp.message || '{{ "同步失败"|bilingual }}');
                 }
             },
             error: function(xhr) {
-                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh"></span> 同步最新汇率');
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) || '同步失败，请检查网络连接';
+                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh"></span> {{ "同步最新汇率"|bilingual }}');
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) || '{{ "同步失败，请检查网络连接"|bilingual }}';
                 SimTrade.showError(msg);
-            }
-        });
-    });
-
-    // 新增学期
-    $('#btn-add-semester').on('click', function() {
-        $('#sem-edit-id').val('');
-        $('#semester-modal-title').text('新增学期');
-        $('#sem-name, #sem-code, #sem-start, #sem-end').val('');
-        $('#semesterModal').modal('show');
-    });
-
-    // 编辑学期
-    $(document).on('click', '.btn-edit-sem', function() {
-        var id = $(this).data('id');
-        $.get('/api/v1/teaching/semesters/' + id + '/', function(resp) {
-            var sem = resp.data || resp;
-            $('#sem-edit-id').val(id);
-            $('#sem-name').val(sem.name || '');
-            $('#sem-code').val(sem.code || '');
-            $('#sem-start').val(sem.start_date || '');
-            $('#sem-end').val(sem.end_date || '');
-            $('#semester-modal-title').text('编辑学期');
-            $('#semesterModal').modal('show');
-        });
-    });
-
-    // 保存学期（新增或编辑）
-    $('#btn-save-semester').on('click', function() {
-        var id = $('#sem-edit-id').val();
-        var name = $('#sem-name').val().trim();
-        var code = $('#sem-code').val().trim();
-        var startDate = $('#sem-start').val();
-        var endDate = $('#sem-end').val();
-
-        if (!name || !code || !startDate || !endDate) {
-            alert('请填写完整信息');
-            return;
-        }
-
-        var data = { name: name, code: code, start_date: startDate, end_date: endDate };
-        var url = '/api/v1/teaching/semesters/';
-        var method = 'POST';
-
-        if (id) {
-            url = '/api/v1/teaching/semesters/' + id + '/';
-            method = 'PATCH';
-        }
-
-        $.ajax({
-            url: url, method: method,
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function() {
-                $('#semesterModal').modal('hide');
-                loadSemesters();
-            },
-            error: function(xhr) {
-                alert('保存失败: ' + ((xhr.responseJSON && xhr.responseJSON.message) || '未知错误'));
-            }
-        });
-    });
-
-    // 激活学期
-    $(document).on('click', '.btn-activate-sem', function() {
-        var id = $(this).data('id');
-        if (!confirm('确认激活该学期？')) return;
-        $.post('/api/v1/teaching/semesters/' + id + '/activate/', function() {
-            loadSemesters();
-        }).fail(function(xhr) {
-            alert('激活失败: ' + ((xhr.responseJSON && xhr.responseJSON.message) || '未知错误'));
-        });
-    });
-
-    // 删除学期
-    $(document).on('click', '.btn-delete-sem', function() {
-        var id = $(this).data('id');
-        if (!confirm('确认删除该学期？此操作不可恢复。')) return;
-        $.ajax({
-            url: '/api/v1/teaching/semesters/' + id + '/',
-            method: 'DELETE',
-            success: function() { loadSemesters(); },
-            error: function(xhr) {
-                alert('删除失败: ' + ((xhr.responseJSON && xhr.responseJSON.message) || '未知错误'));
             }
         });
     });
@@ -627,27 +458,27 @@ $(document).ready(function() {
     $(document).on('click', '.btn-view-params', function() {
         var key = $(this).data('key');
         var label = $(this).data('label');
-        openDetailModal(label + ' - 明细', function(search) {
-            $('#detail-thead').html('<tr><th style="width:120px">代码</th><th>名称</th><th style="width:60px">状态</th></tr>');
-            $('#detail-tbody').html('<tr><td colspan="3" class="text-center">加载中...</td></tr>');
+        openDetailModal(label + ' - {{ "明细"|bilingual }}', function(search) {
+            $('#detail-thead').html('<tr><th style="width:120px">{{ "代码"|bilingual }}</th><th>{{ "名称"|bilingual }}</th><th style="width:60px">{{ "状态"|bilingual }}</th></tr>');
+            $('#detail-tbody').html('<tr><td colspan="3" class="text-center">{{ "加载中..."|bilingual }}</td></tr>');
             $.get('/api/v1/core/customs-params/detail/?table=' + key + (search ? '&search=' + encodeURIComponent(search) : ''), function(resp) {
                 var rows = resp.data || [];
-                $('#detail-count-text').text('共 ' + resp.total + ' 条' + (resp.total > 500 ? '（显示前 500 条）' : ''));
+                $('#detail-count-text').text('{{ "共"|bilingual }} ' + resp.total + ' {{ "条"|bilingual }}' + (resp.total > 500 ? '（{{ "显示前 500 条"|bilingual }}）' : ''));
                 if (rows.length === 0) {
-                    $('#detail-tbody').html('<tr><td colspan="3" class="text-center text-muted">无数据</td></tr>');
+                    $('#detail-tbody').html('<tr><td colspan="3" class="text-center text-muted">{{ "无数据"|bilingual }}</td></tr>');
                     return;
                 }
                 var html = '';
                 rows.forEach(function(r) {
-                    var st = r.is_active ? '<span class="label label-success">启用</span>' : '<span class="label label-default">停用</span>';
+                    var st = r.is_active ? '<span class="label label-success">{{ "启用"|bilingual }}</span>' : '<span class="label label-default">{{ "停用"|bilingual }}</span>';
                     html += '<tr><td><code>' + SimTrade.escapeHtml(r.code) + '</code></td><td>' + SimTrade.escapeHtml(r.name) + '</td><td>' + st + '</td></tr>';
                 });
                 $('#detail-tbody').html(html);
             }).fail(function(xhr) {
-                var msg = '加载失败';
-                if (xhr.status === 403) msg = '无权限访问，请重新登录';
-                else if (xhr.status === 404) msg = '接口不存在';
-                else if (xhr.status === 500) msg = '服务器错误';
+                var msg = '{{ "加载失败"|bilingual }}';
+                if (xhr.status === 403) msg = '{{ "无权限访问，请重新登录"|bilingual }}';
+                else if (xhr.status === 404) msg = '{{ "接口不存在"|bilingual }}';
+                else if (xhr.status === 500) msg = '{{ "服务器错误"|bilingual }}';
                 $('#detail-tbody').html('<tr><td colspan="3" class="text-center text-danger">' + msg + '</td></tr>');
             });
         });
@@ -678,16 +509,16 @@ $(document).ready(function() {
             var total = resp.total || 0;
             var totalPages = resp.total_pages || 1;
 
-            $('#hs-page-info').text('共 ' + total + ' 条，第 ' + hsCurrentPage + '/' + totalPages + ' 页');
+            $('#hs-page-info').text('{{ "共"|bilingual }} ' + total + ' {{ "条"|bilingual }}，{{ "第"|bilingual }} ' + hsCurrentPage + '/' + totalPages + ' {{ "页"|bilingual }}');
 
             if (rows.length === 0) {
-                $('#hs-table-body').html('<tr><td colspan="10" class="text-center text-muted">无数据</td></tr>');
+                $('#hs-table-body').html('<tr><td colspan="10" class="text-center text-muted">{{ "无数据"|bilingual }}</td></tr>');
                 $('#hs-pagination').html('');
                 return;
             }
             var html = '';
             rows.forEach(function(r) {
-                var st = r.is_expired ? '<span class="label label-default">过期</span>' : '<span class="label label-success">有效</span>';
+                var st = r.is_expired ? '<span class="label label-default">{{ "过期"|bilingual }}</span>' : '<span class="label label-success">{{ "有效"|bilingual }}</span>';
                 html += '<tr>' +
                     '<td><code>' + SimTrade.escapeHtml(r.code) + '</code></td>' +
                     '<td>' + SimTrade.escapeHtml(r.name) + '</td>' +
@@ -697,7 +528,7 @@ $(document).ready(function() {
                     '<td>' + SimTrade.escapeHtml(r.mfn_rate || '') + '</td>' +
                     '<td>' + SimTrade.escapeHtml(r.export_rate || '') + '</td>' +
                     '<td>' + SimTrade.escapeHtml(r.consumption_rate || '') + '</td>' +
-                    '<td>' + r.chapter + '章</td>' +
+                    '<td>' + r.chapter + '{{ "章"|bilingual }}</td>' +
                     '<td>' + st + '</td></tr>';
             });
             $('#hs-table-body').html(html);
