@@ -8,9 +8,6 @@
     var MENU_ITEMS = [
         { path: '/admin/', icon: 'home', label: '概览' },
         { path: '/admin/users/', icon: 'user', label: '用户管理' },
-        { path: '/teaching/', icon: 'book', label: '教学管理' },
-        { path: '/documents/', icon: 'file', label: '单证管理' },
-        { path: '/companies/', icon: 'briefcase', label: '公司管理' },
         { path: '/admin/system/', icon: 'cog', label: '系统设置' }
     ];
 
