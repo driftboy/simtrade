@@ -108,6 +108,16 @@ $(document).ready(function() {
                                     <p><strong>贸易术语:</strong> ${tx.trade_term || '未指定'}</p>
                                 </div>
                             </div>
+                            <div class="row" style="margin-top: 15px;">
+                                <div class="col-md-6">
+                                    <p><strong>付款方式:</strong> ${tx.payment_term_display || '未协商'}</p>
+                                    <p><strong>交货日期:</strong> ${tx.delivery_date || '未协商'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>包装要求:</strong> ${tx.packing || '未协商'}</p>
+                                    <p><strong>保险条款:</strong> ${tx.insurance || '未协商'}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
