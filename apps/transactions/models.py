@@ -2,6 +2,18 @@ from django.db import models
 from django.conf import settings
 
 
+class PaymentTerm(models.TextChoices):
+    """付款方式枚举"""
+    LC = 'lc', '信用证 (L/C)'
+    DP = 'dp', '付款交单 (D/P)'
+    DA = 'da', '承兑交单 (D/A)'
+    TT = 'tt', '电汇 (T/T)'
+    TT_IN_ADVANCE = 'tt_advance', '前T/T (预付)'
+    TT_AT_SIGHT = 'tt_sight', '后T/T (货到付款)'
+    WESTERN_UNION = 'wu', '西联汇款'
+    OTHER = 'other', '其他'
+
+
 class Transaction(models.Model):
     """交易记录"""
 
@@ -43,6 +55,21 @@ class Transaction(models.Model):
     port_of_loading = models.CharField('装运港', max_length=100, blank=True)
     port_of_discharge = models.CharField('目的港', max_length=100, blank=True)
     notes = models.TextField('备注', blank=True)
+
+    # 当前共识商品信息（快照）
+    product_name = models.CharField('商品名称', max_length=200, blank=True)
+
+    # 当前共识交易条款
+    payment_term = models.CharField(
+        '付款方式',
+        max_length=20,
+        choices=PaymentTerm.choices,
+        blank=True
+    )
+    delivery_date = models.DateField('交货日期', null=True, blank=True)
+    packing = models.TextField('包装要求', blank=True)
+    insurance = models.CharField('保险条款', max_length=200, blank=True)
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -60,18 +87,6 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"交易 #{self.id}"
-
-
-class PaymentTerm(models.TextChoices):
-    """付款方式枚举"""
-    LC = 'lc', '信用证 (L/C)'
-    DP = 'dp', '付款交单 (D/P)'
-    DA = 'da', '承兑交单 (D/A)'
-    TT = 'tt', '电汇 (T/T)'
-    TT_IN_ADVANCE = 'tt_advance', '前T/T (预付)'
-    TT_AT_SIGHT = 'tt_sight', '后T/T (货到付款)'
-    WESTERN_UNION = 'wu', '西联汇款'
-    OTHER = 'other', '其他'
 
 
 class InquiryMessage(models.Model):
