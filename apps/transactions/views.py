@@ -20,7 +20,8 @@ from apps.transactions.serializers import (
 )
 from apps.transactions.services import TransactionService, PurchaseOrderService, ShipmentService, InsuranceService, CustomsService, InspectionService, ForexService, TaxRefundService
 from apps.roles.services import RoleService
-from apps.roles.models import Company
+from apps.roles.models import Company, UserCompanyRole
+from apps.notifications.services import NotificationService
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -73,17 +74,45 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 created_by=request.user,
                 status='inquiring'
             )
+            transaction = serializer.instance
+
             # 记录日志
             TransactionService.log_transaction(
-                serializer.instance,
+                transaction,
                 request.user,
                 'transaction_created',
                 {'method': 'api'}
             )
+
+            # 发送通知给买方（创建者）
+            product_name = transaction.product_name if hasattr(transaction.product, 'name') else '商品'
+            NotificationService.create_notification(
+                user=request.user,
+                notification_type='inquiry',
+                title='询盘已创建',
+                content=f'您对 {product_name} 的询盘已成功创建。交易编号：#{transaction.id}',
+                related_transaction_id=transaction.id
+            )
+
+            # 如果有卖家，通知卖家
+            if transaction.seller:
+                seller_members = NotificationService.get_company_member_ids(transaction.seller)
+                for user_id in seller_members:
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    seller_user = User.objects.get(id=user_id)
+                    NotificationService.create_notification(
+                        user=seller_user,
+                        notification_type='inquiry',
+                        title='收到新询盘',
+                        content=f'{transaction.buyer.name} 对 {product_name} 发送了询盘。交易编号：#{transaction.id}',
+                        related_transaction_id=transaction.id
+                    )
+
             return Response({
                 'code': 0,
                 'message': '交易创建成功',
-                'data': serializer.data
+                'data': TransactionSerializer(transaction).data
             }, status=status.HTTP_201_CREATED)
         return Response({
             'code': 3002,
@@ -126,6 +155,19 @@ class TransactionViewSet(viewsets.ModelViewSet):
             )
             # 更新交易状态
             TransactionService.handle_message(transaction, serializer.instance)
+            # 如果是接受消息，同步共识条款到 Transaction
+            if serializer.validated_data.get('message_type') == 'accept':
+                if serializer.validated_data.get('offered_product_name'):
+                    transaction.product_name = serializer.validated_data['offered_product_name']
+                if serializer.validated_data.get('offered_payment_term'):
+                    transaction.payment_term = serializer.validated_data['offered_payment_term']
+                if serializer.validated_data.get('offered_delivery_date'):
+                    transaction.delivery_date = serializer.validated_data['offered_delivery_date']
+                if serializer.validated_data.get('offered_packing'):
+                    transaction.packing = serializer.validated_data['offered_packing']
+                if serializer.validated_data.get('offered_insurance'):
+                    transaction.insurance = serializer.validated_data['offered_insurance']
+                transaction.save()
             return Response({
                 'code': 0,
                 'message': '消息发送成功',
@@ -174,6 +216,138 @@ class TransactionViewSet(viewsets.ModelViewSet):
         elif transaction.seller == company:
             return 'seller'
         return 'observer'
+
+    @action(detail=False, methods=['get'])
+    def market_inquiries(self, request):
+        """获取市场询盘列表（无卖家的询盘）"""
+        # 只有出口商角色可以查看市场询盘
+        current_role = RoleService.get_current_role(request.user)
+        if not current_role or not current_role.company:
+            return Response({
+                'code': 4001,
+                'message': '请先激活一个角色'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 检查用户是否是出口商
+        from apps.roles.models import TradeRole
+        try:
+            role = TradeRole.objects.get(code='exporter')
+            # 检查用户的公司是否有这个角色
+            has_exporter_role = UserCompanyRole.objects.filter(
+                user=request.user,
+                company=current_role.company,
+                role=role,
+                status__in=['approved', 'active']
+            ).exists()
+            if not has_exporter_role:
+                return Response({
+                    'code': 2001,
+                    'message': '只有出口商可以查看市场询盘'
+                }, status=status.HTTP_403_FORBIDDEN)
+        except TradeRole.DoesNotExist:
+            return Response({
+                'code': 5005,
+                'message': '系统角色配置错误'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # 获取所有没有卖家的询盘
+        inquiries = Transaction.objects.filter(
+            seller__isnull=True,
+            status='inquiring'
+        ).select_related('buyer', 'product', 'created_by').order_by('-created_at')
+
+        serializer = self.get_serializer(inquiries, many=True)
+        return Response({
+            'code': 0,
+            'message': 'success',
+            'data': serializer.data
+        })
+
+    @action(detail=True, methods=['post'], url_path='respond')
+    def respond_inquiry(self, request, pk=None):
+        """出口商响应询盘（设置自己为卖家并发送发盘消息）"""
+        transaction = self.get_object()
+
+        # 验证状态
+        if transaction.status != 'inquiring':
+            return Response({
+                'code': 5005,
+                'message': '询盘状态不允许响应'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 检查是否已有卖家
+        if transaction.seller is not None:
+            return Response({
+                'code': 5005,
+                'message': '此询盘已被其他出口商响应'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取当前角色
+        current_role = RoleService.get_current_role(request.user)
+        if not current_role or not current_role.company:
+            return Response({
+                'code': 4001,
+                'message': '请先激活一个角色'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        seller_company = current_role.company
+
+        # 不能响应自己的询盘
+        if transaction.buyer == seller_company:
+            return Response({
+                'code': 5005,
+                'message': '不能响应自己发起的询盘'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取发盘数据
+        offered_quantity = request.data.get('offered_quantity')
+        offered_price = request.data.get('offered_price')
+        offered_trade_term = request.data.get('offered_trade_term', '')
+        message_content = request.data.get('message', '')
+
+        if not offered_price:
+            return Response({
+                'code': 3002,
+                'message': '请提供报价'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 设置卖家
+        transaction.seller = seller_company
+        transaction.status = 'negotiating'
+        transaction.save()
+
+        # 创建发盘消息
+        InquiryMessage.objects.create(
+            transaction=transaction,
+            sender=request.user,
+            sender_role='seller',
+            message_type='offer',
+            content=message_content,
+            offered_quantity=offered_quantity,
+            offered_price=offered_price,
+            offered_trade_term=offered_trade_term
+        )
+
+        # 通知买方
+        buyer_members = NotificationService.get_company_member_ids(transaction.buyer)
+        for user_id in buyer_members:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            buyer_user = User.objects.get(id=user_id)
+            product_name = transaction.product_name if hasattr(transaction.product, 'name') else '商品'
+            NotificationService.create_notification(
+                user=buyer_user,
+                notification_type='offer',
+                title='收到发盘',
+                content=f'{seller_company.name} 对您关于 {product_name} 的询盘发送了发盘。报价：{offered_price}',
+                related_transaction_id=transaction.id
+            )
+
+        return Response({
+            'code': 0,
+            'message': '发盘发送成功',
+            'data': TransactionSerializer(transaction).data
+        })
 
 
 class ContractViewSet(viewsets.ModelViewSet):

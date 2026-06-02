@@ -1,4 +1,5 @@
 import pytest
+import json
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -104,7 +105,8 @@ class TransactionAPITest(TestCase):
         url = reverse('transactions:transaction-send-message', kwargs={'pk': transaction.id})
         data = {
             'message_type': 'inquiry',
-            'content': '请报价1000吨'
+            'content': '请报价1000吨',
+            'offered_product_name': 'Test Product'
         }
         response = self.client.post(url, data, format='json')
         assert response.status_code == 200
@@ -151,3 +153,34 @@ class TransactionAPITest(TestCase):
         # 验证状态已更新
         transaction.refresh_from_db()
         assert transaction.status == 'cancelled'
+
+    def test_accept_negotiation_syncs_to_transaction(self):
+        """测试接受磋商时同步条款到 Transaction"""
+        self.client.force_authenticate(user=self.buyer)
+        transaction = Transaction.objects.create(
+            buyer=self.buyer_company,
+            seller=self.seller_company,
+            product=self.product,
+            quantity=1000,
+            unit_price=10.00
+        )
+        message_data = {
+            'message_type': 'accept',
+            'content': '接受报价',
+            'offered_product_name': '测试产品',
+            'offered_payment_term': 'lc',
+            'offered_delivery_date': '2024-12-31',
+            'offered_packing': '纸箱包装',
+            'offered_insurance': 'CIF条款加成110%'
+        }
+        url = reverse('transactions:transaction-send-message', kwargs={'pk': transaction.id})
+        response = self.client.post(url, data=json.dumps(message_data), content_type='application/json')
+        assert response.status_code == 200
+
+        # 验证 Transaction 已更新
+        transaction.refresh_from_db()
+        assert transaction.product_name == '测试产品'
+        assert transaction.payment_term == 'lc'
+        assert str(transaction.delivery_date) == '2024-12-31'
+        assert transaction.packing == '纸箱包装'
+        assert transaction.insurance == 'CIF条款加成110%'
