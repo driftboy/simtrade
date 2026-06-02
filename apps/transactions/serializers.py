@@ -20,8 +20,8 @@ class TransactionSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
     seller_company_name = serializers.CharField(source='seller.name', read_only=True)
     seller_company_code = serializers.CharField(source='seller.code', read_only=True)
-    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     product_name = serializers.CharField(source='product.name', read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     product_code = serializers.CharField(source='product.code', read_only=True)
     # seller 可选：市场询盘时买方不知道卖方是谁
     seller = serializers.PrimaryKeyRelatedField(
@@ -34,6 +34,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     unit_price = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, allow_null=True
     )
+    currency = serializers.CharField(allow_blank=True, required=False)
     # 新增共识字段
     payment_term = serializers.CharField(allow_blank=True, required=False)
     payment_term_display = serializers.CharField(source='get_payment_term_display', read_only=True)
@@ -45,7 +46,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ['id', 'buyer', 'buyer_name', 'buyer_company_name', 'buyer_company_code',
                   'seller', 'seller_name', 'seller_company_name', 'seller_company_code',
-                  'product', 'product_name', 'product_code',
+                  'product_name', 'product', 'product_code',
                   'status', 'status_display', 'quantity',
                   'unit_price', 'currency', 'trade_term', 'port_of_loading',
                   'port_of_discharge',
