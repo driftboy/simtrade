@@ -727,7 +727,7 @@ def document_preview(request, id):
 # URL patterns - API routes
 # ---------------------------------------------------------------------------
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),  # Django admin interface
     path('api/v1/dashboard/stats/', admin_dashboard_stats, name='admin-dashboard-stats'),
     path('api/v1/dashboard/teacher/', teacher_dashboard_stats, name='teacher-dashboard-stats'),
     path('api/v1/dashboard/student/', student_dashboard_stats, name='student-dashboard-stats'),
