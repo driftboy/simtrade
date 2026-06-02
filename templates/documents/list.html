@@ -84,7 +84,7 @@ $(document).ready(function() {
         var controlsHtml = `
             <div class="row">
                 <div class="col-md-4">
-                    <select id="pageSizeSelect" class="form-control input-sm">
+                    <select id="pageSizeSelect" class="form-control input-sm" style="text-align: center;">
                         <option value="5" ${paginationState.pageSize === 5 ? 'selected' : ''}>每页 5 条</option>
                         <option value="10" ${paginationState.pageSize === 10 ? 'selected' : ''}>每页 10 条</option>
                         <option value="20" ${paginationState.pageSize === 20 ? 'selected' : ''}>每页 20 条</option>
