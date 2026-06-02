@@ -1,58 +1,179 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
 {% load static %}
 {% load bilingual %}
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}管理后台 - SimTrade{% endblock %}</title>
 
-{% block title %}管理后台 - SimTrade{% endblock %}
+    <!-- Bootstrap 3.3.7 CSS -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet">
+    <link href="{% static 'css/role-switcher.css' %}" rel="stylesheet">
+    <link href="{% static 'css/notifications.css' %}" rel="stylesheet">
+    <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+    <link href="{% static 'css/admin-sidebar.css' %}" rel="stylesheet">
 
-{% block extra_css %}
-<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
-<link href="{% static 'css/admin-sidebar.css' %}" rel="stylesheet">
-{% endblock %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">SimTrade</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="/dashboard/">{{ "仪表盘"|bilingual }}</a></li>
+                    {% if user.is_authenticated %}
+                        {% if user.user_type == 'student' %}
+                        <li><a href="/companies/">{{ "公司列表"|bilingual }}</a></li>
+                        <li><a href="/workspace/">{{ "工作台"|bilingual }}</a></li>
+                        {% endif %}
+                        {% if user.user_type == 'teacher' %}
+                        <li><a href="/teaching/">{{ "教学管理"|bilingual }}</a></li>
+                        {% endif %}
+                        {% if user.user_type == 'admin' %}
+                        <li><a href="/admin/">{{ "管理后台"|bilingual }}</a></li>
+                        <li><a href="/teaching/">{{ "教学管理"|bilingual }}</a></li>
+                        {% endif %}
+                        <li><a href="/market/">{{ "市场"|bilingual }}</a></li>
+                        <li><a href="/transactions/">{{ "交易"|bilingual }}</a></li>
+                        <li><a href="/documents/">{{ "单证"|bilingual }}</a></li>
+                    {% endif %}
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if user.is_authenticated %}
+                        <!-- 通知铃铛 -->
+                        <li class="dropdown notification-bell" id="notif-dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                <span class="glyphicon glyphicon-bell"></span>
+                                <span class="badge-count" id="notif-badge" style="display:none">0</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-right" id="notif-dropdown-menu">
+                                <li class="notification-empty">加载中...</li>
+                            </ul>
+                        </li>
+                        <!-- 角色切换器 -->
+                        <li class="dropdown role-switcher" id="role-dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                <span id="role-switcher-label">选择角色</span> <span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu" id="role-dropdown-menu">
+                                <li class="role-empty-hint">加载中...</li>
+                            </ul>
+                        </li>
+                        <!-- 用户菜单 -->
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                {{ user.username }} <span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/profile/">{{ "个人中心"|bilingual }}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" id="logout-link">{{ "退出登录"|bilingual }}</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li><a href="/login/">{{ "登录"|bilingual }}</a></li>
+                        <li><a href="/register/">{{ "注册"|bilingual }}</a></li>
+                    {% endif %}
+                </ul>
+            </div><!--/.nav-collapse -->
+        </div>
+    </nav>
 
-{% block content %}
-<div class="admin-layout">
-    <!-- Sidebar -->
-    <div class="admin-sidebar">
-        <div class="navbar-brand">管理后台</div>
-        <div class="list-group">
-            <a href="/admin/" class="list-group-item">
-                <span class="glyphicon glyphicon-home"></span> {{ "概览"|bilingual }}
-            </a>
-            <a href="/admin/users/" class="list-group-item">
-                <span class="glyphicon glyphicon-user"></span> {{ "用户管理"|bilingual }}
-            </a>
-            <a href="/teaching/" class="list-group-item">
-                <span class="glyphicon glyphicon-book"></span> {{ "教学管理"|bilingual }}
-            </a>
-            <a href="/documents/" class="list-group-item">
-                <span class="glyphicon glyphicon-file"></span> {{ "单证管理"|bilingual }}
-            </a>
-            <a href="/companies/" class="list-group-item">
-                <span class="glyphicon glyphicon-briefcase"></span> {{ "公司管理"|bilingual }}
-            </a>
-            <a href="/admin/system/" class="list-group-item">
-                <span class="glyphicon glyphicon-cog"></span> {{ "系统设置"|bilingual }}
-            </a>
+    <!-- Admin Layout -->
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <div class="admin-sidebar">
+            <div class="navbar-brand">管理后台</div>
+            <div class="list-group">
+                <a href="/admin/" class="list-group-item">
+                    <span class="glyphicon glyphicon-home"></span> {{ "概览"|bilingual }}
+                </a>
+                <a href="/admin/users/" class="list-group-item">
+                    <span class="glyphicon glyphicon-user"></span> {{ "用户管理"|bilingual }}
+                </a>
+                <a href="/teaching/" class="list-group-item">
+                    <span class="glyphicon glyphicon-book"></span> {{ "教学管理"|bilingual }}
+                </a>
+                <a href="/documents/" class="list-group-item">
+                    <span class="glyphicon glyphicon-file"></span> {{ "单证管理"|bilingual }}
+                </a>
+                <a href="/companies/" class="list-group-item">
+                    <span class="glyphicon glyphicon-briefcase"></span> {{ "公司管理"|bilingual }}
+                </a>
+                <a href="/admin/system/" class="list-group-item">
+                    <span class="glyphicon glyphicon-cog"></span> {{ "系统设置"|bilingual }}
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="admin-main">
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Breadcrumb -->
+            <div class="admin-breadcrumb">
+                <ol class="breadcrumb">
+                    <li><a href="/">首页</a></li>
+                    <li><a href="/admin/">管理后台</a></li>
+                    <li class="active">{% block page_title %}概览{% endblock %}</li>
+                </ol>
+            </div>
+
+            <!-- Page Content -->
+            {% block admin_content %}{% endblock %}
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="admin-main">
-        <!-- Breadcrumb -->
-        <div class="admin-breadcrumb">
-            <ol class="breadcrumb">
-                <li><a href="/">首页</a></li>
-                <li><a href="/admin/">管理后台</a></li>
-                <li class="active">{% block page_title %}概览{% endblock %}</li>
-            </ol>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="text-muted">&copy; 2026 SimTrade. All rights reserved.</p>
         </div>
+    </footer>
 
-        <!-- Page Content -->
-        {% block admin_content %}{% endblock %}
-    </div>
-</div>
-{% endblock %}
+    <!-- jQuery -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- Bootstrap 3.3.7 JS -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- jQuery Cookie Plugin -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
 
-{% block extra_js %}
-<script src="{% static 'js/admin-sidebar.js' %}"></script>
-{% endblock %}
+    <!-- Custom JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
+    <script src="{% static 'js/role-switcher.js' %}"></script>
+    <script src="{% static 'js/admin-sidebar.js' %}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+    window.user = {
+        is_authenticated: {% if user.is_authenticated %}true{% else %}false{% endif %},
+        username: {% if user.is_authenticated %}'{{ user.username }}'{% else %}null{% endif %}
+    };
+    </script>
+</body>
+</html>
