@@ -108,7 +108,7 @@ class InquiryMessage(models.Model):
     attachment = models.FileField('附件', upload_to='inquiry_attachments/', blank=True)
 
     # 报价商品信息
-    offered_product_name = models.CharField('报价商品名称', max_length=200)
+    offered_product_name = models.CharField('报价商品名称', max_length=200, blank=True, default='')
     offered_product_code = models.CharField('报价商品编码', max_length=50, blank=True)
 
     # 报价交易条款
