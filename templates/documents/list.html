@@ -98,13 +98,20 @@ $(document).ready(function() {
                     <button class="btn btn-sm btn-default pagination-first" ${!paginationState.previousUrl ? 'disabled' : ''}>首页</button>
                     <button class="btn btn-sm btn-default pagination-prev" ${!paginationState.previousUrl ? 'disabled' : ''}>上一页</button>
                     <button class="btn btn-sm btn-default pagination-next" ${!paginationState.nextUrl ? 'disabled' : ''}>下一页</button>
-                    <button class="btn btn-sm btn-default pagination-last" ${!paginationState.nextUrl ? 'disabled' : ''}>末页</button>
+                    <button class="btn btn-sm btn-default pagination-last" ${paginationState.currentPage === paginationState.totalPages ? 'disabled' : ''}>末页</button>
                 </div>
             </div>
         `;
 
         $('#paginationControlsTop').html(controlsHtml);
         $('#paginationControlsBottom').html(controlsHtml);
+
+        // 解绑旧事件监听器，防止内存泄漏
+        $('#paginationControlsTop #pageSizeSelect').off('change');
+        $('#paginationControlsTop .pagination-prev').off('click');
+        $('#paginationControlsTop .pagination-next').off('click');
+        $('#paginationControlsTop .pagination-first').off('click');
+        $('#paginationControlsTop .pagination-last').off('click');
 
         // 绑定事件（仅顶部控件）
         $('#paginationControlsTop #pageSizeSelect').change(function() {
@@ -137,6 +144,9 @@ $(document).ready(function() {
         page = page || 1;
         pageSize = pageSize || paginationState.pageSize;
         filters = filters || {};
+
+        // 显示加载状态
+        $('#documentList').html('<div class="text-center">加载中...</div>');
 
         var params = $.param(filters);
         var url = '/api/v1/documents/documents/?page=' + page + '&page_size=' + pageSize;
