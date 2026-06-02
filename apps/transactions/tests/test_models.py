@@ -73,6 +73,29 @@ class TransactionModelTest(TestCase):
         transaction.save()
         assert transaction.get_status_display() == '还盘中'
 
+    def test_transaction_consensus_fields(self):
+        """测试 Transaction 新字段"""
+        transaction = Transaction.objects.create(
+            buyer=self.buyer_company,
+            seller=self.seller_company,
+            product=self.product,
+            quantity=1000,
+            unit_price=10.00,
+            product_name='快照产品',
+            payment_term='tt',
+            delivery_date='2024-12-31',
+            packing='木箱包装',
+            insurance='由买方办理'
+        )
+        self.assertEqual(transaction.product_name, '快照产品')
+        self.assertEqual(transaction.payment_term, 'tt')
+
+    def test_payment_term_choices(self):
+        """测试付款方式枚举"""
+        from apps.transactions.models import PaymentTerm
+        self.assertEqual(PaymentTerm.LC, 'lc')
+        self.assertEqual(PaymentTerm.TT, 'tt')
+
 
 class InquiryMessageTest(TestCase):
     """测试磋商消息模型"""
@@ -90,6 +113,7 @@ class InquiryMessageTest(TestCase):
             quantity=1000,
             unit_price=10.00
         )
+        self.user = self.buyer
 
     def test_create_inquiry_message(self):
         """测试创建询盘消息"""
@@ -102,6 +126,27 @@ class InquiryMessageTest(TestCase):
         )
         assert message.message_type == 'inquiry'
         assert message.get_message_type_display() == '询盘'
+
+    def test_inquiry_message_negotiation_fields(self):
+        """测试 InquiryMessage 新字段"""
+        message = InquiryMessage.objects.create(
+            transaction=self.transaction,
+            sender=self.user,
+            sender_role='buyer',
+            message_type='offer',
+            offered_product_name='测试产品',
+            offered_product_code='TEST001',
+            offered_payment_term='lc',
+            offered_delivery_date='2024-12-31',
+            offered_packing='纸箱包装',
+            offered_quality_standard='ISO9001',
+            offered_insurance='CIF条款'
+        )
+        self.assertEqual(message.offered_product_name, '测试产品')
+        self.assertEqual(message.offered_product_code, 'TEST001')
+        self.assertEqual(message.offered_payment_term, 'lc')
+        self.assertEqual(str(message.offered_delivery_date), '2024-12-31')
+        self.assertEqual(message.offered_packing, '纸箱包装')
 
 
 class ContractModelTest(TestCase):
