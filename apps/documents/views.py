@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.documents.models import Document, DocumentTemplate
+from apps.documents.pagination import DocumentPagination
 from apps.documents.serializers import (
     DocumentSerializer, DocumentCreateSerializer,
     DocumentTemplateSerializer, DocumentSubmitSerializer
@@ -22,6 +23,7 @@ from apps.teaching.models import StudentEnrollment
 class DocumentViewSet(ModelViewSet):
     """单证视图集"""
     permission_classes = [IsAuthenticated]
+    pagination_class = DocumentPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -50,16 +52,6 @@ class DocumentViewSet(ModelViewSet):
         return queryset.select_related(
             'template', 'created_by', 'reviewed_by', 'teaching_class'
         )
-
-    def list(self, request, *args, **kwargs):
-        """获取单证列表"""
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'code': 0,
-            'message': 'success',
-            'data': serializer.data
-        })
 
     def retrieve(self, request, *args, **kwargs):
         """获取单证详情"""
