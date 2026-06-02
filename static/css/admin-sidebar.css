@@ -22,30 +22,55 @@
 .admin-sidebar {
     width: 200px;
     min-width: 200px;
-    background-color: #262626;
+    background-color: #262626 !important;
     min-height: calc(100vh - 70px);
     overflow: visible;
     flex-shrink: 0;
     border-radius: 4px 0 0 4px;
     padding-bottom: 20px;
+    margin-right: 0;
 }
 
 /* Sidebar navbar brand */
 .admin-sidebar > .navbar-brand {
     padding: 15px 20px;
-    color: #fff;
+    color: #fff !important;
     font-size: 16px;
     font-weight: 600;
-    background-color: #1a1a1a;
+    background-color: #1a1a1a !important;
     margin: 0 0 10px 0;
     display: block;
+    border: none !important;
 }
 
 /* Sidebar list group container */
 .admin-sidebar > .list-group {
     margin: 0;
     padding: 0;
-    background-color: transparent;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Remove borders from sidebar links */
+.admin-sidebar .list-group-item {
+    border: none !important;
+    background-color: transparent !important;
+    color: #b0b0b0 !important;
+    border-radius: 0 !important;
+    padding: 12px 20px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.admin-sidebar .list-group-item:hover {
+    background-color: #333 !important;
+    color: #fff !important;
+}
+
+.admin-sidebar .list-group-item.active {
+    background-color: #4a90d9 !important;
+    color: #fff !important;
+    border-left-color: #6ab0f9 !important;
 }
 
 .admin-sidebar .list-group-item {
