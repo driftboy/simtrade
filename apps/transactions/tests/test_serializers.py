@@ -2,13 +2,14 @@ import pytest
 from django.test import TestCase
 from datetime import date
 from apps.transactions.models import (
-    Transaction, Contract, ContractSignature, ContractAmendment,
+    Transaction, InquiryMessage, Contract, ContractSignature, ContractAmendment,
     LetterOfCredit, LcAmendment, BankOperation
 )
 from apps.transactions.serializers import (
     ContractSerializer, ContractSignatureSerializer, ContractAmendmentSerializer,
     ContractSignSerializer, LetterOfCreditSerializer,
-    LcAmendmentSerializer, BankOperationSerializer
+    LcAmendmentSerializer, BankOperationSerializer,
+    TransactionSerializer, InquiryMessageSerializer
 )
 from apps.users.models import User
 from apps.roles.services import CompanyService
@@ -580,3 +581,129 @@ class BankOperationSerializerTest(TestCase):
         assert data['operation_type'] == 'advise'
         assert data['processed_by'] == 'bank'
         assert data['notes'] == '银行人工通知'
+
+
+class TransactionSerializerTest(TestCase):
+    """测试交易序列化器"""
+
+    def setUp(self):
+        """每个测试方法前执行"""
+        self.buyer = User.objects.create_user(username='trans_buyer', password='testpass', email='trans_buyer@test.com')
+        self.seller = User.objects.create_user(username='trans_seller', password='testpass', email='trans_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列交易买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列交易卖方')
+        self.product = Product.objects.create(code='SER-P0007', name='Test Product', category='electronics', unit='PCS')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer_company,
+            seller=self.seller_company,
+            product=self.product,
+            quantity=1000,
+            unit_price=10.00,
+            status='pending_contract'
+        )
+
+    def test_transaction_serializer_includes_negotiation_fields(self):
+        """测试 TransactionSerializer 包含新字段"""
+        transaction = Transaction.objects.create(
+            buyer=self.buyer_company,
+            seller=self.seller_company,
+            product=self.product,
+            product_name='测试产品',
+            quantity=500,
+            unit_price=15.00,
+            payment_term='lc'
+        )
+        serializer = TransactionSerializer(transaction)
+        data = serializer.data
+        assert 'product_name' in data
+        assert 'payment_term' in data
+        assert 'payment_term_display' in data
+        assert data['payment_term_display'] == '信用证 (L/C)'
+
+    def test_transaction_serializer_payment_term_all_choices(self):
+        """测试所有付款方式的显示值"""
+        test_cases = [
+            ('lc', '信用证 (L/C)'),
+            ('dp', '付款交单 (D/P)'),
+            ('da', '承兑交单 (D/A)'),
+            ('tt', '电汇 (T/T)'),
+            ('tt_advance', '前T/T (预付)'),
+            ('tt_sight', '后T/T (货到付款)'),
+            ('wu', '西联汇款'),
+            ('other', '其他'),
+        ]
+
+        for payment_term_value, expected_display in test_cases:
+            transaction = Transaction.objects.create(
+                buyer=self.buyer_company,
+                seller=self.seller_company,
+                product=self.product,
+                quantity=100,
+                unit_price=20.00,
+                payment_term=payment_term_value
+            )
+            serializer = TransactionSerializer(transaction)
+            data = serializer.data
+            assert data['payment_term_display'] == expected_display
+
+
+class InquiryMessageSerializerTest(TestCase):
+    """测试磋商消息序列化器"""
+
+    def setUp(self):
+        """每个测试方法前执行"""
+        self.buyer = User.objects.create_user(username='inq_buyer', password='testpass', email='inq_buyer@test.com')
+        self.seller = User.objects.create_user(username='inq_seller', password='testpass', email='inq_seller@test.com')
+        self.buyer_company = create_company_for_user(self.buyer, '_序列消息买方')
+        self.seller_company = create_company_for_user(self.seller, '_序列消息卖方')
+        self.product = Product.objects.create(code='SER-P0008', name='Test Product', category='electronics', unit='PCS')
+        self.transaction = Transaction.objects.create(
+            buyer=self.buyer_company,
+            seller=self.seller_company,
+            product=self.product,
+            quantity=1000,
+            unit_price=10.00,
+            status='negotiating'
+        )
+
+    def test_inquiry_message_serializer_includes_negotiation_fields(self):
+        """测试 InquiryMessageSerializer 包含新字段"""
+        message = InquiryMessage.objects.create(
+            transaction=self.transaction,
+            sender=self.buyer,
+            sender_role='buyer',
+            message_type='offer',
+            offered_product_name='测试产品',
+            offered_payment_term='tt'
+        )
+        serializer = InquiryMessageSerializer(message)
+        data = serializer.data
+        assert 'offered_product_name' in data
+        assert 'offered_payment_term_display' in data
+        assert data['offered_payment_term_display'] == '电汇 (T/T)'
+
+    def test_inquiry_message_serializer_offered_payment_term_all_choices(self):
+        """测试所有报价付款方式的显示值"""
+        test_cases = [
+            ('lc', '信用证 (L/C)'),
+            ('dp', '付款交单 (D/P)'),
+            ('da', '承兑交单 (D/A)'),
+            ('tt', '电汇 (T/T)'),
+            ('tt_advance', '前T/T (预付)'),
+            ('tt_sight', '后T/T (货到付款)'),
+            ('wu', '西联汇款'),
+            ('other', '其他'),
+        ]
+
+        for payment_term_value, expected_display in test_cases:
+            message = InquiryMessage.objects.create(
+                transaction=self.transaction,
+                sender=self.seller,
+                sender_role='seller',
+                message_type='offer',
+                offered_product_name=f'产品{payment_term_value}',
+                offered_payment_term=payment_term_value
+            )
+            serializer = InquiryMessageSerializer(message)
+            data = serializer.data
+            assert data['offered_payment_term_display'] == expected_display
