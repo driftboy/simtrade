@@ -136,6 +136,40 @@ class CurrentUserView(APIView):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
+    def put(self, request):
+        """
+        Update current user preferences.
+
+        Request body:
+            documents_per_page: int - Items per page for document list
+
+        Returns:
+            200: Preferences updated successfully
+                UserSerializer data
+            400: Invalid input data
+        """
+        from apps.users.serializers import UserPreferenceSerializer
+
+        serializer = UserPreferenceSerializer(data=request.data)
+        if serializer.is_valid():
+            # 更新用户偏好
+            request.user.documents_per_page = serializer.validated_data['documents_per_page']
+            request.user.save(update_fields=['documents_per_page'])
+
+            # 返回更新后的用户信息
+            user_serializer = UserSerializer(request.user)
+            return Response({
+                'code': 0,
+                'message': '偏好设置已更新',
+                'data': user_serializer.data
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'code': 4000,
+            'message': '无效的偏好设置',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 
 class RegisterView(APIView):
     """学生注册"""
