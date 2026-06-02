@@ -41,8 +41,13 @@ class DocumentPaginationTestCase(TestCase):
         """测试默认每页 5 条"""
         response = self.client.get('/api/v1/documents/documents/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 15)
-        self.assertEqual(len(response.data['results']), 5)
+        # 检查响应格式
+        self.assertEqual(response.json()['code'], 0)
+        self.assertEqual(response.json()['message'], 'success')
+        # 检查分页信息
+        pagination = response.json()['pagination']
+        self.assertEqual(pagination['count'], 15)
+        self.assertEqual(len(response.json()['data']), 5)
 
     def test_custom_page_size(self):
         """测试自定义每页条数"""
@@ -50,27 +55,29 @@ class DocumentPaginationTestCase(TestCase):
             '/api/v1/documents/documents/?page_size=10'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['results']), 10)
+        self.assertEqual(len(response.json()['data']), 10)
+        self.assertEqual(response.json()['pagination']['page_size'], 10)
 
     def test_page_navigation(self):
         """测试翻页功能"""
         # 第一页
         response = self.client.get('/api/v1/documents/documents/?page=1')
-        self.assertEqual(len(response.data['results']), 5)
+        self.assertEqual(len(response.json()['data']), 5)
 
         # 第二页
         response = self.client.get('/api/v1/documents/documents/?page=2')
-        self.assertEqual(len(response.data['results']), 5)
+        self.assertEqual(len(response.json()['data']), 5)
 
         # 第三页（剩余 5 条）
         response = self.client.get('/api/v1/documents/documents/?page=3')
-        self.assertEqual(len(response.data['results']), 5)
+        self.assertEqual(len(response.json()['data']), 5)
 
     def test_next_previous_urls(self):
         """测试 next 和 previous URL"""
         response = self.client.get('/api/v1/documents/documents/')
-        self.assertIsNone(response.data['previous'])
-        self.assertIsNotNone(response.data['next'])
+        pagination = response.json()['pagination']
+        self.assertIsNone(pagination['previous'])
+        self.assertIsNotNone(pagination['next'])
 
     def test_max_page_size_limit(self):
         """测试最大每页条数限制"""
@@ -86,6 +93,6 @@ class DocumentPaginationTestCase(TestCase):
         response = self.client.get(
             '/api/v1/documents/documents/?page_size=100'
         )
-        self.assertEqual(response.data['count'], 65)
+        self.assertEqual(response.json()['pagination']['count'], 65)
         # DRF 会限制为 max_page_size
-        self.assertEqual(len(response.data['results']), 50)
+        self.assertEqual(len(response.json()['data']), 50)
