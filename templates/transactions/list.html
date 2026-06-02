@@ -5,6 +5,33 @@
 
 {% block extra_css %}
 <link href="{% static 'css/transactions.css' %}" rel="stylesheet">
+<style>
+.transaction-item {
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #fff;
+    transition: box-shadow 0.2s;
+}
+.transaction-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.status-inquiring { background: #eef3ff; color: #4a90d9; }
+.status-negotiating { background: #fff3e0; color: #f0ad4e; }
+.status-pending_contract { background: #e8f5e9; color: #5cb85c; }
+.status-contracted { background: #d1c4e9; color: #673ab7; }
+.status-in_progress { background: #b3e5fc; color: #03a9f4; }
+.status-completed { background: #c8e6c9; color: #4caf50; }
+.status-cancelled { background: #ffebee; color: #f44336; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -30,19 +57,34 @@ $(document).ready(function() {
             success: function(response) {
                 var html = '';
                 if (response.data.length === 0) {
-                    html = '<div class="alert alert-info">暂无交易</div>';
+                    html = '<div class="alert alert-info" style="margin-top:20px;">暂无交易记录</div>';
                 } else {
                     response.data.forEach(function(tx) {
-                        var statusClass = tx.status;
+                        var statusClass = 'status-' + tx.status;
+                        var sellerName = tx.seller_company_name || '待确定';
+                        var quantityText = tx.quantity ? tx.quantity : '待定';
+                        var priceText = tx.unit_price ? (tx.currency || 'USD') + ' ' + tx.unit_price : '待定';
+                        var productName = tx.product_name || '商品 #' + tx.product;
+
                         html += `
                             <div class="transaction-item">
                                 <div class="row">
                                     <div class="col-md-8">
-                                        <h4>交易 #${tx.id}</h4>
-                                        <p>商品ID: ${tx.product_id} | 数量: ${tx.quantity} | 单价: $${tx.unit_price}</p>
-                                        <p>
-                                            买方: ${tx.buyer_username} &rarr; 卖方: ${tx.seller_username}
+                                        <h4 style="margin:0 0 8px 0;">交易 #${tx.id}</h4>
+                                        <p style="margin:4px 0; color:#595959;">
+                                            <strong>商品:</strong> ${SimTrade.escapeHtml(productName)}
                                         </p>
+                                        <p style="margin:4px 0; color:#595959;">
+                                            <strong>数量:</strong> ${quantityText}
+                                            <span style="margin:0 8px; color:#d9d9d9;">|</span>
+                                            <strong>单价:</strong> ${priceText}
+                                        </p>
+                                        <p style="margin:4px 0; color:#595959;">
+                                            <strong>买方:</strong> ${SimTrade.escapeHtml(tx.buyer_company_name || '未知')}
+                                            <span style="margin:0 8px;">&rarr;</span>
+                                            <strong>卖方:</strong> ${SimTrade.escapeHtml(sellerName)}
+                                        </p>
+                                        ${tx.notes ? '<p style="margin:4px 0; color:#8c8c8c; font-size:12px;"><strong>备注:</strong> ' + SimTrade.escapeHtml(tx.notes) + '</p>' : ''}
                                     </div>
                                     <div class="col-md-4 text-right">
                                         <span class="status-badge ${statusClass}">${tx.status_display}</span>
@@ -57,7 +99,7 @@ $(document).ready(function() {
                 $('#transactionList').html(html);
             },
             error: function(xhr) {
-                $('#transactionList').html('<div class="alert alert-danger">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
+                $('#transactionList').html('<div class="alert alert-danger" style="margin-top:20px;">加载失败: ' + (xhr.responseJSON?.message || '未知错误') + '</div>');
             }
         });
     }

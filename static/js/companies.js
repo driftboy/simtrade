@@ -9,21 +9,108 @@ $(document).ready(function() {
     var allRoles = [];
     var myRoles = [];
     var appliedCompanyRoles = {}; // companyId -> roleCode
+    var pagination = {
+        count: 0,
+        next: null,
+        previous: null,
+        currentPage: 1,
+        pageSize: 20
+    };
 
     // 加载数据
-    loadCompanies();
+    loadCompanies(1);
     loadRoles();
     loadMyRoles();
 
     // ==================== 数据加载 ====================
 
-    function loadCompanies() {
-        $.get('/api/v1/companies/', function(resp) {
-            allCompanies = resp.data || [];
+    function loadCompanies(page) {
+        if (!page) page = 1;
+        pagination.currentPage = page;
+
+        // 获取筛选参数
+        var search = $('#searchInput').val().trim();
+        var typeFilter = $('#typeFilter').val();
+
+        // 构建 URL 参数
+        var params = 'page=' + page + '&page_size=' + pagination.pageSize;
+        if (search) params += '&search=' + encodeURIComponent(search);
+        if (typeFilter) params += '&type=' + encodeURIComponent(typeFilter);
+
+        $.get('/api/v1/companies/?' + params, function(resp) {
+            // DRF 标准分页格式
+            if (resp.results) {
+                allCompanies = resp.results || [];
+                pagination.count = resp.count || 0;
+                pagination.next = resp.next;
+                pagination.previous = resp.previous;
+            } else {
+                // 兼容旧格式（如果后端还没更新）
+                allCompanies = [];
+                pagination.count = 0;
+            }
             renderCompanies();
+            renderPagination();
         }).fail(function() {
             $('#companyList').html('<div class="alert alert-danger">加载失败，请刷新页面重试</div>');
         });
+    }
+
+    function renderPagination() {
+        var totalPages = Math.ceil(pagination.count / pagination.pageSize);
+        if (totalPages <= 1) {
+            $('.pagination-bar').remove();
+            return;
+        }
+
+        // 移除旧的分页栏
+        $('.pagination-bar').remove();
+
+        var html = '<div class="pagination-bar text-center" style="margin: 20px 0;">';
+        html += '<nav><ul class="pagination">';
+
+        // 上一页
+        if (pagination.previous) {
+            html += '<li><a href="#" data-page="' + (pagination.currentPage - 1) + '">&laquo; 上一页</a></li>';
+        } else {
+            html += '<li class="disabled"><span>&laquo; 上一页</span></li>';
+        }
+
+        // 页码
+        var startPage = Math.max(1, pagination.currentPage - 2);
+        var endPage = Math.min(totalPages, pagination.currentPage + 2);
+
+        if (startPage > 1) {
+            html += '<li><a href="#" data-page="1">1</a></li>';
+            if (startPage > 2) html += '<li class="disabled"><span>...</span></li>';
+        }
+
+        for (var i = startPage; i <= endPage; i++) {
+            if (i === pagination.currentPage) {
+                html += '<li class="active"><span>' + i + ' <span class="sr-only">(current)</span></span></li>';
+            } else {
+                html += '<li><a href="#" data-page="' + i + '">' + i + '</a></li>';
+            }
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += '<li class="disabled"><span>...</span></li>';
+            html += '<li><a href="#" data-page="' + totalPages + '">' + totalPages + '</a></li>';
+        }
+
+        // 下一页
+        if (pagination.next) {
+            html += '<li><a href="#" data-page="' + (pagination.currentPage + 1) + '">下一页 &raquo;</a></li>';
+        } else {
+            html += '<li class="disabled"><span>下一页 &raquo;</span></li>';
+        }
+
+        html += '</ul></nav>';
+        html += '<div class="text-muted" style="margin-top: 10px; font-size: 13px;">';
+        html += '共 ' + pagination.count + ' 条记录，第 ' + pagination.currentPage + '/' + totalPages + ' 页';
+        html += '</div></div>';
+
+        $('#companyList').after(html);
     }
 
     function loadRoles() {
@@ -54,31 +141,18 @@ $(document).ready(function() {
     // ==================== 渲染公司列表 ====================
 
     function renderCompanies() {
-        var search = $('#searchInput').val().trim().toLowerCase();
-        var typeFilter = $('#typeFilter').val();
-
-        // 过滤
-        var filtered = allCompanies.filter(function(c) {
-            var matchSearch = !search ||
-                (c.name && c.name.toLowerCase().indexOf(search) >= 0) ||
-                (c.name_en && c.name_en.toLowerCase().indexOf(search) >= 0) ||
-                (c.code && c.code.toLowerCase().indexOf(search) >= 0);
-            var matchType = !typeFilter || c.type === typeFilter;
-            return matchSearch && matchType;
-        });
-
-        // 渲染
-        if (filtered.length === 0) {
+        // 后端已处理筛选和分页，直接渲染
+        if (allCompanies.length === 0) {
             $('#companyList').html('' +
                 '<div class="empty-state">' +
                 '<span class="glyphicon glyphicon-inbox"></span>' +
-                '<p>' + (allCompanies.length === 0 ? '暂无公司数据' : '没有匹配的公司') + '</p>' +
+                '<p>' + (pagination.count === 0 ? '暂无公司数据' : '没有匹配的公司') + '</p>' +
                 '</div>');
             return;
         }
 
         var html = '';
-        filtered.forEach(function(c) {
+        allCompanies.forEach(function(c) {
             var appliedRoles = appliedCompanyRoles[c.id] || [];
             var hasPending = appliedRoles.length > 0;
 
@@ -142,20 +216,51 @@ $(document).ready(function() {
 
     // ==================== 事件处理 ====================
 
-    // 搜索
+    // 搜索（实时）- 使用防抖
+    var searchTimeout;
     $('#searchInput').on('input', function() {
-        renderCompanies();
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            loadCompanies(1);
+        }, 300);
     });
 
-    // 类型筛选
+    // 类型筛选（实时）
     $('#typeFilter').on('change', function() {
-        renderCompanies();
+        loadCompanies(1);
+    });
+
+    // 查询按钮
+    $('#queryBtn').click(function() {
+        var btn = $(this);
+        var originalText = btn.html();
+        btn.prop('disabled', true).html('<span class="glyphicon glyphicon-hourglass"></span> 查询中...');
+        loadCompanies(1);
+        setTimeout(function() {
+            btn.prop('disabled', false).html(originalText);
+        }, 300);
     });
 
     // 刷新
     $('#refreshBtn').click(function() {
-        loadCompanies();
+        var btn = $(this);
+        var originalText = btn.html();
+        btn.prop('disabled', true).html('<span class="glyphicon glyphicon-hourglass"></span> 刷新中...');
+        loadCompanies(1);
         loadMyRoles();
+        setTimeout(function() {
+            btn.prop('disabled', false).html(originalText);
+        }, 500);
+    });
+
+    // 分页点击
+    $(document).on('click', '.pagination-bar a', function(e) {
+        e.preventDefault();
+        var page = $(this).data('page');
+        if (page) {
+            loadCompanies(page);
+            $('html, body').animate({ scrollTop: $('#companyList').offset().top - 100 }, 300);
+        }
     });
 
     // 打开申请模态框
@@ -216,7 +321,7 @@ $(document).ready(function() {
 
         // 提交
         $.ajax({
-            url: '/api/v1/roles/my-roles/request',
+            url: '/api/v1/my-roles/request/',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({

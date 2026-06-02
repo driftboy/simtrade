@@ -65,6 +65,9 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
     - List pending requests (teacher/staff only)
     """
     permission_classes = [IsAuthenticated]
+    # Base queryset - required by DRF router for URL generation and standard actions
+    # Note: Custom list() method uses its own queryset logic
+    queryset = UserCompanyRole.objects.all()
 
     def list(self, request):
         """
@@ -234,8 +237,11 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
         """
         List all pending role requests (teacher/staff only).
 
+        Query params:
+            status: Filter by status (pending, approved, rejected, active). If not provided, returns only pending.
+
         Returns:
-            200: List of pending requests
+            200: List of requests
             403: Permission denied
         """
         if not (request.user.is_staff or request.user.user_type == 'teacher'):
@@ -244,7 +250,26 @@ class UserCompanyRoleViewSet(viewsets.ViewSet):
                 'message': '无权限操作'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        queryset = RoleService.get_pending_requests()
+        # 获取状态筛选参数
+        # 使用 get() 返回 None 如果参数不存在，但空字符串 '' 会返回 ''
+        status_param = request.query_params.get('status', None)
+
+        queryset = UserCompanyRole.objects.all().select_related('user', 'company', 'role')
+
+        # 应用状态筛选
+        if status_param is None:
+            # 未传递 status 参数，默认只返回待审核的
+            queryset = queryset.filter(status='pending')
+        elif status_param == '':
+            # 空字符串表示全部，不应用筛选
+            pass
+        else:
+            # 用户指定了具体状态筛选
+            queryset = queryset.filter(status=status_param.strip())
+
+        # 按申请时间倒序
+        queryset = queryset.order_by('-requested_at', '-id')
+
         serializer = UserCompanyRoleSerializer(queryset, many=True)
         return Response({
             'code': 0,
@@ -327,6 +352,49 @@ class CompanyViewSet(viewsets.ModelViewSet):
             # Allow anonymous users to browse companies
             return []
         return [IsAuthenticated()]
+
+    def list(self, request, *args, **kwargs):
+        """
+        List all companies with pagination and filtering.
+
+        Query params:
+            page: Page number (default: 1)
+            page_size: Items per page (default: 20, max: 100)
+            search: Search term for name, name_en, or code
+            type: Filter by company type
+
+        Returns:
+            200: Paginated list of companies
+        """
+        queryset = self.get_queryset()
+
+        # Apply search filter
+        search = request.query_params.get('search', '').strip()
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(name_en__icontains=search) |
+                Q(code__icontains=search)
+            )
+
+        # Apply type filter
+        company_type = request.query_params.get('type', '').strip()
+        if company_type:
+            queryset = queryset.filter(type=company_type)
+
+        # Apply pagination using DRF standard
+        from rest_framework.pagination import PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size = request.query_params.get('page_size', 20)
+        paginator.page_size_query_param = 'page_size'
+        paginator.max_page_size = 100
+
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(page, many=True)
+
+        # Use DRF standard paginated response format
+        return paginator.get_paginated_response(serializer.data)
 
     def create(self, request):
         """

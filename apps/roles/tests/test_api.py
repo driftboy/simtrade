@@ -626,3 +626,197 @@ class TestCompanyAPI:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.data['code'] == 4001  # Company not found
+
+    def test_list_companies_pagination(self, db):
+        """Test listing companies with pagination."""
+        # Create multiple companies
+        for i in range(25):
+            Company.objects.create(
+                name=f'公司{i}',
+                code=f'COMP_{i:06d}',
+                type='进出口贸易'
+            )
+
+        response = self.client.get('/api/v1/companies/?page=1&page_size=10')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'count' in response.data
+        assert response.data['count'] == 25
+        assert 'next' in response.data
+        assert 'previous' in response.data
+        assert 'results' in response.data
+        assert len(response.data['results']) == 10
+
+    def test_list_companies_search(self, db):
+        """Test searching companies by name."""
+        Company.objects.create(
+            name='测试贸易公司',
+            code='COMP_000001',
+            type='进出口贸易'
+        )
+        Company.objects.create(
+            name='测试物流公司',
+            code='COMP_000002',
+            type='物流运输'
+        )
+        Company.objects.create(
+            name='生产制造企业',
+            code='COMP_000003',
+            type='生产制造'
+        )
+
+        response = self.client.get('/api/v1/companies/?search=贸易')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['name'] == '测试贸易公司'
+
+    def test_list_companies_filter_by_type(self, db):
+        """Test filtering companies by type."""
+        Company.objects.create(
+            name='贸易公司A',
+            code='COMP_000001',
+            type='进出口贸易'
+        )
+        Company.objects.create(
+            name='物流公司A',
+            code='COMP_000002',
+            type='物流运输'
+        )
+
+        response = self.client.get('/api/v1/companies/?type=进出口贸易')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['type'] == '进出口贸易'
+
+
+class TestRoleRequestFilterAPI:
+    """Test cases for role request filtering API."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db):
+        """Set up test fixtures."""
+        self.client = APIClient()
+
+        # Create test users
+        self.student = User.objects.create_user(
+            username='student',
+            email='student@example.com',
+            password='testpass123',
+            user_type='student'
+        )
+
+        self.student2 = User.objects.create_user(
+            username='student2',
+            email='student2@example.com',
+            password='testpass123',
+            user_type='student'
+        )
+
+        self.student3 = User.objects.create_user(
+            username='student3',
+            email='student3@example.com',
+            password='testpass123',
+            user_type='student'
+        )
+
+        self.teacher = User.objects.create_user(
+            username='teacher',
+            email='teacher@example.com',
+            password='teacherpass123',
+            user_type='teacher',
+            is_staff=True
+        )
+
+        # Create companies and trade role
+        self.company1 = Company.objects.create(
+            name='测试贸易公司1',
+            code='COMP_000001',
+            type='进出口贸易'
+        )
+
+        self.company2 = Company.objects.create(
+            name='测试贸易公司2',
+            code='COMP_000002',
+            type='进出口贸易'
+        )
+
+        self.company3 = Company.objects.create(
+            name='测试贸易公司3',
+            code='COMP_000003',
+            type='进出口贸易'
+        )
+
+        self.exporter_role = TradeRole.objects.create(
+            code='exporter',
+            name='出口商',
+            description='负责出口贸易业务'
+        )
+
+        # Create role assignments with different statuses
+        self.pending_role = UserCompanyRole.objects.create(
+            user=self.student,
+            company=self.company1,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.PENDING
+        )
+        self.active_role = UserCompanyRole.objects.create(
+            user=self.student2,
+            company=self.company2,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.ACTIVE,
+            is_active=True
+        )
+        self.rejected_role = UserCompanyRole.objects.create(
+            user=self.student3,
+            company=self.company3,
+            role=self.exporter_role,
+            status=UserCompanyRole.Status.REJECTED
+        )
+
+    def test_filter_pending_requests_default(self, db):
+        """Test that pending requests are returned by default."""
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get('/api/v1/my-roles/pending/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['code'] == 0
+        # Should return only pending requests
+        assert len(response.data['data']) == 1
+        assert response.data['data'][0]['status'] == 'pending'
+
+    def test_filter_all_status_empty(self, db):
+        """Test filtering with empty status string (should return all)."""
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get('/api/v1/my-roles/pending/?status=')
+
+        assert response.status_code == status.HTTP_200_OK
+        # Empty status should return all roles
+        assert len(response.data['data']) >= 3
+
+    def test_filter_by_active_status(self, db):
+        """Test filtering by active status."""
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get('/api/v1/my-roles/pending/?status=active')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['data']) == 1
+        assert response.data['data'][0]['status'] == 'active'
+
+    def test_filter_by_rejected_status(self, db):
+        """Test filtering by rejected status."""
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get('/api/v1/my-roles/pending/?status=rejected')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['data']) == 1
+        assert response.data['data'][0]['status'] == 'rejected'
+
+    def test_filter_requests_as_student_forbidden(self, db):
+        """Test that students cannot filter role requests."""
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get('/api/v1/my-roles/pending/?status=all')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data['code'] == 2001  # Permission denied

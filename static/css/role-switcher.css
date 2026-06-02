@@ -11,8 +11,8 @@
 
 /* 确保下拉菜单宽度足够 */
 .role-switcher .dropdown-menu {
-    min-width: 200px;
-    max-width: 300px;
+    min-width: 250px;
+    max-width: 350px;
 }
 
 .role-switcher .dropdown-toggle:hover,
@@ -49,7 +49,7 @@
 .role-switcher-label {
     font-size: 13px;
     color: #9d9d9d;
-    max-width: 180px;
+    max-width: 280px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -75,7 +75,7 @@
 
 .role-item .role-item-name {
     display: inline-block;
-    max-width: 140px;
+    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: middle;

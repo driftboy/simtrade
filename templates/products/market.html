@@ -23,9 +23,21 @@
 .mkt-chapter-title { font-weight: 600; color: #262626; font-size: 14px; }
 .mkt-chapter-code { color: #8c8c8c; font-size: 13px; margin-right: 8px; }
 .mkt-product-grid { padding: 12px 0 4px 0; }
+.mkt-product-grid .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -8px;
+}
+.mkt-product-grid .row > div {
+    padding: 0 8px;
+    display: flex;
+}
 .mkt-product-card {
     border: 1px solid #e8e8e8; border-radius: 6px; padding: 14px;
-    transition: box-shadow 0.2s; background: #fff; height: 100%;
+    transition: box-shadow 0.2s; background: #fff;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 .mkt-product-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
 .mkt-product-hs { font-size: 12px; color: #8c8c8c; }
@@ -84,6 +96,63 @@
     <div class="col-md-9">
         <div id="productList">
             <div class="text-center text-muted" style="padding:40px;">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- 询盘模态框 -->
+<div class="modal fade" id="inquiryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">发送询盘 - <span id="inquiryProductName"></span></h4>
+            </div>
+            <div class="modal-body">
+                <form id="inquiryForm">
+                    <input type="hidden" id="inquiryProductId">
+                    <div class="form-group">
+                        <label>数量 <span class="text-muted">(选填)</span></label>
+                        <input type="number" id="inquiryQuantity" class="form-control" placeholder="如：1000" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>目标单价 <span class="text-muted">(选填)</span></label>
+                        <div class="row">
+                            <div class="col-md-7">
+                                <input type="number" id="inquiryPrice" class="form-control" placeholder="如：10.50" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-5">
+                                <select id="inquiryCurrency" class="form-control">
+                                    <option value="USD">USD 美元</option>
+                                    <option value="CNY">CNY 人民币</option>
+                                    <option value="EUR">EUR 欧元</option>
+                                    <option value="JPY">JPY 日元</option>
+                                    <option value="GBP">GBP 英镑</option>
+                                    <option value="HKD">HKD 港币</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>贸易术语 <span class="text-muted">(选填)</span></label>
+                        <select id="inquiryTradeTerm" class="form-control">
+                            <option value="">请选择...</option>
+                            <option value="FOB">FOB (离岸价)</option>
+                            <option value="CIF">CIF (到岸价)</option>
+                            <option value="CFR">CFR (成本加运费)</option>
+                            <option value="EXW">EXW (工厂交货)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>备注 <span class="text-muted">(选填)</span></label>
+                        <textarea id="inquiryNotes" class="form-control" rows="3" placeholder="请说明您的需求..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" id="submitInquiryBtn" class="btn btn-primary">发送询盘</button>
+            </div>
         </div>
     </div>
 </div>
@@ -159,7 +228,7 @@ $(document).ready(function() {
                         + '<div class="mkt-product-unit">单位：' + SimTrade.escapeHtml(p.unit) + '</div>'
                         + (p.description ? '<div class="mkt-product-desc">' + SimTrade.escapeHtml(p.description) + '</div>' : '')
                         + taxHtml
-                        + '<div style="margin-top:10px;">'
+                        + '<div class="mkt-product-action" style="margin-top:auto;padding-top:10px;">'
                         + '<button class="btn btn-primary btn-xs send-inquiry-btn"'
                         + ' data-product-id="' + p.id + '"'
                         + ' data-product-name="' + SimTrade.escapeHtml(p.name) + '">'
@@ -190,6 +259,94 @@ $(document).ready(function() {
     // 搜索
     $('#searchBtn').click(function() { currentChapter = ''; loadMarket(); });
     $('#searchInput').keypress(function(e) { if (e.which === 13) { currentChapter = ''; loadMarket(); } });
+
+    // 打开询盘模态框
+    $(document).on('click', '.send-inquiry-btn', function() {
+        var productId = $(this).data('product-id');
+        var productName = $(this).data('product-name');
+
+        $('#inquiryProductId').val(productId);
+        $('#inquiryProductName').text(productName);
+        $('#inquiryQuantity').val('');
+        $('#inquiryPrice').val('');
+        $('#inquiryCurrency').val('USD'); // 默认 USD
+        $('#inquiryTradeTerm').val('');
+        $('#inquiryNotes').val('');
+
+        $('#inquiryModal').modal('show');
+    });
+
+    // 提交询盘
+    $('#submitInquiryBtn').click(function() {
+        var btn = $(this);
+        var productId = $('#inquiryProductId').val();
+        var quantity = $('#inquiryQuantity').val();
+        var price = $('#inquiryPrice').val();
+        var currency = $('#inquiryCurrency').val();
+        var tradeTerm = $('#inquiryTradeTerm').val();
+        var notes = $('#inquiryNotes').val();
+
+        // 客户端验证
+        if (!productId) {
+            alert('商品ID无效，请重新选择商品');
+            return;
+        }
+
+        // 构建请求数据
+        var data = { product: parseInt(productId) };
+        if (quantity) data.quantity = parseInt(quantity);
+        if (price) {
+            data.unit_price = parseFloat(price);
+            data.currency = currency || 'USD';
+        }
+        if (tradeTerm) data.trade_term = tradeTerm;
+        if (notes) data.notes = notes;
+
+        console.log('Sending inquiry data:', data);
+
+        // 禁用按钮
+        btn.prop('disabled', true).text('发送中...');
+
+        // 提交
+        $.ajax({
+            url: '/api/v1/transactions/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(resp) {
+                $('#inquiryModal').modal('hide');
+                SimTrade.showSuccess('询盘发送成功！');
+                btn.prop('disabled', false).text('发送询盘');
+            },
+            error: function(xhr) {
+                var msg = '发送失败，请重试';
+                console.error('Error response:', xhr);
+                console.error('Response text:', xhr.responseText);
+                if (xhr.responseJSON) {
+                    console.error('Response JSON:', xhr.responseJSON);
+                    // DRF 验证错误格式
+                    if (xhr.responseJSON.product) {
+                        msg = '商品验证失败：' + xhr.responseJSON.product.join(', ');
+                    } else if (xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON.detail) {
+                        msg = xhr.responseJSON.detail;
+                    } else if (xhr.responseJSON.errors) {
+                        msg = '参数错误：\n' + JSON.stringify(xhr.responseJSON.errors, null, 2);
+                    }
+                } else if (xhr.responseText) {
+                    msg = '服务器错误：' + xhr.responseText;
+                }
+                alert(msg);
+                btn.prop('disabled', false).text('发送询盘');
+            }
+        });
+    });
+
+    // 模态框关闭时重置
+    $('#inquiryModal').on('hidden.bs.modal', function() {
+        $('#submitInquiryBtn').prop('disabled', false).text('发送询盘');
+    });
 });
 </script>
 {% endblock %}

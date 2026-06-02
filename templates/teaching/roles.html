@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}角色申请审核 - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/role-switcher.css' %}" rel="stylesheet">
+<style>
+.role-request-item {
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #fff;
+    transition: box-shadow 0.2s;
+}
+.role-request-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.role-request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.role-request-student {
+    font-weight: 600;
+    color: #262626;
+}
+.role-request-time {
+    color: #8c8c8c;
+    font-size: 12px;
+}
+.role-request-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #595959;
+}
+.role-request-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.role-request-notes {
+    font-size: 13px;
+    color: #8c8c8c;
+    font-style: italic;
+}
+.role-request-actions {
+    display: flex;
+    gap: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row" style="margin-bottom:16px;">
+    <div class="col-md-12">
+        <h4 style="font-weight:600;color:#262626;margin:0;">角色申请审核</h4>
+        <p class="text-muted" style="margin:4px 0 0;">审核学生的角色申请</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- 筛选 -->
+        <div class="panel panel-default" style="border-radius:6px;">
+            <div class="panel-body" style="padding:12px;">
+                <div class="row">
+                    <div class="col-md-3">
+                        <select id="statusFilter" class="form-control" style="font-size:13px;">
+                            <option value="pending">待审核</option>
+                            <option value="active">已激活</option>
+                            <option value="rejected">已拒绝</option>
+                            <option value="">全部状态</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="refreshBtn" class="btn btn-default btn-sm">
+                            <span class="glyphicon glyphicon-refresh"></span> 刷新
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 申请列表 -->
+        <div id="requestList">
+            <div class="text-center text-muted" style="padding:40px;">加载中...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    function loadRequests() {
+        var statusFilter = $('#statusFilter').val();
+        var url = '/api/v1/my-roles/pending/';
+
+        // 构建URL参数
+        var params = [];
+        if (statusFilter && statusFilter !== '') {
+            params.push('status=' + statusFilter);
+        }
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+
+        $.get(url, function(resp) {
+            var requests = resp.data || [];
+
+            if (requests.length === 0) {
+                var filterName = $('#statusFilter option:selected').text();
+                $('#requestList').html('<div class="alert alert-info" style="margin-top:20px;">暂无' + filterName + '的角色申请记录</div>');
+                return;
+            }
+
+            var html = '';
+            requests.forEach(function(r) {
+                // 使用状态显示字段
+                var statusDisplay = r.status_display || r.status;
+                var statusClass = r.status === 'pending' ? 'label-warning' :
+                                  r.status === 'active' ? 'label-success' :
+                                  r.status === 'rejected' ? 'label-danger' : 'label-default';
+                var statusBadge = '<span class="label ' + statusClass + '">' + statusDisplay + '</span>';
+
+                var canApprove = r.status === 'pending';
+
+                html += '<div class="role-request-item">';
+                html += '<div class="role-request-header">';
+                html += '<span class="role-request-student">' + SimTrade.escapeHtml(r.username) + ' 申请加入 ' + SimTrade.escapeHtml(r.company_name) + '</span>';
+                html += '<span class="role-request-time">' + (r.requested_at || '') + '</span>';
+                html += '</div>';
+
+                html += '<div class="role-request-details">';
+                html += '<div class="role-request-detail-item"><span class="glyphicon glyphicon-user"></span> 角色: <strong>' + SimTrade.escapeHtml(r.role_name) + ' (' + SimTrade.escapeHtml(r.role_code) + ')</strong></div>';
+                html += '<div class="role-request-detail-item"><span class="glyphicon glyphicon-briefcase"></span> 公司: ' + SimTrade.escapeHtml(r.company_code) + '</div>';
+                html += '</div>';
+
+                if (r.notes) {
+                    html += '<div class="role-request-notes">申请理由: ' + SimTrade.escapeHtml(r.notes) + '</div>';
+                }
+
+                if (canApprove) {
+                    html += '<div class="role-request-actions">';
+                    html += '<button class="btn btn-success btn-sm approve-btn" data-id="' + r.id + '">';
+                    html += '<span class="glyphicon glyphicon-ok"></span> 批准';
+                    html += '</button>';
+                    html += '<button class="btn btn-danger btn-sm reject-btn" data-id="' + r.id + '">';
+                    html += '<span class="glyphicon glyphicon-remove"></span> 拒绝';
+                    html += '</button>';
+                    html += '</div>';
+                } else {
+                    html += '<div style="color:#8c8c8c;font-size:12px;">' + statusBadge + '</div>';
+                }
+
+                html += '</div>';
+            });
+
+            $('#requestList').html(html);
+        }).fail(function() {
+            $('#requestList').html('<div class="alert alert-danger" style="margin-top:20px;">加载失败，请刷新页面重试</div>');
+        });
+    }
+
+    // 批准申请
+    $(document).on('click', '.approve-btn', function() {
+        var id = $(this).data('id');
+        if (!confirm('确定批准此申请？')) return;
+
+        var btn = $(this);
+        btn.prop('disabled', true).text('处理中...');
+
+        $.ajax({
+            url: '/api/v1/my-roles/approve/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({assignment_id: id}),
+            success: function(resp) {
+                SimTrade.showSuccess('申请已批准');
+                loadRequests();
+            },
+            error: function(xhr) {
+                var msg = '操作失败';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                alert(msg);
+                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-ok"></span> 批准');
+            }
+        });
+    });
+
+    // 拒绝申请
+    $(document).on('click', '.reject-btn', function() {
+        var id = $(this).data('id');
+        var reason = prompt('请输入拒绝理由：');
+        if (reason === null) return;
+
+        var btn = $(this);
+        btn.prop('disabled', true).text('处理中...');
+
+        $.ajax({
+            url: '/api/v1/my-roles/reject/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({assignment_id: id, reason: reason}),
+            success: function(resp) {
+                SimTrade.showSuccess('申请已拒绝');
+                loadRequests();
+            },
+            error: function(xhr) {
+                var msg = '操作失败';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                alert(msg);
+                btn.prop('disabled', false).html('<span class="glyphicon glyphicon-remove"></span> 拒绝');
+            }
+        });
+    });
+
+    // 状态筛选
+    $('#statusFilter').on('change', loadRequests);
+
+    // 刷新
+    $('#refreshBtn').click(loadRequests);
+
+    // 初始加载
+    loadRequests();
+});
+</script>
+{% endblock %}

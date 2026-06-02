@@ -74,6 +74,20 @@
     </div>
 </div>
 
+<!-- 角色选择器 -->
+<div class="row" style="margin-bottom:12px;">
+    <div class="col-md-12">
+        <div class="role-filter-container">
+            <label style="font-weight:600;margin-right:8px;">筛选角色：</label>
+            <select id="roleFilter" class="form-control" style="display:inline-block;width:auto;max-width:300px;">
+                <option value="all" selected>全部角色</option>
+                <!-- Options will be populated by JS -->
+            </select>
+            <span id="currentRoleBadge" class="label label-primary" style="margin-left:10px;display:none;">当前激活角色</span>
+        </div>
+    </div>
+</div>
+
 <!-- 统计卡片 -->
 <div class="row dashboard-stats">
     <div class="col-md-3">
@@ -201,6 +215,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<link href="{% static 'css/role-switcher.css' %}" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 $(document).ready(function() {
@@ -227,14 +242,62 @@ $(document).ready(function() {
         'completed': '#5cb85c', 'cancelled': '#999'
     };
 
-    $.get('/api/v1/dashboard/student/', function(resp) {
+    // Store chart instances for destroying/recreating
+    var chartDocStatus = null;
+    var chartTransactionProgress = null;
+    var chartRoleDist = null;
+
+    // Update role selector dropdown
+    function updateRoleSelector(rolesData) {
+        if (!rolesData || !rolesData.available) return;
+
+        var $select = $('#roleFilter');
+        var currentVal = $select.val();
+
+        // Keep "all" option
+        $select.html('<option value="all">全部角色</option>');
+
+        rolesData.available.forEach(function(role) {
+            var label = role.name;
+            if (role.is_current) {
+                label += ' (当前)';
+            }
+            $select.append('<option value="' + role.id + '">' + label + '</option>');
+        });
+
+        // Restore selection or set to selected role
+        if (currentVal && $select.find('option[value="' + currentVal + '"]').length > 0) {
+            $select.val(currentVal);
+        } else if (rolesData.selected) {
+            $select.val(rolesData.selected);
+        } else {
+            $select.val('all');
+        }
+
+        // Update current role badge
+        if (rolesData.current) {
+            $('#currentRoleBadge').text(rolesData.current.name + ' (当前激活)').show();
+        } else {
+            $('#currentRoleBadge').hide();
+        }
+    }
+
+    // Destroy existing charts
+    function destroyCharts() {
+        if (chartDocStatus) { chartDocStatus.destroy(); chartDocStatus = null; }
+        if (chartTransactionProgress) { chartTransactionProgress.destroy(); chartTransactionProgress = null; }
+        if (chartRoleDist) { chartRoleDist.destroy(); chartRoleDist = null; }
+    }
+
+    // Render charts
+    function renderCharts(resp) {
         // Summary cards
         $('#stat-transactions').text(resp.summary.transactions_count || 0);
         $('#stat-documents').text(resp.summary.documents_count || 0);
         $('#stat-pending').text(resp.summary.pending_documents || 0);
         $('#stat-notifications').text(resp.summary.unread_notifications || 0);
 
-        // Document status chart - aggregate by status
+        // Document status chart
         var dsAgg = {};
         if (resp.document_status_distribution) {
             resp.document_status_distribution.forEach(function(d) {
@@ -250,8 +313,10 @@ $(document).ready(function() {
             }
             return '#999';
         });
+
+        $('#chartDocStatus').parent().find('.text-muted').remove();
         if (dsData.length > 0) {
-            new Chart($('#chartDocStatus'), {
+            chartDocStatus = new Chart($('#chartDocStatus'), {
                 type: 'doughnut',
                 data: {
                     labels: dsLabels,
@@ -274,7 +339,7 @@ $(document).ready(function() {
             $('#chartDocStatus').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
         }
 
-        // Transaction progress chart - aggregate by status
+        // Transaction progress chart
         var tpAgg = {};
         if (resp.transaction_status_distribution) {
             resp.transaction_status_distribution.forEach(function(d) {
@@ -290,8 +355,10 @@ $(document).ready(function() {
             }
             return '#999';
         });
+
+        $('#chartTransactionProgress').parent().find('.text-muted').remove();
         if (tpData.length > 0) {
-            new Chart($('#chartTransactionProgress'), {
+            chartTransactionProgress = new Chart($('#chartTransactionProgress'), {
                 type: 'doughnut',
                 data: {
                     labels: tpLabels,
@@ -314,7 +381,7 @@ $(document).ready(function() {
             $('#chartTransactionProgress').parent().html('<div class="text-muted text-center" style="padding:80px 0;">暂无数据</div>');
         }
 
-        // Role distribution chart - aggregate by name
+        // Role distribution chart
         var rdAgg = {};
         if (resp.role_distribution) {
             resp.role_distribution.forEach(function(d) {
@@ -324,12 +391,14 @@ $(document).ready(function() {
         }
         var rdLabels = Object.keys(rdAgg);
         var rdData = rdLabels.map(function(k) { return rdAgg[k]; });
+
+        $('#chartRoleDist').parent().find('.text-muted').remove();
         if (rdData.length > 0) {
             var rdBgColors = rdData.map(function(_, i) {
                 var colors = ['#4479C1', '#81C14B', '#FF9933', '#DC3912', '#990099'];
                 return colors[i % colors.length];
             });
-            new Chart($('#chartRoleDist'), {
+            chartRoleDist = new Chart($('#chartRoleDist'), {
                 type: 'doughnut',
                 data: {
                     labels: rdLabels,
@@ -391,14 +460,52 @@ $(document).ready(function() {
             });
         }
         $('#todo-list').html(todoHtml);
-    }).fail(function() {
-        // If API fails, show empty state
-        $('#stat-transactions').text('0');
-        $('#stat-documents').text('0');
-        $('#stat-pending').text('0');
-        $('#stat-notifications').text('0');
-        $('.chart-container').parent().html('<div class="text-muted text-center" style="padding:80px 0;">数据加载失败</div>');
+    }
+
+    // Main function to load dashboard stats
+    function loadDashboardStats(roleId) {
+        var url = '/api/v1/dashboard/student/';
+        if (roleId && roleId !== 'all') {
+            url += '?role_id=' + encodeURIComponent(roleId);
+        }
+
+        $.get(url, function(resp) {
+            // Update role selector
+            updateRoleSelector(resp.roles);
+
+            // Destroy old charts
+            destroyCharts();
+
+            // Render new data
+            renderCharts(resp);
+        }).fail(function() {
+            // If API fails, show empty state
+            $('#stat-transactions').text('0');
+            $('#stat-documents').text('0');
+            $('#stat-pending').text('0');
+            $('#stat-notifications').text('0');
+            $('.chart-container').parent().html('<div class="text-muted text-center" style="padding:80px 0;">数据加载失败</div>');
+        });
+    }
+
+    // Role filter change handler
+    $('#roleFilter').on('change', function() {
+        loadDashboardStats($(this).val());
     });
+
+    // Initial load
+    loadDashboardStats();
+
+    function formatTime(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+            + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function pad(n) { return n < 10 ? '0'+n : n; }
+});
+</script>
+{% endblock %}
 
     function formatTime(iso) {
         if (!iso) return '';

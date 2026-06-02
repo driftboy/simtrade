@@ -406,29 +406,65 @@ def teacher_dashboard_stats(request):
 
 @login_required
 def student_dashboard_stats(request):
-    """Student dashboard statistics API"""
+    """Student dashboard statistics API
+
+    Query params:
+        role_id: Filter by role ID. If 'all' or not provided, shows all roles' data.
+                 If a specific role ID is provided, shows only that role's data.
+    """
     from django.db.models import Count, Q
     from apps.users.models import User
     from apps.transactions.models import Transaction
     from apps.roles.models import UserCompanyRole, Company
+    from apps.roles.services import RoleService
 
     # Only students can access this
     if request.user.user_type != 'student':
         return JsonResponse({'error': 'Permission denied'}, status=403)
 
-    # Get student's documents
-    my_documents = Document.objects.filter(created_by=request.user)
+    # Get role filter parameter
+    role_filter = request.GET.get('role_id')
 
-    # Get student's companies (via UserCompanyRole)
-    my_company_ids = list(UserCompanyRole.objects.filter(
+    # Get all active roles for this student
+    all_roles = UserCompanyRole.objects.filter(
         user=request.user,
         status__in=['approved', 'active']
-    ).values_list('company_id', flat=True).distinct())
+    ).select_related('role', 'company')
 
-    # Get transactions involving student's companies
-    my_transactions = Transaction.objects.filter(
-        Q(buyer_id__in=my_company_ids) | Q(seller_id__in=my_company_ids)
-    ).distinct()
+    # Get current active role
+    current_role = RoleService.get_current_role(request.user)
+
+    # Determine which company IDs to use
+    my_company_ids = []
+    selected_role = None
+
+    if role_filter and role_filter != 'all':
+        # User selected a specific role
+        try:
+            selected_role = all_roles.get(id=int(role_filter))
+            if selected_role.company:
+                my_company_ids = [selected_role.company.id]
+        except (UserCompanyRole.DoesNotExist, ValueError):
+            pass
+    elif current_role and current_role.company:
+        # Use current active role
+        my_company_ids = [current_role.company.id]
+    else:
+        # No active role, collect all companies from all roles
+        my_company_ids = list(all_roles.filter(
+            Q(company__isnull=False) & ~Q(company_id=None)
+        ).values_list('company_id', flat=True).distinct())
+
+    # Get student's documents (all documents belong to the student, not filtered by role)
+    my_documents = Document.objects.filter(created_by=request.user)
+
+    # Get transactions - if no company_ids, return empty queryset
+    if my_company_ids:
+        my_transactions = Transaction.objects.filter(
+            Q(buyer_id__in=my_company_ids) | Q(seller_id__in=my_company_ids)
+        ).distinct()
+    else:
+        my_transactions = Transaction.objects.none()
 
     # Pending documents (draft or submitted but not approved)
     pending_documents = my_documents.filter(
@@ -466,6 +502,18 @@ def student_dashboard_stats(request):
         .values('id', 'template__name', 'status', 'created_at')
     )
 
+    # Prepare available roles for frontend
+    available_roles = [
+        {
+            'id': role.id,
+            'name': f"{role.company.name} - {role.role.name if role.role else 'N/A'}",
+            'company_id': role.company_id,
+            'role_code': role.role.code if role.role else None,
+            'is_current': current_role.id == role.id if current_role else False,
+        }
+        for role in all_roles
+    ]
+
     return JsonResponse({
         'summary': {
             'transactions_count': my_transactions.count(),
@@ -495,6 +543,16 @@ def student_dashboard_stats(request):
             }
             for d in recent_activities
         ],
+        # Role information for frontend
+        'roles': {
+            'available': available_roles,
+            'current': {
+                'id': current_role.id,
+                'name': f"{current_role.company.name} - {current_role.role.name if current_role.role else 'N/A'}",
+                'company_id': current_role.company_id,
+            } if current_role else None,
+            'selected': selected_role.id if selected_role else None,
+        },
     })
 
 
@@ -587,6 +645,15 @@ def teaching_course_detail(request, course_id):
 def teaching_grading(request):
     """Grading page"""
     return render(request, 'teaching/grading.html', {'user': request.user})
+
+
+@login_required
+@ensure_csrf_cookie
+def teaching_roles(request):
+    """Role requests management page for teachers"""
+    if request.user.user_type != 'teacher':
+        return redirect('dashboard')
+    return render(request, 'teaching/roles.html', {'user': request.user})
 
 
 @login_required
@@ -702,6 +769,7 @@ urlpatterns += [
     path('teaching/courses/', teaching_course_list, name='teaching-courses'),
     path('teaching/courses/<int:course_id>/', teaching_course_detail, name='teaching-course-detail'),
     path('teaching/grading/', teaching_grading, name='teaching-grading'),
+    path('teaching/roles/', teaching_roles, name='teaching-roles'),
     path('teaching/experiments/', teaching_experiments, name='teaching-experiments'),
     # Class management
     path('teaching/classes/', teaching_class_list, name='class-list'),

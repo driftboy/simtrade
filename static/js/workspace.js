@@ -288,6 +288,34 @@
     }
 
     // ---------------------------------------------------------------
+    // 点击统计卡片跳转到对应 tab
+    // ---------------------------------------------------------------
+    function initStatCardClick() {
+        $(document).on('click', '#stats-row .stat-card', function() {
+            var $card = $(this);
+            var api = $card.data('api');
+
+            // 验证属性存在性和有效性
+            if (!api || api === '' || api === undefined || api === null) {
+                console.log('No valid API found on stat card');
+                return;
+            }
+            console.log('Stat card clicked, API:', api);
+
+            // 查找匹配的 tab
+            var $matchingTab = $('#workspace-tab-nav a[data-api="' + api + '"]');
+            console.log('Matching tabs found:', $matchingTab.length);
+
+            if ($matchingTab.length > 0) {
+                console.log('Switching to tab:', $matchingTab.attr('href'));
+                $matchingTab.tab('show');
+            } else {
+                console.log('No matching tab found for API:', api);
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------
     // 初始化
     // ---------------------------------------------------------------
     function init() {
@@ -296,6 +324,9 @@
 
         // 初始化侧边栏
         initSidebar(config);
+
+        // 初始化统计卡片点击
+        initStatCardClick();
 
         // 加载统计
         loadStats();

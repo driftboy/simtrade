@@ -11,7 +11,7 @@ body {
 
 .main-content {
     flex: 1;
-    padding-top: 70px; /* Space for fixed navbar */
+    padding-top: 100px; /* Space for fixed navbar with role switcher */
     padding-bottom: 40px;
 }
 
@@ -102,7 +102,7 @@ body {
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .main-content {
-        padding-top: 60px;
+        padding-top: 90px;
     }
 
     .login-panel {
@@ -241,7 +241,7 @@ a:hover {
 
 /* IE8 Specific Fixes */
 .ie8 .main-content {
-    padding-top: 70px;
+    padding-top: 100px;
 }
 
 .ie8 .navbar-toggle {

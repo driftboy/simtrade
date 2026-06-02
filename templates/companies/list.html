@@ -10,25 +10,34 @@
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-        <h2>公司列表 <small style="color:#999;font-size:14px;">选择公司并申请角色</small></h2>
+        <h2>公司列表 <small style="color:#999;">选择公司并申请角色</small></h2>
         <hr>
     </div>
 </div>
 
 <!-- 搜索和筛选 -->
 <div class="row" style="margin-bottom:20px;">
-    <div class="col-md-6">
+    <div class="col-md-4">
         <input type="text" id="searchInput" class="form-control" placeholder="搜索公司名称...">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <select id="typeFilter" class="form-control">
             <option value="">全部类型</option>
-            <option value="贸易公司">贸易公司</option>
-            <option value="银行">银行</option>
-            <option value="物流公司">物流公司</option>
-            <option value="保险公司">保险公司</option>
-            <option value="工厂">工厂</option>
+            <option value="trading">贸易公司</option>
+            <option value="manufacturing">制造企业</option>
+            <option value="electronics">电子企业</option>
+            <option value="machinery">机械企业</option>
+            <option value="textiles">纺织企业</option>
+            <option value="banking">银行</option>
+            <option value="shipping">物流公司</option>
+            <option value="insurance">保险公司</option>
+            <option value="government">政府机构</option>
         </select>
+    </div>
+    <div class="col-md-3">
+        <button id="queryBtn" class="btn btn-primary btn-block">
+            <span class="glyphicon glyphicon-search"></span> 查询
+        </button>
     </div>
     <div class="col-md-3">
         <button id="refreshBtn" class="btn btn-default btn-block">
