@@ -73,46 +73,49 @@
 <!-- 统计卡片 -->
 <div class="row dashboard-stats">
     <div class="col-md-3">
-        <div class="dash-stat-card card-blue">
+        <a href="/admin-panel/users/" class="dash-stat-card card-blue">
             <div class="dash-stat-icon"><span class="glyphicon glyphicon-user"></span></div>
             <div class="dash-stat-info">
                 <div class="dash-stat-label">{{ "注册用户"|bilingual }}</div>
             </div>
             <div class="dash-stat-right">
                 <div class="dash-stat-value" id="stat-users">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="dash-stat-card card-green">
+        <a href="/documents/" class="dash-stat-card card-green">
             <div class="dash-stat-icon"><span class="glyphicon glyphicon-file"></span></div>
             <div class="dash-stat-info">
                 <div class="dash-stat-label">{{ "单证总数"|bilingual }}</div>
             </div>
             <div class="dash-stat-right">
                 <div class="dash-stat-value" id="stat-documents">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="dash-stat-card card-orange">
+        <a href="/teaching/courses/" class="dash-stat-card card-orange">
             <div class="dash-stat-icon"><span class="glyphicon glyphicon-transfer"></span></div>
             <div class="dash-stat-info">
                 <div class="dash-stat-label">{{ "课程总数"|bilingual }}</div>
             </div>
             <div class="dash-stat-right">
                 <div class="dash-stat-value" id="stat-courses">-</div>
+                <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <a href="/admin-panel/" class="dash-stat-card card-purple">
-            <div class="dash-stat-icon"><span class="glyphicon glyphicon-alert"></span></div>
+        <a href="/teaching/" class="dash-stat-card card-purple">
+            <div class="dash-stat-icon"><span class="glyphicon glyphicon-calendar"></span></div>
             <div class="dash-stat-info">
-                <div class="dash-stat-label">{{ "待审核单证"|bilingual }}</div>
+                <div class="dash-stat-label">{{ "活跃学期"|bilingual }}</div>
             </div>
             <div class="dash-stat-right">
-                <div class="dash-stat-value" id="stat-pending">-</div>
+                <div class="dash-stat-value" id="stat-semesters">-</div>
                 <span class="dash-stat-arrow glyphicon glyphicon-menu-right"></span>
             </div>
         </a>
@@ -242,7 +245,18 @@ $(document).ready(function() {
         $('#stat-users').text(resp.summary.total_users);
         $('#stat-documents').text(resp.summary.total_documents);
         $('#stat-courses').text(resp.summary.total_courses);
-        $('#stat-pending').text(resp.summary.pending_review);
+
+    // Active semesters
+    $.get('/api/v1/teaching/semesters/', function(semResp) {
+        var semesters = semResp.results || semResp.data || [];
+        var activeCount = 0;
+        for (var i = 0; i < semesters.length; i++) {
+            if (semesters[i].status === 'active') activeCount++;
+        }
+        $('#stat-semesters').text(activeCount);
+    }).fail(function() {
+        $('#stat-semesters').text('-');
+    });
 
         // Document type chart
         var docTypeLabels = resp.document_type_distribution.map(function(d) { return d.name || d.code; });
