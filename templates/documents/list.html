@@ -3,17 +3,16 @@
 {% block title %}我的单证 - SimTrade{% endblock %}
 
 {% block document_content %}
-<div class="row">
+<!-- 新建按钮 -->
+<div class="row" style="margin-bottom: 15px;">
     <div class="col-md-12">
-        <div class="page-header">
-            <h2>单证管理
-                <a href="/documents/create/" class="btn btn-primary pull-right">
-                    <span class="glyphicon glyphicon-plus"></span> 新建单证
-                </a>
-            </h2>
-        </div>
+        <a href="/documents/create/" class="btn btn-primary pull-right">
+            <span class="glyphicon glyphicon-plus"></span> {{ "新建单证"|bilingual }}
+        </a>
+    </div>
+</div>
 
-        <!-- 筛选器 -->
+<!-- 筛选器 -->
         <div class="panel panel-default">
             <div class="panel-body">
                 <div class="row">
@@ -41,10 +40,16 @@
             </div>
         </div>
 
+<!-- 顶部分页控件 -->
+<div id="paginationControlsTop" class="pagination-container" style="margin-bottom: 15px;"></div>
+
         <!-- 单证列表 -->
         <div id="documentList">
             <div class="text-center">加载中...</div>
         </div>
+
+<!-- 底部分页控件 -->
+<div id="paginationControlsBottom" class="pagination-container" style="margin-top: 15px;"></div>
     </div>
 </div>
 {% endblock %}
