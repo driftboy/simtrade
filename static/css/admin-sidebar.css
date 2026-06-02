@@ -24,18 +24,28 @@
     min-width: 200px;
     background-color: #262626;
     min-height: calc(100vh - 70px);
-    overflow: hidden;
+    overflow: visible;
     flex-shrink: 0;
     border-radius: 4px 0 0 4px;
+    padding-bottom: 20px;
 }
 
-.admin-sidebar .navbar-brand {
+/* Sidebar navbar brand */
+.admin-sidebar > .navbar-brand {
     padding: 15px 20px;
     color: #fff;
     font-size: 16px;
     font-weight: 600;
     background-color: #1a1a1a;
+    margin: 0 0 10px 0;
+    display: block;
+}
+
+/* Sidebar list group container */
+.admin-sidebar > .list-group {
     margin: 0;
+    padding: 0;
+    background-color: transparent;
 }
 
 .admin-sidebar .list-group-item {
