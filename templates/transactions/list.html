@@ -35,9 +35,14 @@
 {% endblock %}
 
 {% block content %}
+<!-- 面包屑 -->
+<ol class="breadcrumb">
+    <li><a href="/">{{ "首页"|bilingual }}</a></li>
+    <li class="active">{{ "交易管理"|bilingual }}</li>
+</ol>
+
 <div class="row">
     <div class="col-md-12">
-        <h2>我的交易</h2>
         <div id="transactionList">
             <div class="text-center">加载中...</div>
         </div>

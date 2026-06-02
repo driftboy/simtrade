@@ -25,6 +25,21 @@ class DocumentViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = DocumentPagination
 
+    def list(self, request, *args, **kwargs):
+        """获取单证列表（分页）"""
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'code': 0,
+            'message': 'success',
+            'data': serializer.data
+        })
+
     def get_serializer_class(self):
         if self.action == 'create':
             return DocumentCreateSerializer

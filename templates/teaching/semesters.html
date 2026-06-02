@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load static %}
+{% load bilingual %}
+
+{% block title %}{{ "学期管理"|bilingual }} - SimTrade{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/teaching.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>{{ "学期管理"|bilingual }}
+            <button class="btn btn-success pull-right" id="btn-add-semester">{{ "新增学期"|bilingual }}</button>
+        </h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">{{ "学期列表"|bilingual }}</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>{{ "学期名称"|bilingual }}</th>
+                            <th>{{ "代码"|bilingual }}</th>
+                            <th>{{ "开始日期"|bilingual }}</th>
+                            <th>{{ "结束日期"|bilingual }}</th>
+                            <th>{{ "状态"|bilingual }}</th>
+                            <th>{{ "操作"|bilingual }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="semester-table-body">
+                        <tr><td colspan="6" class="text-center">{{ "加载中..."|bilingual }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 学期编辑模态框 -->
+<div class="modal fade" id="semesterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title" id="semester-modal-title">{{ "新增学期"|bilingual }}</h4>
+            </div>
+            <div class="modal-body">
+                <form id="semester-form">
+                    <input type="hidden" id="sem-edit-id">
+                    <div class="form-group">
+                        <label>{{ "学期名称"|bilingual }} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="sem-name" placeholder="{{ "如：2026春季学期"|bilingual }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ "学期代码"|bilingual }} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="sem-code" placeholder="{{ "如：2026-SPRING"|bilingual }}" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>{{ "开始日期"|bilingual }} <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="sem-start" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ "结束日期"|bilingual }} <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="sem-end" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ "取消"|bilingual }}</button>
+                <button type="button" class="btn btn-primary" id="btn-save-semester">{{ "保存"|bilingual }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teaching.js' %}"></script>
+<script>
+$(document).ready(function() {
+    'use strict';
+
+    function loadSemesters() {
+        $.get('/api/v1/teaching/semesters/', function(resp) {
+            var semesters = resp.results || [];
+            var html = '';
+            if (semesters.length === 0) {
+                html = '<tr><td colspan="6" class="text-center">{{ "暂无学期"|bilingual }}</td></tr>';
+            } else {
+                semesters.forEach(function(sem) {
+                    var statusLabel = '';
+                    if (sem.status === 'active') {
+                        statusLabel = '<span class="label label-success">{{ "进行中"|bilingual }}</span>';
+                    } else if (sem.status === 'upcoming') {
+                        statusLabel = '<span class="label label-info">{{ "未开始"|bilingual }}</span>';
+                    } else {
+                        statusLabel = '<span class="label label-default">{{ "已结束"|bilingual }}</span>';
+                    }
+                    html += '<tr data-id="' + sem.id + '">' +
+                        '<td>' + SimTrade.escapeHtml(sem.name || '') + '</td>' +
+                        '<td><code>' + SimTrade.escapeHtml(sem.code || '') + '</code></td>' +
+                        '<td>' + (sem.start_date || '-') + '</td>' +
+                        '<td>' + (sem.end_date || '-') + '</td>' +
+                        '<td>' + statusLabel + '</td>' +
+                        '<td>' +
+                            '<button class="btn btn-xs btn-primary btn-activate-sem" data-id="' + sem.id + '"' + (sem.status === 'active' ? ' disabled' : '') + '>{{ "激活"|bilingual }}</button> ' +
+                            '<button class="btn btn-xs btn-warning btn-edit-sem" data-id="' + sem.id + '">{{ "编辑"|bilingual }}</button> ' +
+                            '<button class="btn btn-xs btn-danger btn-delete-sem" data-id="' + sem.id + '">{{ "删除"|bilingual }}</button>' +
+                        '</td></tr>';
+                });
+            }
+            $('#semester-table-body').html(html);
+        });
+    }
+
+    loadSemesters();
+
+    // 新增学期
+    $('#btn-add-semester').on('click', function() {
+        $('#sem-edit-id').val('');
+        $('#semester-modal-title').text('{{ "新增学期"|bilingual }}');
+        $('#sem-name, #sem-code, #sem-start, #sem-end').val('');
+        $('#semesterModal').modal('show');
+    });
+
+    // 编辑学期
+    $(document).on('click', '.btn-edit-sem', function() {
+        var id = $(this).data('id');
+        $.get('/api/v1/teaching/semesters/' + id + '/', function(resp) {
+            var sem = resp.data || resp;
+            $('#sem-edit-id').val(id);
+            $('#sem-name').val(sem.name || '');
+            $('#sem-code').val(sem.code || '');
+            $('#sem-start').val(sem.start_date || '');
+            $('#sem-end').val(sem.end_date || '');
+            $('#semester-modal-title').text('{{ "编辑学期"|bilingual }}');
+            $('#semesterModal').modal('show');
+        });
+    });
+
+    // 保存学期
+    $('#btn-save-semester').on('click', function() {
+        var id = $('#sem-edit-id').val();
+        var name = $('#sem-name').val().trim();
+        var code = $('#sem-code').val().trim();
+        var startDate = $('#sem-start').val();
+        var endDate = $('#sem-end').val();
+
+        if (!name || !code || !startDate || !endDate) {
+            alert('{{ "请填写完整信息"|bilingual }}');
+            return;
+        }
+
+        var data = { name: name, code: code, start_date: startDate, end_date: endDate };
+        var url = '/api/v1/teaching/semesters/';
+        var method = 'POST';
+
+        if (id) {
+            url = '/api/v1/teaching/semesters/' + id + '/';
+            method = 'PATCH';
+        }
+
+        $.ajax({
+            url: url, method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function() {
+                $('#semesterModal').modal('hide');
+                loadSemesters();
+            },
+            error: function(xhr) {
+                alert('{{ "保存失败"|bilingual }}: ' + ((xhr.responseJSON && xhr.responseJSON.message) || '{{ "未知错误"|bilingual }}'));
+            }
+        });
+    });
+
+    // 激活学期
+    $(document).on('click', '.btn-activate-sem', function() {
+        var id = $(this).data('id');
+        if (!confirm('{{ "确认激活该学期？"|bilingual }}')) return;
+        $.post('/api/v1/teaching/semesters/' + id + '/activate/', function() {
+            loadSemesters();
+        }).fail(function(xhr) {
+            alert('{{ "激活失败"|bilingual }}: ' + ((xhr.responseJSON && xhr.responseJSON.message) || '{{ "未知错误"|bilingual }}'));
+        });
+    });
+
+    // 删除学期
+    $(document).on('click', '.btn-delete-sem', function() {
+        var id = $(this).data('id');
+        if (!confirm('{{ "确认删除该学期？此操作不可恢复。"|bilingual }}')) return;
+        $.ajax({
+            url: '/api/v1/teaching/semesters/' + id + '/',
+            method: 'DELETE',
+            success: function() { loadSemesters(); },
+            error: function(xhr) {
+                alert('{{ "删除失败"|bilingual }}: ' + ((xhr.responseJSON && xhr.responseJSON.message) || '{{ "未知错误"|bilingual }}'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

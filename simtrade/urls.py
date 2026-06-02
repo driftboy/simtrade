@@ -642,6 +642,13 @@ def teaching_course_detail(request, course_id):
 
 @login_required
 @ensure_csrf_cookie
+def teaching_semesters(request):
+    """Semester management page"""
+    return render(request, 'teaching/semesters.html', {'user': request.user})
+
+
+@login_required
+@ensure_csrf_cookie
 def teaching_grading(request):
     """Grading page"""
     return render(request, 'teaching/grading.html', {'user': request.user})
@@ -766,6 +773,7 @@ urlpatterns += [
     path('documents/<int:id>/preview/', document_preview, name='document-preview'),
     # Teaching module
     path('teaching/', teaching_dashboard, name='teaching-dashboard'),
+    path('teaching/semesters/', teaching_semesters, name='teaching-semesters'),
     path('teaching/courses/', teaching_course_list, name='teaching-courses'),
     path('teaching/courses/<int:course_id>/', teaching_course_detail, name='teaching-course-detail'),
     path('teaching/grading/', teaching_grading, name='teaching-grading'),

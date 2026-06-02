@@ -59,11 +59,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="row" style="margin-bottom:16px;">
-    <div class="col-md-12">
-        <h4 style="font-weight:600;color:#262626;margin:0;">商品市场</h4>
-    </div>
-</div>
+<!-- 面包屑 -->
+<ol class="breadcrumb">
+    <li><a href="/">{{ "首页"|bilingual }}</a></li>
+    <li class="active">{{ "商品管理"|bilingual }}</li>
+</ol>
 
 <!-- 搜索栏 -->
 <div class="row mkt-search-bar">
