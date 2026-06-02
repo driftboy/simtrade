@@ -23,13 +23,47 @@
             <div class="panel-body">
                 <div id="messageList"></div>
                 <div id="messageForm" style="margin-top: 20px;">
-                    <div class="row">
-                        <div class="col-md-10">
-                            <textarea id="messageContent" class="form-control" rows="3" placeholder="输入消息内容..."></textarea>
+                    <textarea id="messageContent" class="form-control" rows="3" placeholder="输入消息内容..."></textarea>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label>商品名称</label>
+                        <input type="text" id="offerProductName" class="form-control" placeholder="商品名称" required>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                        <div class="col-md-6">
+                            <label>付款方式</label>
+                            <select id="offerPaymentTerm" class="form-control">
+                                <option value="">请选择</option>
+                                <option value="lc">信用证 (L/C)</option>
+                                <option value="dp">付款交单 (D/P)</option>
+                                <option value="da">承兑交单 (D/A)</option>
+                                <option value="tt">电汇 (T/T)</option>
+                                <option value="tt_advance">前T/T (预付)</option>
+                                <option value="tt_sight">后T/T (货到付款)</option>
+                                <option value="wu">西联汇款</option>
+                                <option value="other">其他</option>
+                            </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-6">
+                            <label>交货日期</label>
+                            <input type="date" id="offerDeliveryDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                        <div class="col-md-6">
+                            <label>包装要求</label>
+                            <input type="text" id="offerPacking" class="form-control" placeholder="如：纸箱包装">
+                        </div>
+                        <div class="col-md-6">
+                            <label>保险条款</label>
+                            <input type="text" id="offerInsurance" class="form-control" placeholder="如：由买方办理">
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                        <div class="col-md-6">
                             <button id="sendMessageBtn" class="btn btn-primary btn-block">发送</button>
-                            <button id="acceptOfferBtn" class="btn btn-success btn-block" style="margin-top: 10px;">接受报价</button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="acceptOfferBtn" class="btn btn-success btn-block">接受报价</button>
                         </div>
                     </div>
                 </div>
@@ -60,8 +94,8 @@ $(document).ready(function() {
                         <div class="panel-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>买方:</strong> ${tx.buyer_username}</p>
-                                    <p><strong>卖方:</strong> ${tx.seller_username}</p>
+                                    <p><strong>买方:</strong> ${tx.buyer_name || tx.buyer_company_name || '未指定'}</p>
+                                    <p><strong>卖方:</strong> ${tx.seller_name || tx.seller_company_name || '未指定'}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>数量:</strong> ${tx.quantity}</p>
@@ -92,11 +126,22 @@ $(document).ready(function() {
                     response.data.forEach(function(msg) {
                         var bubbleClass = msg.sender_role === 'buyer' ? 'bubble-right' : 'bubble-left';
                         var typeLabel = msg.message_type_display;
+                        var negotiationDetails = '';
+                        if (msg.product_name || msg.payment_term || msg.delivery_date || msg.packing || msg.insurance) {
+                            negotiationDetails = '<div class="negotiation-details" style="margin-top: 5px; padding: 5px; background: #f5f5f5; border-radius: 3px;">';
+                            if (msg.product_name) negotiationDetails += '<div><strong>商品:</strong> ' + msg.product_name + '</div>';
+                            if (msg.payment_term_display) negotiationDetails += '<div><strong>付款方式:</strong> ' + msg.payment_term_display + '</div>';
+                            if (msg.delivery_date) negotiationDetails += '<div><strong>交货日期:</strong> ' + msg.delivery_date + '</div>';
+                            if (msg.packing) negotiationDetails += '<div><strong>包装:</strong> ' + msg.packing + '</div>';
+                            if (msg.insurance) negotiationDetails += '<div><strong>保险:</strong> ' + msg.insurance + '</div>';
+                            negotiationDetails += '</div>';
+                        }
                         html += `
                             <div class="message-bubble ${bubbleClass}">
                                 <strong>${msg.sender_username}</strong> <span class="label label-default">${typeLabel}</span>
                                 <p>${msg.content}</p>
                                 ${msg.offered_price ? '<p><strong>报价: $' + msg.offered_price + '</strong></p>' : ''}
+                                ${negotiationDetails}
                                 <div class="message-time">${msg.created_at}</div>
                             </div>
                         `;
@@ -120,7 +165,12 @@ $(document).ready(function() {
 
         var data = {
             message_type: messageType,
-            content: content || '接受报价'
+            content: content || '接受报价',
+            product_name: $('#offerProductName').val(),
+            payment_term: $('#offerPaymentTerm').val(),
+            delivery_date: $('#offerDeliveryDate').val(),
+            packing: $('#offerPacking').val(),
+            insurance: $('#offerInsurance').val()
         };
 
         $.ajax({
@@ -133,6 +183,11 @@ $(document).ready(function() {
             },
             success: function(response) {
                 $('#messageContent').val('');
+                $('#offerProductName').val('');
+                $('#offerPaymentTerm').val('');
+                $('#offerDeliveryDate').val('');
+                $('#offerPacking').val('');
+                $('#offerInsurance').val('');
                 loadMessages();
                 loadTransactionDetail();
             },
