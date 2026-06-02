@@ -20,16 +20,19 @@ class TransactionSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
     seller_company_name = serializers.CharField(source='seller.name', read_only=True)
     seller_company_code = serializers.CharField(source='seller.code', read_only=True)
-    product_name = serializers.CharField(source='product.name', read_only=True)
+    # product_name 使用模型快照字段，而非动态获取 product.name
+    product_name = serializers.CharField(read_only=True)
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     product_code = serializers.CharField(source='product.code', read_only=True)
-    # seller 可选：市场询盘时买方不知道卖方是谁
+    # 市场询盘场景支持：以下字段设为可选以支持买方发起询盘时暂不明确具体交易条件
+    # - seller: 买方可能不知道具体卖方是谁（如向市场发布询盘）
+    # - quantity/unit_price: 买方可能只询问商品信息而不指定具体数量/价格
+    # - currency/payment_term/delivery_date: 同样支持模糊询盘场景
     seller = serializers.PrimaryKeyRelatedField(
         queryset=Company.objects.all(),
         required=False,
         allow_null=True
     )
-    # quantity, unit_price 可选：询盘时买方可能只询问不指定数量价格
     quantity = serializers.IntegerField(required=False, allow_null=True)
     unit_price = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, allow_null=True
