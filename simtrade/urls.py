@@ -233,7 +233,7 @@ def dashboard_view(request):
     """根据用户类型分发仪表盘"""
     user_type = request.user.user_type
     if user_type == 'admin':
-        return render(request, 'dashboard/admin.html', {'user': request.user})
+        return render(request, 'admin/dashboard.html', {'user': request.user})
     elif user_type == 'teacher':
         return render(request, 'dashboard/teacher.html', {'user': request.user})
     return render(request, 'dashboard/student.html', {'user': request.user})
